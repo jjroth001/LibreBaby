@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, type ScrollViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 type ScreenProps = {
   children: ReactNode;
@@ -35,7 +35,8 @@ export function Screen({
           styles.content,
           {
             paddingTop: (belowHeader ? 0 : insets.top) + Spacing.four,
-            paddingBottom: insets.bottom + (withTabBar ? BottomTabInset : 0) + Spacing.four,
+            // The tab bar sits below the content and handles the bottom inset itself.
+            paddingBottom: (withTabBar ? 0 : insets.bottom) + Spacing.four,
           },
         ]}>
         {children}

@@ -4,7 +4,7 @@ import Animated from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Motion } from '@/constants/motion';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 const VISIBLE_MS = 5000;
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: Spacing.three,
     right: Spacing.three,
-    bottom: BottomTabInset + Spacing.three,
+    bottom: Spacing.three,
   },
   banner: {
     minHeight: 56,

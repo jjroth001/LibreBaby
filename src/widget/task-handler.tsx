@@ -21,13 +21,23 @@ async function loadModel(): Promise<WidgetModel> {
 }
 
 /** Android calls this to draw the widget: when added, resized, and on its update schedule. */
-export const widgetTaskHandler: WidgetTaskHandler = async ({ widgetAction, renderWidget }) => {
+export const widgetTaskHandler: WidgetTaskHandler = async ({
+  widgetAction,
+  widgetInfo,
+  renderWidget,
+}) => {
   switch (widgetAction) {
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
       try {
-        renderWidget(<LibreBabyWidget model={await loadModel()} />);
+        renderWidget(
+          <LibreBabyWidget
+            model={await loadModel()}
+            width={widgetInfo.width}
+            height={widgetInfo.height}
+          />,
+        );
       } catch (error) {
         console.error('LibreBaby widget failed to draw', error);
         renderWidget(<FallbackWidget />);

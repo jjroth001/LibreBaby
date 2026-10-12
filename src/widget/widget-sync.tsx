@@ -17,7 +17,9 @@ async function redraw(model: WidgetModel) {
   try {
     await requestWidgetUpdate({
       widgetName: WIDGET_NAME,
-      renderWidget: () => <LibreBabyWidget model={model} />,
+      renderWidget: (info) => (
+        <LibreBabyWidget model={model} width={info.width} height={info.height} />
+      ),
     });
   } catch (error) {
     console.error('LibreBaby widget failed to draw', error);

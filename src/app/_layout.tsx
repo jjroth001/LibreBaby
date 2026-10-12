@@ -4,13 +4,15 @@ import { SQLiteProvider } from 'expo-sqlite';
 import * as SystemUI from 'expo-system-ui';
 import { Suspense, useEffect } from 'react';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { migrateDbIfNeeded } from '@/db/migrations';
 import { useChild } from '@/db/use-child';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
+// Keep the moon splash up until the database is open and we know which screen to show,
+// then let Android fade it out.
 SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ duration: 300, fade: true });
 
 export default function RootLayout() {
   const dark = useColorScheme() === 'dark';
@@ -45,7 +47,6 @@ export default function RootLayout() {
           <RootNavigator />
         </SQLiteProvider>
       </Suspense>
-      <AnimatedSplashOverlay />
     </ThemeProvider>
   );
 }
@@ -61,7 +62,11 @@ const logSheet = {
 function RootNavigator() {
   const theme = useTheme();
   const child = useChild();
-  if (child.status === 'loading') return null;
+  const ready = child.status !== 'loading';
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+  if (!ready) return null;
   const hasChild = child.data != null;
 
   return (

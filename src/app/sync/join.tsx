@@ -46,7 +46,9 @@ export default function JoinScreen() {
           onPress: async () => {
             try {
               await sync.join(invite);
-              if (router.canGoBack()) router.back();
+              // Go to the sync status. (From the welcome screen there's nothing to go back
+              // to: joining creates the profile, which replaces the welcome screen.)
+              router.replace('/settings');
             } catch (error) {
               handling.current = false;
               Alert.alert('Couldn’t join', (error as Error).message);

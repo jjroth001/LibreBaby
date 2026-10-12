@@ -14,10 +14,14 @@ function flatten(params: unknown[]): Params {
   return params.length === 1 && Array.isArray(params[0]) ? (params[0] as Params) : params;
 }
 
-export function openTestDatabase(): SQLiteDatabase {
+/**
+ * A fresh database. Pass `migrations` to stop early (e.g. to create data the way an older
+ * app version would), then finish with `runMigrations`.
+ */
+export function openTestDatabase(migrations = migrateSql().length): SQLiteDatabase {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys = ON;');
-  for (const sql of migrateSql()) db.exec(sql);
+  for (const sql of migrateSql().slice(0, migrations)) db.exec(sql);
 
   const adapter = {
     async execAsync(sql: string) {
@@ -55,4 +59,9 @@ export function openTestDatabase(): SQLiteDatabase {
     },
   };
   return adapter as unknown as SQLiteDatabase;
+}
+
+/** Applies migrations [from, to) — simulates upgrading the app. */
+export async function runMigrations(db: SQLiteDatabase, from: number, to = migrateSql().length) {
+  for (const sql of migrateSql().slice(from, to)) await db.execAsync(sql);
 }

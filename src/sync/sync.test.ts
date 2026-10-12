@@ -8,7 +8,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { createChild } from '@/db/children';
 import { deleteEvent, insertEvent, listEvents, startTimer, updateEvent } from '@/db/events';
 import type { Child } from '@/db/types';
-import { openTestDatabase } from '@/test-utils/node-sqlite';
+import { openTestDatabase, runMigrations } from '@/test-utils/node-sqlite';
 import { channelPair, newKey } from '@/test-utils/sync-channel';
 
 import { runSyncSession } from './session';
@@ -160,6 +160,36 @@ describe('family sync', () => {
       const running = (await all(phone, child.id)).filter((e) => e.endAt === null);
       expect(running.map((e) => e.id)).toEqual([early.id]);
     }
+  });
+
+  it('sends entries from before sync existed (upgrade from 1.2 to 1.3.0, then 1.3.1)', async () => {
+    // Dad logged entries on an app version without change tracking (migrations 1-3).
+    const dadDb = openTestDatabase(3);
+    const robin = await createChild(dadDb, {
+      name: 'Robin',
+      birthDate: '2026-03-14',
+      sex: 'male',
+    });
+    for (let i = 0; i < 5; i++) await insertEvent(dadDb, diaper(robin.id, clock - i * MIN));
+    // Updated to 1.3.0 (migration 4), paired, and the first sync recorded Mom as sent-to
+    // without sending those old rows (the 1.3.0 bug).
+    await runMigrations(dadDb, 3, 4);
+    await dadDb.runAsync(
+      "INSERT INTO sync_peer (device_id, name, last_sent_seq) VALUES ('device-b', 'Mom', (SELECT n FROM sync_counter))",
+    );
+    // Then updated to 1.3.1.
+    await runMigrations(dadDb, 4);
+
+    const dad: Phone = { db: dadDb, deviceId: 'device-a', name: 'Dad' };
+    const mom: Phone = { db: openTestDatabase(), deviceId: 'device-b', name: 'Mom' };
+    await mom.db.runAsync(
+      "INSERT INTO child (id, name, birth_date, created_at, updated_at) VALUES (?, 'Baby', '2026-03-14', 0, 0)",
+      robin.id,
+    );
+
+    await sync(dad, mom);
+    expect(await all(mom, robin.id)).toHaveLength(5);
+    expect(await mom.db.getFirstAsync('SELECT name FROM child')).toEqual({ name: 'Robin' });
   });
 
   it('refuses a phone with the wrong family key, without changing anything', async () => {

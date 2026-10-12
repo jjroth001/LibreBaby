@@ -16,15 +16,15 @@ export async function currentChangeSeq(db: SQLiteDatabase): Promise<number> {
   return row?.n ?? 0;
 }
 
-/** Rows changed here after counter value `since`. Rows from before sync existed count as 0. */
+/** Rows changed here after counter value `since`. Never-stamped rows are always included. */
 export async function collectChanges(db: SQLiteDatabase, since: number): Promise<Changeset> {
   const [children, events] = await Promise.all([
     db.getAllAsync<ChildRow>(
-      `SELECT ${CHILD_COLUMNS} FROM child WHERE COALESCE(change_seq, 0) > ?`,
+      `SELECT ${CHILD_COLUMNS} FROM child WHERE change_seq IS NULL OR change_seq > ?`,
       since,
     ),
     db.getAllAsync<EventRow>(
-      `SELECT ${EVENT_COLUMNS} FROM event WHERE COALESCE(change_seq, 0) > ? ORDER BY start_at`,
+      `SELECT ${EVENT_COLUMNS} FROM event WHERE change_seq IS NULL OR change_seq > ? ORDER BY start_at`,
       since,
     ),
   ]);

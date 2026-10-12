@@ -112,6 +112,15 @@ const MIGRATIONS: string[] = [
     last_synced_at  INTEGER
   );
   `,
+
+  // 5: rows that existed before migration 4 were never stamped (change_seq NULL), and the
+  // first sync only sent stamped rows — so a phone's older entries and profile never
+  // reached a newly paired phone. Stamp them all now so the next sync sends them.
+  `
+  UPDATE sync_counter SET n = n + 1 WHERE id = 1;
+  UPDATE event SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE change_seq IS NULL;
+  UPDATE child SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE change_seq IS NULL;
+  `,
 ];
 
 /** The migration SQL in order (for tests that build a database from scratch). */

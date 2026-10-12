@@ -1,0 +1,89 @@
+# LibreBaby — Product Spec
+
+A free, private, open-source baby tracker. Inspired by the feature set of apps like Huckleberry,
+built clean-room: no decompiled code, copied assets, or copied text.
+
+**Phase 1 audience:** our family (Android only, sideloaded APK).
+**Later:** public open-source release.
+
+## Principles
+
+1. **One-handed, 3am-friendly.** Logging anything takes ≤ 2 taps from the home screen. Big targets, dark mode by default at night.
+2. **Offline-first.** All data lives on the phone (SQLite). The app never needs a network to work.
+3. **Private by default.** No accounts, analytics, or third-party services in v1.
+4. **Event log is the source of truth.** Everything (sleep, feed, diaper, growth) is a timestamped event; all charts and predictions are derived from it.
+
+## MVP (v1) — scope
+
+### Tracking
+| Event | Fields | Interaction |
+|---|---|---|
+| **Sleep** | start, end, notes | Start/stop timer (survives app close), or manual entry |
+| **Feed — breast** | start, end, side (L/R/both), per-side durations | Timer with L/R toggle; remembers last side |
+| **Feed — bottle** | time, amount (ml/oz), content (breast milk/formula) | Quick entry with last amount prefilled |
+| **Feed — solids** | time, foods, notes | Quick entry |
+| **Diaper** | time, wet / dirty / both, notes | One-tap buttons |
+
+All events: editable and deletable after the fact.
+
+### Screens
+1. **Home** — "Last sleep / last feed / last diaper: X min ago", active timers, quick-log buttons, next-nap estimate.
+2. **Timeline** — today's events in a vertical day view; swipe between days.
+3. **Insights** — daily totals (sleep hours, # feeds, ml, diapers) and 7-day trend.
+4. **Settings** — child profile (name, birth date), units (ml/oz), theme, data export (JSON/CSV) and import.
+
+### Next-nap estimate (our own "sweet spot")
+Simple, transparent, and explainable:
+- Look up age-based **wake window** range (from published pediatric guidance; table lives in code and is documented).
+- Next nap window = end of last sleep + wake window range.
+- v1.1: personalize by blending in the child's own recent average wake windows.
+- Optional notification "Nap window opens in 15 min".
+
+## v2 and later
+- **Multi-caregiver sync** — self-hostable sync server (both parents' phones share one log).
+- Multiple children.
+- Growth tracking (weight/length/head) with WHO percentile charts (public data).
+- Pumping, medications, temperature.
+- Reminders (e.g. "feed due in ~3h").
+- Home-screen widget for one-tap logging.
+- Public release: choose license, F-Droid / Play Store listing.
+
+## Data model (v1)
+
+```
+child
+  id, name, birth_date, created_at
+
+event
+  id            text (uuid)
+  child_id      → child.id
+  type          'sleep' | 'feed_breast' | 'feed_bottle' | 'feed_solids' | 'diaper'
+  start_at      integer (unix ms)
+  end_at        integer (unix ms, null = in progress / instantaneous)
+  data          text (JSON, type-specific — see below)
+  notes         text
+  created_at, updated_at, deleted_at   (soft delete; makes future sync easier)
+```
+
+Type-specific `data`:
+- `feed_breast`: `{ "side": "L"|"R"|"both", "left_ms": n, "right_ms": n }`
+- `feed_bottle`: `{ "amount_ml": n, "content": "breast_milk"|"formula" }`
+- `feed_solids`: `{ "foods": string[] }`
+- `diaper`: `{ "wet": bool, "dirty": bool }`
+
+Amounts are stored in metric; display units are a setting.
+
+## Tech stack
+- Expo SDK 57 + React Native + TypeScript
+- Expo Router (file-based navigation, `src/app/`)
+- `expo-sqlite` + Drizzle ORM (typed schema + migrations)
+- `expo-notifications` (nap window alerts)
+- Distribution: EAS Build → APK, sideloaded to family phones
+
+## Milestones
+1. **M0** — Scaffold, spec, run template on phone via Expo Go. ← *we are here*
+2. **M1** — Database + data model, child profile setup screen.
+3. **M2** — Home screen with sleep, feed, diaper logging + timers.
+4. **M3** — Timeline + edit/delete.
+5. **M4** — Next-nap estimate + notifications.
+6. **M5** — Insights, export/import, first APK build for family.

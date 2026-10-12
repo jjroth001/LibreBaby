@@ -12,7 +12,7 @@ function tabIcon(name: AndroidSymbol) {
 }
 
 /**
- * Bottom tabs built on a pager, so Home / Timeline / Settings slide left and right
+ * Bottom tabs built on a pager, so Home / Timeline / Insights / Settings slide left and right
  * when tapped and can be swiped between. (Android's native tab bar can't swipe.)
  */
 export default function AppTabs() {
@@ -44,6 +44,10 @@ export default function AppTabs() {
       <TopTabs.Screen
         name="timeline"
         options={{ title: 'Timeline', tabBarIcon: tabIcon('schedule') }}
+      />
+      <TopTabs.Screen
+        name="insights"
+        options={{ title: 'Insights', tabBarIcon: tabIcon('bar_chart') }}
       />
       <TopTabs.Screen
         name="settings"

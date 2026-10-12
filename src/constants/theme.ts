@@ -16,6 +16,8 @@ export const Colors = {
     textSecondary: '#60646C',
     tint: '#3E63DD',
     onTint: '#ffffff',
+    /** Chart marks; validated (dataviz checks) against backgroundElement. */
+    chart: '#3E63DD',
     danger: '#CE2C31',
   },
   dark: {
@@ -26,6 +28,8 @@ export const Colors = {
     textSecondary: '#B0B4BA',
     tint: '#9EB1FF',
     onTint: '#0B1437',
+    /** Deeper than tint: chart fills need OKLCH L 0.48–0.67 on dark surfaces. */
+    chart: '#7089EA',
     danger: '#FF9592',
   },
 } as const;

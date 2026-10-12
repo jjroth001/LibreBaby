@@ -36,12 +36,16 @@ const DAY_STARTS_HOUR = 6;
 const DAY_ENDS_HOUR = 20;
 
 /**
- * Daytime awake stretches from the last week: the gap between one sleep ending
+ * Daytime awake stretches from the last week (or `lookbackMs`): the gap between one sleep ending
  * and the next starting. Implausibly short or long gaps (missed logs) are ignored.
  */
-export function recentWakeWindows(sleeps: BabyEvent<'sleep'>[], now: number): number[] {
+export function recentWakeWindows(
+  sleeps: BabyEvent<'sleep'>[],
+  now: number,
+  lookbackMs: number = LOOKBACK_MS,
+): number[] {
   const finished = sleeps
-    .filter((s) => s.endAt != null && s.endAt > now - LOOKBACK_MS)
+    .filter((s) => s.endAt != null && s.endAt > now - lookbackMs)
     .sort((a, b) => a.startAt - b.startAt);
 
   const gaps: number[] = [];

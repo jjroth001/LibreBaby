@@ -97,4 +97,4 @@ Amounts are stored in metric; display units are a setting.
 4. **M3** — Timeline + edit/delete. ✅
 5. **M4** — Next-nap estimate + notifications. ✅
 6. **M5** — Insights, export/import, first APK build for family. Insights ✅ backup/restore/CSV ✅ icon+splash ✅ — first APK ✅ (2026-10-11, local Gradle build, see BUILDING.md)
-7. **M6** — Home-screen widget (last feed + next sleep window; clock times, refreshed on every log and ~30 min). Needs an installed build (react-native-android-widget), so it comes last. Requested by user; deferred to the end on 2026-10-11.
+7. **M6** — Home-screen widget (last feed, next sleep window, last diaper; clock times, refreshed on every log and ~30 min) ✅ (2026-10-12, v1.1.0)

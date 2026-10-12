@@ -8,6 +8,8 @@
     "scheme": "librebaby",
     "userInterfaceStyle": "automatic",
     "android": {
+      "package": "org.librebaby.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#2B3A8F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -33,7 +35,8 @@
       "expo-sqlite",
       "@react-native-community/datetimepicker",
       "expo-notifications",
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/with-release-signing"
     ],
     "experiments": {
       "typedRoutes": true,

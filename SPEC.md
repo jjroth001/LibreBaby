@@ -93,5 +93,5 @@ Amounts are stored in metric; display units are a setting.
 3. **M2** — Home screen with sleep, feed, diaper logging + timers. ✅ (also: ml/oz setting, unit tests via `npm test`)
 4. **M3** — Timeline + edit/delete. ✅
 5. **M4** — Next-nap estimate + notifications. ✅
-6. **M5** — Insights, export/import, first APK build for family. ← *next*
+6. **M5** — Insights, export/import, first APK build for family. Insights ✅ backup/restore/CSV ✅ icon+splash ✅ — APK build ← *next* (needs an Expo account for EAS, or Android Studio locally)
 7. **M6** — Home-screen widget (last feed + next sleep window; clock times, refreshed on every log and ~30 min). Needs an installed build (react-native-android-widget), so it comes last. Requested by user; deferred to the end on 2026-10-11.

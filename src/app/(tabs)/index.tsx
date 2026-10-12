@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import type { Action } from '@/components/home/action-grid';
 import { LastEvents } from '@/components/home/last-events';
@@ -13,6 +14,7 @@ import { UndoBanner } from '@/components/home/undo-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Motion } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import {
   deleteEvent,
@@ -242,36 +244,53 @@ function Home({ child }: { child: Child }) {
           <ThemedText themeColor="textSecondary">{formatAge(child.birthDate)} old</ThemedText>
         </View>
 
-        {runningSleep && <RunningSleepCard event={runningSleep} now={now} />}
-        {runningBreast && <RunningBreastCard event={runningBreast} now={now} />}
+        {/* Cards fade in and out; everything below glides to its new place. */}
+        {runningSleep && (
+          <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={Motion.layout}>
+            <RunningSleepCard event={runningSleep} now={now} />
+          </Animated.View>
+        )}
+        {runningBreast && (
+          <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={Motion.layout}>
+            <RunningBreastCard event={runningBreast} now={now} />
+          </Animated.View>
+        )}
 
-        <SleepWindowCard state={sleepState} now={now} childName={child.name} />
+        {(sleepState.status === 'awake' || sleepState.status === 'no-data') && (
+          <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={Motion.layout}>
+            <SleepWindowCard state={sleepState} now={now} childName={child.name} />
+          </Animated.View>
+        )}
 
-        <LastEvents
-          now={now}
-          unit={unit}
-          sleeping={!!runningSleep}
-          lastSleep={latest.data.sleep}
-          lastFeed={latest.data.feed}
-          lastDiaper={latest.data.diaper}
-        />
+        <Animated.View layout={Motion.layout}>
+          <LastEvents
+            now={now}
+            unit={unit}
+            sleeping={!!runningSleep}
+            lastSleep={latest.data.sleep}
+            lastFeed={latest.data.feed}
+            lastDiaper={latest.data.diaper}
+          />
+        </Animated.View>
 
-        <LogMenu
-          open={openMenu}
-          onToggle={(category) => {
-            const opening = openMenu !== category;
-            revealMenu.current = opening;
-            // Switching between two open submenus of equal height won't change the
-            // content size, so also scroll right away in that case.
-            if (opening && openMenu !== null) scrollRef.current?.scrollToEnd({ animated: true });
-            setOpenMenu(opening ? category : null);
-          }}
-          onClose={() => {
-            revealMenu.current = false;
-            setOpenMenu(null);
-          }}
-          actions={actions}
-        />
+        <Animated.View layout={Motion.layout}>
+          <LogMenu
+            open={openMenu}
+            onToggle={(category) => {
+              const opening = openMenu !== category;
+              revealMenu.current = opening;
+              // Switching between two open submenus of equal height won't change the
+              // content size, so also scroll right away in that case.
+              if (opening && openMenu !== null) scrollRef.current?.scrollToEnd({ animated: true });
+              setOpenMenu(opening ? category : null);
+            }}
+            onClose={() => {
+              revealMenu.current = false;
+              setOpenMenu(null);
+            }}
+            actions={actions}
+          />
+        </Animated.View>
       </Screen>
 
       {undo && (

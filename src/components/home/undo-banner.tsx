@@ -1,7 +1,9 @@
 import { useEffect, useEffectEvent } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { Motion } from '@/constants/motion';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -26,24 +28,28 @@ export function UndoBanner({ message, onUndo, onDismiss }: UndoBannerProps) {
   }, []);
 
   return (
-    <Pressable
-      onPress={onDismiss}
-      style={[styles.banner, { backgroundColor: theme.text }]}
-      accessibilityLiveRegion="polite">
-      <ThemedText style={[styles.message, { color: theme.background }]}>{message}</ThemedText>
-      <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={12}>
-        <ThemedText style={[styles.undo, { color: theme.tint }]}>UNDO</ThemedText>
+    <Animated.View entering={Motion.rise} exiting={Motion.sink} style={styles.position}>
+      <Pressable
+        onPress={onDismiss}
+        style={[styles.banner, { backgroundColor: theme.text }]}
+        accessibilityLiveRegion="polite">
+        <ThemedText style={[styles.message, { color: theme.background }]}>{message}</ThemedText>
+        <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={12}>
+          <ThemedText style={[styles.undo, { color: theme.tint }]}>UNDO</ThemedText>
+        </Pressable>
       </Pressable>
-    </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  banner: {
+  position: {
     position: 'absolute',
     left: Spacing.three,
     right: Spacing.three,
     bottom: BottomTabInset + Spacing.three,
+  },
+  banner: {
     minHeight: 56,
     borderRadius: Spacing.three,
     paddingHorizontal: Spacing.three,

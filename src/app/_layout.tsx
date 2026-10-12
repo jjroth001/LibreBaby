@@ -50,7 +50,12 @@ export default function RootLayout() {
   );
 }
 
-const logSheet = { presentation: 'modal', headerShown: true } as const;
+// Log and edit forms slide up like a sheet, rather than Android's default transition.
+const logSheet = {
+  presentation: 'modal',
+  animation: 'slide_from_bottom',
+  headerShown: true,
+} as const;
 
 /** Until a child profile exists, only onboarding is reachable; afterwards, only the tabs. */
 function RootNavigator() {
@@ -63,7 +68,7 @@ function RootNavigator() {
     <Stack
       screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Protected guard={hasChild}>
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="log/sleep" options={{ ...logSheet, title: 'Log sleep' }} />
         <Stack.Screen name="log/breast" options={{ ...logSheet, title: 'Log breastfeed' }} />
         <Stack.Screen name="log/bottle" options={{ ...logSheet, title: 'Log bottle' }} />
@@ -74,7 +79,7 @@ function RootNavigator() {
         <Stack.Screen name="event/[id]" options={{ ...logSheet, title: 'Edit' }} />
       </Stack.Protected>
       <Stack.Protected guard={!hasChild}>
-        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
       </Stack.Protected>
     </Stack>
   );

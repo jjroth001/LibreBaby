@@ -1,7 +1,9 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { ActionGrid, type Action } from '@/components/home/action-grid';
 import { ThemedText } from '@/components/themed-text';
+import { Motion } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -51,16 +53,19 @@ export function LogMenu({ open, onToggle, onClose, actions }: LogMenuProps) {
         })}
       </View>
 
+      {/* Keyed by category so switching submenus replays the slide-in. */}
       {open && (
-        <ActionGrid
-          actions={actions[open].map((action) => ({
-            ...action,
-            onPress: () => {
-              onClose();
-              action.onPress();
-            },
-          }))}
-        />
+        <Animated.View key={open} entering={Motion.enter}>
+          <ActionGrid
+            actions={actions[open].map((action) => ({
+              ...action,
+              onPress: () => {
+                onClose();
+                action.onPress();
+              },
+            }))}
+          />
+        </Animated.View>
       )}
     </View>
   );

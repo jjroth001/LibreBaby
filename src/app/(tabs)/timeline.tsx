@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { DayPicker } from '@/components/timeline/day-picker';
 import { DayTotals } from '@/components/timeline/day-totals';
 import { EventRow } from '@/components/timeline/event-row';
+import { Motion } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { listEvents, TIMER_TYPES } from '@/db/events';
 import type { BabyEvent, Child } from '@/db/types';
@@ -55,25 +57,27 @@ function Timeline({ child }: { child: Child }) {
           Nothing logged {day === today ? 'yet today' : 'this day'}.
         </ThemedText>
       ) : (
-        <View style={styles.list}>
+        // Keyed by day so changing days cross-fades the list; rows glide when one is removed.
+        <Animated.View key={day} entering={Motion.fadeIn} style={styles.list}>
           {newestFirst.map((event) => {
             const running = isRunning(event);
             return (
-              <EventRow
-                key={event.id}
-                event={event}
-                unit={unit}
-                dayStart={day}
-                running={running}
-                onPress={() =>
-                  running
-                    ? router.navigate('/(tabs)/index')
-                    : router.push({ pathname: '/event/[id]', params: { id: event.id } })
-                }
-              />
+              <Animated.View key={event.id} exiting={Motion.exit} layout={Motion.layout}>
+                <EventRow
+                  event={event}
+                  unit={unit}
+                  dayStart={day}
+                  running={running}
+                  onPress={() =>
+                    running
+                      ? router.navigate('/(tabs)/index')
+                      : router.push({ pathname: '/event/[id]', params: { id: event.id } })
+                  }
+                />
+              </Animated.View>
             );
           })}
-        </View>
+        </Animated.View>
       )}
     </Screen>
   );

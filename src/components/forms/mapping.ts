@@ -11,7 +11,7 @@ export function cleanNotes(notes: string): string | null {
   return notes.trim() || null;
 }
 
-// Forms show rounded values (whole minutes, 0.1 oz). When a value comes back unchanged,
+// Forms show rounded values (whole minutes, 0.01 oz). When a value comes back unchanged,
 // keep the stored precise value so that merely opening and saving an event never drifts it.
 
 export function breastToValues(event: BabyEvent<'feed_breast'>): BreastValues {

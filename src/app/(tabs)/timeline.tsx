@@ -70,7 +70,7 @@ function Timeline({ child }: { child: Child }) {
                   running={running}
                   onPress={() =>
                     running
-                      ? router.navigate('/(tabs)/index')
+                      ? router.navigate('/')
                       : router.push({ pathname: '/event/[id]', params: { id: event.id } })
                   }
                 />

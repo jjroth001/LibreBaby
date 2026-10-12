@@ -33,6 +33,12 @@ describe('units', () => {
     expect(fromMl(toMl(2.5, 'oz'), 'oz')).toBe(2.5);
   });
 
+  it('keeps quarter ounces exact (pumping steps by 0.25 oz)', () => {
+    for (const oz of [0.25, 1.25, 2.75, 3.5]) {
+      expect(fromMl(toMl(oz, 'oz'), 'oz')).toBe(oz);
+    }
+  });
+
   it('shows ml as whole numbers', () => {
     expect(fromMl(118.29, 'ml')).toBe(118);
   });

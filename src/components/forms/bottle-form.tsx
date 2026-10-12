@@ -45,7 +45,7 @@ export function BottleForm({
         value={amount}
         onChange={setAmount}
         step={preset.step}
-        display={`${amount} ${unit}`}
+        suffix={unit}
         accessibilityName="amount"
       />
 

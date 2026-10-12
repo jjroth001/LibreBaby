@@ -49,7 +49,8 @@ export function BreastForm({ initial, submitLabel = 'Save', onSubmit }: FormProp
           value={leftMin}
           onChange={setLeftMin}
           step={1}
-          display={`${leftMin} min`}
+          suffix="min"
+          integer
           accessibilityName="left side minutes"
           size="medium"
         />
@@ -63,7 +64,8 @@ export function BreastForm({ initial, submitLabel = 'Save', onSubmit }: FormProp
           value={rightMin}
           onChange={setRightMin}
           step={1}
-          display={`${rightMin} min`}
+          suffix="min"
+          integer
           accessibilityName="right side minutes"
           size="medium"
         />

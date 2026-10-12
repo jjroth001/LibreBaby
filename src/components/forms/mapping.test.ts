@@ -82,7 +82,7 @@ describe('bottle form mapping', () => {
   };
 
   it('keeps the stored ml when the amount is not changed', () => {
-    const values = bottleToValues(bottle, 'oz'); // 120 ml shows as 4.1 oz
+    const values = bottleToValues(bottle, 'oz'); // 120 ml shows as 4.06 oz
     expect(bottleAmountMl(values, 'oz', bottle)).toBe(120);
   });
 

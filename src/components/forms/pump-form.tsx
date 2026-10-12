@@ -8,7 +8,7 @@ import { Stepper } from '@/components/stepper';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { VOLUME_PRESETS, type VolumeUnit } from '@/lib/units';
+import { PUMP_STEP, type VolumeUnit } from '@/lib/units';
 
 export type PumpValues = {
   startAt: number;
@@ -25,14 +25,14 @@ export function PumpForm({
   submitLabel = 'Save',
   onSubmit,
 }: FormProps<PumpValues> & { unit: VolumeUnit }) {
-  const step = VOLUME_PRESETS[unit].step;
+  const step = PUMP_STEP[unit];
   const [startAt, setStartAt] = useState(initial.startAt);
   const [minutes, setMinutes] = useState(initial.minutes);
   const [leftAmount, setLeftAmount] = useState(initial.leftAmount);
   const [rightAmount, setRightAmount] = useState(initial.rightAmount);
   const [notes, setNotes] = useState(initial.notes);
 
-  const total = Math.round((leftAmount + rightAmount) * 10) / 10;
+  const total = Math.round((leftAmount + rightAmount) * 100) / 100;
 
   return (
     <>
@@ -46,7 +46,8 @@ export function PumpForm({
           value={minutes}
           onChange={setMinutes}
           step={1}
-          display={`${minutes} min`}
+          suffix="min"
+          integer
           accessibilityName="minutes"
           size="medium"
         />
@@ -60,7 +61,7 @@ export function PumpForm({
           value={leftAmount}
           onChange={setLeftAmount}
           step={step}
-          display={`${leftAmount} ${unit}`}
+          suffix={unit}
           accessibilityName="left side amount"
           size="medium"
         />
@@ -74,7 +75,7 @@ export function PumpForm({
           value={rightAmount}
           onChange={setRightAmount}
           step={step}
-          display={`${rightAmount} ${unit}`}
+          suffix={unit}
           accessibilityName="right side amount"
           size="medium"
         />

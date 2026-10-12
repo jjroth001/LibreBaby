@@ -45,3 +45,8 @@ example
 # Signing keys never belong in the repo
 *.keystore
 !android/app/debug.keystore
+
+# Real exports from other apps (personal data); tests use made-up samples
+imports/
+*huckleberry*.csv
+*Huckleberry*.csv

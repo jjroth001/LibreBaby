@@ -8,6 +8,7 @@ import { migrateDbIfNeeded } from '@/db/migrations';
 import { useChild } from '@/db/use-child';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
+import { WidgetSync } from '@/widget/widget-sync';
 
 // Keep the moon splash up until the database is open and we know which screen to show,
 // then let Android fade it out.
@@ -70,23 +71,28 @@ function RootNavigator() {
   const hasChild = child.data != null;
 
   return (
-    <Stack
-      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
-      <Stack.Protected guard={hasChild}>
-        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-        <Stack.Screen name="log/sleep" options={{ ...logSheet, title: 'Log sleep' }} />
-        <Stack.Screen name="log/breast" options={{ ...logSheet, title: 'Log breastfeed' }} />
-        <Stack.Screen name="log/bottle" options={{ ...logSheet, title: 'Log bottle' }} />
-        <Stack.Screen name="log/solids" options={{ ...logSheet, title: 'Log solids' }} />
-        <Stack.Screen name="log/diaper" options={{ ...logSheet, title: 'Log diaper' }} />
-        <Stack.Screen name="log/pump" options={{ ...logSheet, title: 'Log pumping' }} />
-        <Stack.Screen name="log/medication" options={{ ...logSheet, title: 'Log medication' }} />
-        <Stack.Screen name="log/growth" options={{ ...logSheet, title: 'Log measurement' }} />
-        <Stack.Screen name="event/[id]" options={{ ...logSheet, title: 'Edit' }} />
-      </Stack.Protected>
-      <Stack.Protected guard={!hasChild}>
-        <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
-      </Stack.Protected>
-    </Stack>
+    <>
+      {/* At the root (not in the tabs) so it also resets the widget after an erase. */}
+      <WidgetSync />
+      <Stack
+        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
+        <Stack.Protected guard={hasChild}>
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="log/sleep" options={{ ...logSheet, title: 'Log sleep' }} />
+          <Stack.Screen name="log/breast" options={{ ...logSheet, title: 'Log breastfeed' }} />
+          <Stack.Screen name="log/bottle" options={{ ...logSheet, title: 'Log bottle' }} />
+          <Stack.Screen name="log/solids" options={{ ...logSheet, title: 'Log solids' }} />
+          <Stack.Screen name="log/diaper" options={{ ...logSheet, title: 'Log diaper' }} />
+          <Stack.Screen name="log/pump" options={{ ...logSheet, title: 'Log pumping' }} />
+          <Stack.Screen name="log/medication" options={{ ...logSheet, title: 'Log medication' }} />
+          <Stack.Screen name="log/growth" options={{ ...logSheet, title: 'Log measurement' }} />
+          <Stack.Screen name="event/[id]" options={{ ...logSheet, title: 'Edit' }} />
+          <Stack.Screen name="erase" options={{ ...logSheet, title: 'Erase all data' }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!hasChild}>
+          <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+        </Stack.Protected>
+      </Stack>
+    </>
   );
 }

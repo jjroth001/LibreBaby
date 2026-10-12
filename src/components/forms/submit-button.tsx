@@ -8,7 +8,7 @@ type SubmitButtonProps = {
   disabled?: boolean;
   /** Shown while `onPress` runs. */
   busyTitle?: string;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger';
 };
 
 /** Save button that disables itself while saving, so a double tap can't log twice. */

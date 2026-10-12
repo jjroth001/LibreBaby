@@ -1,5 +1,8 @@
 import { useSQLiteContext } from 'expo-sqlite';
+import { router } from 'expo-router';
 import { Alert, StyleSheet, View } from 'react-native';
+
+import { Button } from '@/components/button';
 
 import { SubmitButton } from '@/components/forms/submit-button';
 import { ThemedText } from '@/components/themed-text';
@@ -105,10 +108,18 @@ export function DataSection({ child, unit, growthUnits, lastBackupAt }: DataSect
         variant="secondary"
         onPress={exportSpreadsheet}
       />
+      <Button
+        title="Erase all data…"
+        variant="danger"
+        onPress={() => router.push('/erase')}
+        style={styles.erase}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.three },
+  // Set apart from the everyday actions above.
+  erase: { marginTop: Spacing.four },
 });

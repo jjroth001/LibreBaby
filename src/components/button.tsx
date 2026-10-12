@@ -1,4 +1,10 @@
-import { Pressable, StyleSheet, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -6,13 +12,20 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   title: string;
-  variant?: 'primary' | 'secondary';
+  /** `danger` is for destructive actions like erasing data. */
+  variant?: 'primary' | 'secondary' | 'danger';
   style?: StyleProp<ViewStyle>;
 };
 
 export function Button({ title, variant = 'primary', disabled, style, ...rest }: ButtonProps) {
   const theme = useTheme();
-  const primary = variant === 'primary';
+  const filled = variant !== 'secondary';
+  const background =
+    variant === 'danger'
+      ? theme.danger
+      : variant === 'primary'
+        ? theme.tint
+        : theme.backgroundSelected;
 
   return (
     <Pressable
@@ -20,13 +33,13 @@ export function Button({ title, variant = 'primary', disabled, style, ...rest }:
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: primary ? theme.tint : theme.backgroundSelected },
+        { backgroundColor: background },
         pressed && styles.pressed,
         disabled && styles.disabled,
         style,
       ]}
       {...rest}>
-      <ThemedText style={[styles.label, { color: primary ? theme.onTint : theme.text }]}>
+      <ThemedText style={[styles.label, { color: filled ? theme.onTint : theme.text }]}>
         {title}
       </ThemedText>
     </Pressable>

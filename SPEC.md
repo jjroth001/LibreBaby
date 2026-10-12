@@ -69,7 +69,7 @@ event
 ```
 
 Type-specific `data`:
-- `feed_breast`: `{ "side": "L"|"R"|"both", "leftMs": n, "rightMs": n }`
+- `feed_breast`: `{ "side": "L"|"R"|"both", "lastSide": "L"|"R", "leftMs": n, "rightMs": n, "activeSide": "L"|"R"|null, "activeSince": ms|null }` (running timer state lives in the row, so timers survive app restarts)
 - `feed_bottle`: `{ "amountMl": n, "content": "breast_milk"|"formula" }`
 - `feed_solids`: `{ "foods": string[] }`
 - `diaper`: `{ "wet": bool, "dirty": bool }`
@@ -86,7 +86,7 @@ Amounts are stored in metric; display units are a setting.
 ## Milestones
 1. **M0** — Scaffold, spec, run template on phone via Expo Go. ✅
 2. **M1** — Database + data model, child profile setup screen. ✅
-3. **M2** — Home screen with sleep, feed, diaper logging + timers. ← *next*
-4. **M3** — Timeline + edit/delete.
+3. **M2** — Home screen with sleep, feed, diaper logging + timers. ✅ (also: ml/oz setting, unit tests via `npm test`)
+4. **M3** — Timeline + edit/delete. ← *next*
 5. **M4** — Next-nap estimate + notifications.
 6. **M5** — Insights, export/import, first APK build for family.

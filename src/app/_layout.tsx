@@ -28,6 +28,8 @@ export default function RootLayout() {
   );
 }
 
+const logSheet = { presentation: 'modal', headerShown: true } as const;
+
 /** Until a child profile exists, only onboarding is reachable; afterwards, only the tabs. */
 function RootNavigator() {
   const child = useChild();
@@ -38,6 +40,9 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={hasChild}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="log/bottle" options={{ ...logSheet, title: 'Bottle' }} />
+        <Stack.Screen name="log/solids" options={{ ...logSheet, title: 'Solids' }} />
+        <Stack.Screen name="log/sleep" options={{ ...logSheet, title: 'Past sleep' }} />
       </Stack.Protected>
       <Stack.Protected guard={!hasChild}>
         <Stack.Screen name="onboarding" />

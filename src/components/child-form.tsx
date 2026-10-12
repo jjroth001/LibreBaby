@@ -1,8 +1,9 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -50,21 +51,15 @@ export function ChildForm({ initialValues, submitLabel, onSubmit }: ChildFormPro
 
   return (
     <View style={styles.form}>
-      <View style={styles.group}>
-        <ThemedText type="smallBold" themeColor="textSecondary">
-          NAME
-        </ThemedText>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Baby's name"
-          placeholderTextColor={theme.textSecondary}
-          autoCapitalize="words"
-          autoComplete="off"
-          returnKeyType="done"
-          style={[fieldStyle, styles.input, { color: theme.text }]}
-        />
-      </View>
+      <TextField
+        label="Name"
+        value={name}
+        onChangeText={setName}
+        placeholder="Baby's name"
+        autoCapitalize="words"
+        autoComplete="off"
+        returnKeyType="done"
+      />
 
       <View style={styles.group}>
         <ThemedText type="smallBold" themeColor="textSecondary">

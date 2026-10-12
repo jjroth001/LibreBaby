@@ -5,8 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 
+type ScreenProps = {
+  children: ReactNode;
+  /** Leave room for the bottom tab bar. */
+  withTabBar?: boolean;
+  /** The screen has a navigation header, which already covers the status bar. */
+  belowHeader?: boolean;
+};
+
 /** Scrollable page container that respects the status bar and (optionally) the tab bar. */
-export function Screen({ children, withTabBar = true }: { children: ReactNode; withTabBar?: boolean }) {
+export function Screen({ children, withTabBar = true, belowHeader = false }: ScreenProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -16,7 +24,7 @@ export function Screen({ children, withTabBar = true }: { children: ReactNode; w
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: insets.top + Spacing.four,
+            paddingTop: (belowHeader ? 0 : insets.top) + Spacing.four,
             paddingBottom: insets.bottom + (withTabBar ? BottomTabInset : 0) + Spacing.four,
           },
         ]}>

@@ -49,6 +49,10 @@ Simple, transparent, and explainable:
 - Reminders (e.g. "feed due in ~3h").
 - Public release: choose license, F-Droid / Play Store listing.
 
+## Data import / reset
+- **Import from Huckleberry** (Settings → Your data): reads Huckleberry's CSV export (`src/lib/huckleberry.ts`). Per-row stable ids make re-imports idempotent; entries within 5 min of a same-kind LibreBaby entry are skipped. Bath / tummy time are reported as skipped.
+- **Erase all data**: type DELETE to confirm; hard-deletes everything and VACUUMs.
+
 ## Data model (v1)
 
 ```

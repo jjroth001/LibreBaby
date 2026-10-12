@@ -1,19 +1,41 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
-import { Suspense } from 'react';
-import { useColorScheme } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
+import { Suspense, useEffect } from 'react';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { migrateDbIfNeeded } from '@/db/migrations';
 import { useChild } from '@/db/use-child';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const dark = useColorScheme() === 'dark';
+  const theme = useTheme();
+
+  // The native window sits behind every screen and shows through during transitions;
+  // Android defaults it to white, which flashes at the edges in dark mode.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(theme.background).catch(() => {});
+  }, [theme.background]);
+
+  const base = dark ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: theme.background,
+      card: theme.background,
+      text: theme.text,
+      primary: theme.tint,
+    },
+  };
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <Suspense fallback={null}>
         <SQLiteProvider
           databaseName="librebaby.db"
@@ -32,12 +54,14 @@ const logSheet = { presentation: 'modal', headerShown: true } as const;
 
 /** Until a child profile exists, only onboarding is reachable; afterwards, only the tabs. */
 function RootNavigator() {
+  const theme = useTheme();
   const child = useChild();
   if (child.status === 'loading') return null;
   const hasChild = child.data != null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Protected guard={hasChild}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="log/sleep" options={{ ...logSheet, title: 'Log sleep' }} />

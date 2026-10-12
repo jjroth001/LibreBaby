@@ -8,6 +8,7 @@ import { LastEvents } from '@/components/home/last-events';
 import { LogMenu, type Category } from '@/components/home/log-menu';
 import { RunningBreastCard } from '@/components/home/running-breast-card';
 import { RunningSleepCard } from '@/components/home/running-sleep-card';
+import { SleepWindowCard } from '@/components/home/sleep-window-card';
 import { UndoBanner } from '@/components/home/undo-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -25,6 +26,7 @@ import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
 import { useNow } from '@/hooks/use-now';
+import { useSleepPrediction } from '@/hooks/use-sleep-prediction';
 import { startBreast } from '@/lib/breast';
 import { formatAge } from '@/lib/dates';
 import { describeEvent } from '@/lib/describe';
@@ -55,6 +57,7 @@ function Home({ child }: { child: Child }) {
     },
     [child.id],
   );
+  const sleepState = useSleepPrediction(child);
   const [openMenu, setOpenMenu] = useState<Category | null>(null);
   const [undo, setUndo] = useState<{ eventId: string; message: string } | null>(null);
 
@@ -195,6 +198,8 @@ function Home({ child }: { child: Child }) {
 
         {runningSleep && <RunningSleepCard event={runningSleep} now={now} />}
         {runningBreast && <RunningBreastCard event={runningBreast} now={now} />}
+
+        <SleepWindowCard state={sleepState} now={now} childName={child.name} />
 
         <LastEvents
           now={now}

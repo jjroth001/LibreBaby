@@ -36,8 +36,8 @@ All events: editable and deletable after the fact.
 Simple, transparent, and explainable:
 - Look up age-based **wake window** range (from published pediatric guidance; table lives in code and is documented).
 - Next nap window = end of last sleep + wake window range.
-- v1.1: personalize by blending in the child's own recent average wake windows.
-- Optional notification "Nap window opens in 15 min".
+- Personalized (done in M4): after ≥3 daytime wake windows in the last week, the window center moves halfway toward the child's median, clamped to 0.75×–1.25× the age range. Logic + tests: `src/lib/sleep-prediction.ts`.
+- Optional notification 5–30 min before the window opens (off by default). Not available in Expo Go (it errors on loading expo-notifications), only in installed builds.
 
 ## v2 and later
 - **Multi-caregiver sync** — self-hostable sync server (both parents' phones share one log).
@@ -88,5 +88,5 @@ Amounts are stored in metric; display units are a setting.
 2. **M1** — Database + data model, child profile setup screen. ✅
 3. **M2** — Home screen with sleep, feed, diaper logging + timers. ✅ (also: ml/oz setting, unit tests via `npm test`)
 4. **M3** — Timeline + edit/delete. ✅
-5. **M4** — Next-nap estimate + notifications. ← *next*
-6. **M5** — Insights, export/import, first APK build for family.
+5. **M4** — Next-nap estimate + notifications. ✅
+6. **M5** — Insights, export/import, first APK build for family. ← *next*

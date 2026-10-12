@@ -4,16 +4,26 @@ import type { VolumeUnit } from '@/lib/units';
 
 export type Settings = {
   volumeUnit: VolumeUnit;
+  /** Notify shortly before the predicted sleep window opens. */
+  sleepReminders: boolean;
+  /** How many minutes before the window opens to notify. */
+  sleepReminderLeadMin: number;
 };
 
 function defaultSettings(): Settings {
   const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-  return { volumeUnit: /-(US|LR|MM)\b/.test(locale) ? 'oz' : 'ml' };
+  return {
+    volumeUnit: /-(US|LR|MM)\b/.test(locale) ? 'oz' : 'ml',
+    sleepReminders: false,
+    sleepReminderLeadMin: 15,
+  };
 }
 
 /** All settings, with defaults filled in for anything never set. Values are stored as JSON. */
 export async function getSettings(db: SQLiteDatabase): Promise<Settings> {
-  const rows = await db.getAllAsync<{ key: string; value: string }>('SELECT key, value FROM setting');
+  const rows = await db.getAllAsync<{ key: string; value: string }>(
+    'SELECT key, value FROM setting',
+  );
   const stored = Object.fromEntries(rows.map((row) => [row.key, JSON.parse(row.value)]));
   return { ...defaultSettings(), ...stored };
 }

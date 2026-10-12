@@ -8,6 +8,8 @@ export type Settings = {
   sleepReminders: boolean;
   /** How many minutes before the window opens to notify. */
   sleepReminderLeadMin: number;
+  /** When a backup was last shared from this phone (unix ms). */
+  lastBackupAt: number | null;
 };
 
 function defaultSettings(): Settings {
@@ -16,6 +18,7 @@ function defaultSettings(): Settings {
     volumeUnit: /-(US|LR|MM)\b/.test(locale) ? 'oz' : 'ml',
     sleepReminders: false,
     sleepReminderLeadMin: 15,
+    lastBackupAt: null,
   };
 }
 

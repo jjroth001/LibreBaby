@@ -5,6 +5,7 @@ import { Alert, StyleSheet, Switch, View } from 'react-native';
 import { ChildForm } from '@/components/child-form';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
+import { DataSection } from '@/components/settings/data-section';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { updateChild } from '@/db/children';
@@ -103,6 +104,8 @@ export default function SettingsScreen() {
           onChange={(unit) => setSetting(db, 'volumeUnit', unit)}
         />
       </View>
+
+      <DataSection child={child} unit={settings.volumeUnit} lastBackupAt={settings.lastBackupAt} />
     </Screen>
   );
 }

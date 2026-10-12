@@ -6,10 +6,19 @@ type SubmitButtonProps = {
   title: string;
   onPress: () => Promise<void>;
   disabled?: boolean;
+  /** Shown while `onPress` runs. */
+  busyTitle?: string;
+  variant?: 'primary' | 'secondary';
 };
 
 /** Save button that disables itself while saving, so a double tap can't log twice. */
-export function SubmitButton({ title, onPress, disabled }: SubmitButtonProps) {
+export function SubmitButton({
+  title,
+  onPress,
+  disabled,
+  busyTitle = 'Saving…',
+  variant,
+}: SubmitButtonProps) {
   const [saving, setSaving] = useState(false);
 
   const press = async () => {
@@ -22,6 +31,11 @@ export function SubmitButton({ title, onPress, disabled }: SubmitButtonProps) {
   };
 
   return (
-    <Button title={saving ? 'Saving…' : title} onPress={press} disabled={disabled || saving} />
+    <Button
+      title={saving ? busyTitle : title}
+      variant={variant}
+      onPress={press}
+      disabled={disabled || saving}
+    />
   );
 }

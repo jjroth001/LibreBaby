@@ -2,17 +2,14 @@ import type { BreastSide, EventDataMap } from '@/db/types';
 
 export type BreastData = EventDataMap['feed_breast'];
 
-export function otherSide(side: BreastSide): BreastSide {
-  return side === 'L' ? 'R' : 'L';
-}
-
 export function startBreast(side: BreastSide, now: number): BreastData {
   return { side, lastSide: side, leftMs: 0, rightMs: 0, activeSide: side, activeSince: now };
 }
 
 /** Per-side totals including the segment in progress. */
 export function sideTotals(data: BreastData, now: number): { leftMs: number; rightMs: number } {
-  const running = data.activeSide && data.activeSince != null ? Math.max(0, now - data.activeSince) : 0;
+  const running =
+    data.activeSide && data.activeSince != null ? Math.max(0, now - data.activeSince) : 0;
   return {
     leftMs: data.leftMs + (data.activeSide === 'L' ? running : 0),
     rightMs: data.rightMs + (data.activeSide === 'R' ? running : 0),
@@ -40,7 +37,8 @@ export function tapSide(data: BreastData, side: BreastSide, now: number): Breast
 export function finishBreast(data: BreastData, now: number): BreastData {
   const paused = pauseBreast(data, now);
   const { leftMs, rightMs } = paused;
-  const side = leftMs > 0 && rightMs > 0 ? 'both' : rightMs > 0 ? 'R' : leftMs > 0 ? 'L' : data.lastSide;
+  const side =
+    leftMs > 0 && rightMs > 0 ? 'both' : rightMs > 0 ? 'R' : leftMs > 0 ? 'L' : data.lastSide;
   return { ...paused, side };
 }
 
@@ -54,9 +52,4 @@ export function manualBreast(leftMs: number, rightMs: number, endedOn: BreastSid
     { side: lastSide, lastSide, leftMs, rightMs, activeSide: null, activeSince: null },
     0,
   );
-}
-
-/** The side to start the next feed on: the opposite of where the last feed ended. */
-export function suggestedNextSide(last: BreastData | undefined): BreastSide {
-  return last ? otherSide(last.lastSide) : 'L';
 }

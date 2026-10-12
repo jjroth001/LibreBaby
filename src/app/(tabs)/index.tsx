@@ -20,12 +20,12 @@ import {
   listRunningTimers,
   startTimer,
 } from '@/db/events';
-import type { BabyEvent, Child, EventDataMap } from '@/db/types';
+import type { BabyEvent, BreastSide, Child, EventDataMap } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
 import { useNow } from '@/hooks/use-now';
-import { startBreast, suggestedNextSide } from '@/lib/breast';
+import { startBreast } from '@/lib/breast';
 import { formatAge } from '@/lib/dates';
 import { describeEvent } from '@/lib/describe';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
@@ -73,21 +73,21 @@ function Home({ child }: { child: Child }) {
     return null;
   }
   const unit = settings.data.volumeUnit;
-  const nextSide = suggestedNextSide(latest.data.breast?.data);
+  const lastSide = latest.data.breast?.data.lastSide;
 
   const startSleep = async () => {
     tapFeedback();
     await startTimer(db, { childId: child.id, type: 'sleep', startAt: Date.now(), data: {} });
   };
 
-  const startBreastFeed = async () => {
+  const startBreastFeed = async (side: BreastSide) => {
     tapFeedback();
     const startAt = Date.now();
     await startTimer(db, {
       childId: child.id,
       type: 'feed_breast',
       startAt,
-      data: startBreast(nextSide, startAt),
+      data: startBreast(side, startAt),
     });
   };
 
@@ -115,15 +115,23 @@ function Home({ child }: { child: Child }) {
       },
     ],
     feed: [
+      // Both sides are offered; the parent picks. We only point out which side was used last.
       ...(runningBreast
         ? []
         : [
             {
-              key: 'breast',
+              key: 'breast-left',
               emoji: '🤱',
-              label: 'Breast timer',
-              detail: `Start ${nextSide === 'L' ? 'left' : 'right'}`,
-              onPress: startBreastFeed,
+              label: 'Left',
+              detail: lastSide === 'L' ? 'Last side' : 'Start timer',
+              onPress: () => startBreastFeed('L'),
+            },
+            {
+              key: 'breast-right',
+              emoji: '🤱',
+              label: 'Right',
+              detail: lastSide === 'R' ? 'Last side' : 'Start timer',
+              onPress: () => startBreastFeed('R'),
             },
           ]),
       {

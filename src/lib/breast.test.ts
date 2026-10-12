@@ -4,7 +4,6 @@ import {
   pauseBreast,
   sideTotals,
   startBreast,
-  suggestedNextSide,
   tapSide,
   totalMs,
 } from './breast';
@@ -45,7 +44,6 @@ describe('breast feeding timer', () => {
       activeSide: null,
       activeSince: null,
     });
-    expect(suggestedNextSide(done)).toBe('L');
   });
 
   it('finishes a single-side feed as that side', () => {
@@ -60,11 +58,15 @@ describe('breast feeding timer', () => {
   it('builds manual entries with the right summary and last side', () => {
     expect(manualBreast(10 * MIN, 5 * MIN, 'L')).toMatchObject({ side: 'both', lastSide: 'L' });
     // With one side only, `endedOn` is ignored.
-    expect(manualBreast(0, 7 * MIN, 'L')).toMatchObject({ side: 'R', lastSide: 'R', rightMs: 7 * MIN });
-    expect(manualBreast(12 * MIN, 0, 'R')).toMatchObject({ side: 'L', lastSide: 'L', activeSide: null });
-  });
-
-  it('suggests left when there is no history', () => {
-    expect(suggestedNextSide(undefined)).toBe('L');
+    expect(manualBreast(0, 7 * MIN, 'L')).toMatchObject({
+      side: 'R',
+      lastSide: 'R',
+      rightMs: 7 * MIN,
+    });
+    expect(manualBreast(12 * MIN, 0, 'R')).toMatchObject({
+      side: 'L',
+      lastSide: 'L',
+      activeSide: null,
+    });
   });
 });

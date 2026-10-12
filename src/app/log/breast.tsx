@@ -25,7 +25,7 @@ export default function LogBreastfeedScreen() {
   if (!child) return null;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <BreastForm
         initial={initial}
         onSubmit={async (values) => {

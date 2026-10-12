@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
+import { Glass } from '@/components/glass';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { InkOnWhite, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 
@@ -20,7 +21,7 @@ export function SegmentedControl<T extends string>({
   const theme = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundElement }]}>
+    <Glass radius={28} blur={false} flat style={styles.container}>
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -32,30 +33,30 @@ export function SegmentedControl<T extends string>({
               if (!selected) tapFeedback();
               onChange(option.value);
             }}
-            style={[styles.segment, selected && { backgroundColor: theme.tint }]}>
-            <ThemedText style={[styles.label, { color: selected ? theme.onTint : theme.text }]}>
+            style={[styles.segment, selected && styles.selected]}>
+            <ThemedText style={[styles.label, { color: selected ? InkOnWhite : theme.text }]}>
               {option.label}
             </ThemedText>
           </Pressable>
         );
       })}
-    </View>
+    </Glass>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderRadius: Spacing.three,
     padding: Spacing.one,
     gap: Spacing.one,
   },
   segment: {
     flex: 1,
     minHeight: 48,
-    borderRadius: Spacing.three - Spacing.one,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  selected: { backgroundColor: '#FFFFFF' },
   label: { fontWeight: 600 },
 });

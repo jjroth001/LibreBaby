@@ -23,7 +23,7 @@ export default function LogMedicationScreen() {
   if (!childId || recent.status !== 'success') return null;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <MedicationForm
         initial={initial}
         recent={recent.data}

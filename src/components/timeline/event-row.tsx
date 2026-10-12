@@ -1,10 +1,12 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { eventIcon } from '@/components/icons/event-icon';
+import { Icon } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import type { BabyEvent } from '@/db/types';
 import { useTheme } from '@/hooks/use-theme';
-import { describeEvent, eventEmoji } from '@/lib/describe';
+import { describeEvent } from '@/lib/describe';
 import { formatTime } from '@/lib/format';
 import type { GrowthUnits } from '@/lib/growth-units';
 import type { VolumeUnit } from '@/lib/units';
@@ -30,7 +32,7 @@ export function EventRow({ event, unit, growthUnits, dayStart, running, onPress 
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },
+        pressed && { backgroundColor: theme.backgroundSelected },
       ]}>
       <View style={styles.times}>
         {event.startAt < dayStart && (
@@ -46,12 +48,14 @@ export function EventRow({ event, unit, growthUnits, dayStart, running, onPress 
         )}
       </View>
 
-      <ThemedText style={styles.emoji}>{eventEmoji(event)}</ThemedText>
+      <View style={[styles.icon, { backgroundColor: theme.backgroundElement }]}>
+        <Icon name={eventIcon(event)} size={22} color={theme.text} />
+      </View>
 
       <View style={styles.body}>
         <ThemedText>{describeEvent(event, unit, growthUnits)}</ThemedText>
         {running && (
-          <ThemedText type="smallBold" style={{ color: theme.tint }}>
+          <ThemedText type="smallBold" style={{ color: theme.accent }}>
             In progress
           </ThemedText>
         )}
@@ -73,9 +77,9 @@ const styles = StyleSheet.create({
     minHeight: 64,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    borderRadius: Spacing.three,
+    borderRadius: 20,
   },
-  times: { width: 76 },
-  emoji: { fontSize: 24, lineHeight: 30 },
+  times: { width: 72 },
+  icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, gap: Spacing.half },
 });

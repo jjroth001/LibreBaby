@@ -40,7 +40,7 @@ function LogBottle({ childId, unit, last }: LogBottleProps) {
   }));
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <BottleForm
         initial={initial}
         unit={unit}

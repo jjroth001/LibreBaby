@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { Card } from '@/components/card';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { DayPicker } from '@/components/timeline/day-picker';
@@ -53,38 +54,44 @@ function Timeline({ child }: { child: Child }) {
       <DayTotals summary={summary} unit={unit} />
 
       {newestFirst.length === 0 ? (
-        <ThemedText themeColor="textSecondary" style={styles.empty}>
-          Nothing logged {day === today ? 'yet today' : 'this day'}.
-        </ThemedText>
+        <Card>
+          <ThemedText themeColor="textSecondary" style={styles.empty}>
+            Nothing logged {day === today ? 'yet today' : 'this day'}.
+          </ThemedText>
+        </Card>
       ) : (
-        // Keyed by day so changing days cross-fades the list; rows glide when one is removed.
-        <Animated.View key={day} entering={Motion.fadeIn} style={styles.list}>
-          {newestFirst.map((event) => {
-            const running = isRunning(event);
-            return (
-              <Animated.View key={event.id} exiting={Motion.exit} layout={Motion.layout}>
-                <EventRow
-                  event={event}
-                  unit={unit}
-                  growthUnits={settings.data.growthUnits}
-                  dayStart={day}
-                  running={running}
-                  onPress={() =>
-                    running
-                      ? router.navigate('/')
-                      : router.push({ pathname: '/event/[id]', params: { id: event.id } })
-                  }
-                />
-              </Animated.View>
-            );
-          })}
-        </Animated.View>
+        // One glass panel for the whole day (one blur, not one per row). Keyed by day so
+        // changing days cross-fades the list; rows glide when one is removed.
+        <Card style={styles.card}>
+          <Animated.View key={day} entering={Motion.fadeIn} style={styles.list}>
+            {newestFirst.map((event) => {
+              const running = isRunning(event);
+              return (
+                <Animated.View key={event.id} exiting={Motion.exit} layout={Motion.layout}>
+                  <EventRow
+                    event={event}
+                    unit={unit}
+                    growthUnits={settings.data.growthUnits}
+                    dayStart={day}
+                    running={running}
+                    onPress={() =>
+                      running
+                        ? router.navigate('/')
+                        : router.push({ pathname: '/event/[id]', params: { id: event.id } })
+                    }
+                  />
+                </Animated.View>
+              );
+            })}
+          </Animated.View>
+        </Card>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: Spacing.two },
-  empty: { textAlign: 'center', marginTop: Spacing.four },
+  card: { padding: Spacing.two },
+  list: { gap: Spacing.half },
+  empty: { textAlign: 'center' },
 });

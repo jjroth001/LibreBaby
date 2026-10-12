@@ -4,11 +4,12 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
 import { ChildForm } from '@/components/child-form';
 import { SubmitButton } from '@/components/forms/submit-button';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { importBackup } from '@/db/backup';
 import { createChild } from '@/db/children';
 import { pickBackup } from '@/lib/data-transfer';
@@ -34,20 +35,22 @@ export default function OnboardingScreen() {
   return (
     <Screen withTabBar={false}>
       <View style={styles.header}>
-        <ThemedText type="subtitle">Welcome to LibreBaby</ThemedText>
+        <ThemedText style={styles.title}>Welcome to LibreBaby</ThemedText>
         <ThemedText themeColor="textSecondary">
           Let&apos;s start with a few details. Everything stays on this phone.
         </ThemedText>
       </View>
       {/* Saving flips the root navigator's guard, which moves us to the tabs automatically. */}
-      <ChildForm
-        submitLabel="Get started"
-        onSubmit={async (values) => {
-          await createChild(db, values);
-        }}
-      />
+      <Card>
+        <ChildForm
+          submitLabel="Get started"
+          onSubmit={async (values) => {
+            await createChild(db, values);
+          }}
+        />
+      </Card>
 
-      <View style={styles.restore}>
+      <Card style={styles.restore}>
         <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
           Already using LibreBaby on another phone?
         </ThemedText>
@@ -65,13 +68,14 @@ export default function OnboardingScreen() {
           variant="secondary"
           onPress={restore}
         />
-      </View>
+      </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   header: { gap: Spacing.two, marginTop: Spacing.five },
-  restore: { gap: Spacing.two, marginTop: Spacing.four },
+  title: { fontFamily: Fonts.serif, fontSize: 34, lineHeight: 42, fontWeight: 400 },
+  restore: { gap: Spacing.two },
   center: { textAlign: 'center' },
 });

@@ -11,8 +11,8 @@ type DiaperData = EventDataMap['diaper'];
 type Kind = 'wet' | 'dirty' | 'both';
 
 const KIND_OPTIONS = [
-  { value: 'wet', label: '💧 Wet' },
-  { value: 'dirty', label: '💩 Dirty' },
+  { value: 'wet', label: 'Wet' },
+  { value: 'dirty', label: 'Dirty' },
   { value: 'both', label: 'Both' },
 ] as const;
 

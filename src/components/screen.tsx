@@ -2,6 +2,7 @@ import type { ReactNode, Ref } from 'react';
 import { ScrollView, StyleSheet, type ScrollViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Card } from '@/components/card';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 
@@ -11,6 +12,8 @@ type ScreenProps = {
   withTabBar?: boolean;
   /** The screen has a navigation header, which already covers the status bar. */
   belowHeader?: boolean;
+  /** Put the content on one glass panel (forms and other single-purpose screens). */
+  panel?: boolean;
   ref?: Ref<ScrollView>;
   onContentSizeChange?: ScrollViewProps['onContentSizeChange'];
 };
@@ -20,6 +23,7 @@ export function Screen({
   children,
   withTabBar = true,
   belowHeader = false,
+  panel = false,
   ref,
   onContentSizeChange,
 }: ScreenProps) {
@@ -39,7 +43,7 @@ export function Screen({
             paddingBottom: (withTabBar ? 0 : insets.bottom) + Spacing.four,
           },
         ]}>
-        {children}
+        {panel ? <Card style={styles.panel}>{children}</Card> : children}
       </ScrollView>
     </ThemedView>
   );
@@ -51,4 +55,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     gap: Spacing.four,
   },
+  panel: { gap: Spacing.four },
 });

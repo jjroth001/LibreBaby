@@ -94,3 +94,29 @@ describe('readability on glass', () => {
     expect(failures.slice(0, 8)).toEqual([]);
   });
 });
+
+describe('readability on the open sky', () => {
+  // Screen titles and the subtitle under the baby's name sit on the top of the sky, not on
+  // glass: text must reach 4.5:1 and secondary text 3:1 there too.
+  it('keeps titles readable over the top third of the sky all day', () => {
+    const failures: string[] = [];
+    for (let m = 0; m < 24 * 60; m += 10) {
+      const scene = sceneAt(day + m * 60_000, sunrise, sunset);
+      const top = rgb(scene.sky[0]).slice(0, 3) as [number, number, number];
+      const mid = rgb(scene.sky[1]).slice(0, 3) as [number, number, number];
+      const third = top.map((v, i) => v + (mid[i] - v) * 0.66) as [number, number, number];
+      // The veil covers the top third fully (see skySvg).
+      const veil: [number, number, number, number] =
+        scene.text === '#FFFFFF' ? [0, 0, 0, scene.scrim] : [255, 255, 255, scene.scrim];
+      for (const backdrop of [over(veil, top), over(veil, third)]) {
+        const text = over(rgb(scene.text), backdrop);
+        const muted = over(rgb(scene.textMuted), backdrop);
+        if (contrast(text, backdrop) < 4.5)
+          failures.push(`${m}min title ${contrast(text, backdrop).toFixed(2)}`);
+        if (contrast(muted, backdrop) < 3)
+          failures.push(`${m}min subtitle ${contrast(muted, backdrop).toFixed(2)}`);
+      }
+    }
+    expect(failures.slice(0, 8)).toEqual([]);
+  });
+});

@@ -21,6 +21,12 @@ export type Scene = {
   stars: number;
   clouds: number;
   mist: { color: string; opacity: number };
+  /**
+   * Opacity of a soft veil over the top of the sky (black under light text, white under
+   * dark text). Zero in the pure scenes; it peaks while the sky passes through mid-tones
+   * where neither text color would be readable on it.
+   */
+  scrim: number;
   /** Far → near hill silhouettes. */
   hills: [string, string, string];
   /**
@@ -45,6 +51,7 @@ export const SCENES: Record<SceneName, Scene> = {
     stars: 1,
     clouds: 0,
     mist: { color: '#FFFFFF', opacity: 0.06 },
+    scrim: 0,
     hills: ['#1C2860', '#121B47', '#0A102E'],
     glass: { color: '#0E1230', alpha: 0.3, sheen: 0.16 },
     text: '#FFFFFF',
@@ -58,6 +65,7 @@ export const SCENES: Record<SceneName, Scene> = {
     stars: 0.15,
     clouds: 0.2,
     mist: { color: '#FFD9C2', opacity: 0.45 },
+    scrim: 0,
     hills: ['#9A79B4', '#6F5793', '#40336A'],
     glass: { color: '#301E50', alpha: 0.6, sheen: 0.2 },
     text: '#FFFFFF',
@@ -71,6 +79,7 @@ export const SCENES: Record<SceneName, Scene> = {
     stars: 0,
     clouds: 1,
     mist: { color: '#FFFFFF', opacity: 0.1 },
+    scrim: 0,
     hills: ['#9CC4E0', '#86B36B', '#6A9A52'],
     glass: { color: '#FFFFFF', alpha: 0.36, sheen: 0.28 },
     text: '#0D2238',
@@ -84,6 +93,7 @@ export const SCENES: Record<SceneName, Scene> = {
     stars: 0.1,
     clouds: 0.25,
     mist: { color: '#FFC08A', opacity: 0.3 },
+    scrim: 0,
     hills: ['#8A3A66', '#56264F', '#2A1332'],
     glass: { color: '#280E30', alpha: 0.5, sheen: 0.16 },
     text: '#FFFFFF',
@@ -183,6 +193,8 @@ export function mixScenes(a: Scene, b: Scene, t: number): Scene {
       color: mixHex(a.mist.color, b.mist.color, t),
       opacity: lerp(a.mist.opacity, b.mist.opacity, t),
     },
+    // Readable titles on the open sky through a light/dark text switch (see sky.test.ts).
+    scrim: a.text !== b.text ? 0.5 * (1 - Math.abs(2 * t - 1)) : lerp(a.scrim, b.scrim, t),
     hills: [
       mixHex(a.hills[0], b.hills[0], t),
       mixHex(a.hills[1], b.hills[1], t),

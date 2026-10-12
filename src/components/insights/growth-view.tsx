@@ -6,6 +6,8 @@ import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
+import type { IconName } from '@/components/icons/icon';
 import { GrowthChart, type GrowthPoint } from '@/components/insights/growth-chart';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
@@ -39,6 +41,11 @@ const SEX_OPTIONS = [
 
 const FIELD = { weight: 'weightKg', length: 'lengthCm', head: 'headCm' } as const;
 const NAME = { weight: 'Weight', length: 'Length', head: 'Head' } as const;
+const ICON: Record<keyof typeof NAME, IconName> = {
+  weight: 'scales',
+  length: 'ruler',
+  head: 'baby',
+};
 
 type GrowthViewProps = { child: Child; units: GrowthUnits; now: number };
 
@@ -100,7 +107,7 @@ export function GrowthView({ child, units, now }: GrowthViewProps) {
       <Animated.View key={measure} entering={Motion.fadeIn}>
         <Card>
           <View style={styles.header}>
-            <ThemedText type="smallBold">📏 {NAME[measure]}</ThemedText>
+            <CardTitle icon={ICON[measure]}>{NAME[measure]}</CardTitle>
             {latest && latestValue !== null ? (
               <>
                 <ThemedText style={styles.headline}>{format(measure, latestValue)}</ThemedText>
@@ -138,8 +145,10 @@ export function GrowthView({ child, units, now }: GrowthViewProps) {
       </Animated.View>
 
       {measurements.data.length > 0 && (
-        <View style={styles.history}>
-          <ThemedText type="smallBold">All measurements</ThemedText>
+        <Card style={styles.history}>
+          <View style={styles.historyTitle}>
+            <CardTitle icon="clock-counter-clockwise">All measurements</CardTitle>
+          </View>
           {[...measurements.data].reverse().map((event) => (
             <MeasurementRow
               key={event.id}
@@ -154,14 +163,16 @@ export function GrowthView({ child, units, now }: GrowthViewProps) {
                 })}
             />
           ))}
-        </View>
+        </Card>
       )}
 
-      <ThemedText type="small" themeColor="textSecondary">
-        Percentiles compare with the WHO Child Growth Standards (data via the CDC). They show where
-        a measurement falls among healthy children, not whether something is wrong — every baby
-        follows their own curve. Talk to your pediatrician about any concerns.
-      </ThemedText>
+      <Card>
+        <ThemedText type="small" themeColor="textSecondary">
+          Percentiles compare with the WHO Child Growth Standards (data via the CDC). They show
+          where a measurement falls among healthy children, not whether something is wrong — every
+          baby follows their own curve. Talk to your pediatrician about any concerns.
+        </ThemedText>
+      </Card>
     </View>
   );
 }
@@ -183,7 +194,7 @@ function MeasurementRow({
       onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },
+        pressed && { backgroundColor: theme.backgroundSelected },
       ]}>
       <ThemedText type="smallBold">
         {new Date(event.startAt).toLocaleDateString(undefined, {
@@ -210,7 +221,8 @@ function MeasurementRow({
 const styles = StyleSheet.create({
   container: { gap: Spacing.four },
   header: { gap: Spacing.half },
-  headline: { fontSize: 24, lineHeight: 30, fontWeight: 700 },
-  history: { gap: Spacing.two },
-  row: { padding: Spacing.three, borderRadius: Spacing.three, gap: Spacing.half },
+  headline: { fontSize: 28, lineHeight: 36, fontWeight: 300 },
+  history: { padding: Spacing.two, gap: Spacing.half },
+  historyTitle: { paddingHorizontal: Spacing.two, paddingTop: Spacing.two },
+  row: { padding: Spacing.three, borderRadius: 20, gap: Spacing.half },
 });

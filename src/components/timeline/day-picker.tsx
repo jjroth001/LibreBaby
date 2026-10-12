@@ -1,8 +1,10 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Glass } from '@/components/glass';
+import { Icon } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { addLocalDays, startOfLocalDay } from '@/lib/dates';
 import { tapFeedback } from '@/lib/haptics';
@@ -43,16 +45,15 @@ export function DayPicker({ day, today, onChange }: DayPickerProps) {
       onValueChange: (_event, date) => onChange(startOfLocalDay(date.getTime())),
     });
 
-  const arrow = [styles.arrow, { backgroundColor: theme.backgroundElement }];
-
   return (
     <View style={styles.row}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Previous day"
-        onPress={() => step(-1)}
-        style={arrow}>
-        <ThemedText style={styles.arrowLabel}>‹</ThemedText>
+        onPress={() => step(-1)}>
+        <Glass radius={28} style={styles.arrow}>
+          <Icon name="caret-left" size={24} color={theme.text} duotone={false} />
+        </Glass>
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -69,8 +70,10 @@ export function DayPicker({ day, today, onChange }: DayPickerProps) {
         accessibilityState={{ disabled: atToday }}
         disabled={atToday}
         onPress={() => step(1)}
-        style={[arrow, atToday && styles.disabled]}>
-        <ThemedText style={styles.arrowLabel}>›</ThemedText>
+        style={atToday && styles.disabled}>
+        <Glass radius={28} style={styles.arrow}>
+          <Icon name="caret-right" size={24} color={theme.text} duotone={false} />
+        </Glass>
       </Pressable>
     </View>
   );
@@ -85,8 +88,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  arrowLabel: { fontSize: 32, lineHeight: 36, fontWeight: 600 },
   label: { flex: 1, alignItems: 'center' },
-  labelText: { fontSize: 26, lineHeight: 34 },
+  labelText: { fontFamily: Fonts.serif, fontSize: 28, lineHeight: 36, fontWeight: 400 },
   disabled: { opacity: 0.3 },
 });

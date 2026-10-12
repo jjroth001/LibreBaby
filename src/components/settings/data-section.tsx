@@ -1,10 +1,12 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { router } from 'expo-router';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 
 import { SubmitButton } from '@/components/forms/submit-button';
+import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { importBackup, type Backup } from '@/db/backup';
@@ -155,8 +157,8 @@ export function DataSection({ child, unit, growthUnits, lastBackupAt }: DataSect
   };
 
   return (
-    <View style={styles.section}>
-      <ThemedText type="smallBold">Your data</ThemedText>
+    <Card>
+      <CardTitle icon="download-simple">Your data</CardTitle>
       <ThemedText type="small" themeColor="textSecondary">
         Everything is stored only on this phone. Back up regularly and save the file somewhere safe,
         like Google Drive.{' '}
@@ -187,12 +189,11 @@ export function DataSection({ child, unit, growthUnits, lastBackupAt }: DataSect
         onPress={() => router.push('/erase')}
         style={styles.erase}
       />
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { gap: Spacing.three },
   // Set apart from the everyday actions above.
   erase: { marginTop: Spacing.four },
 });

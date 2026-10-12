@@ -50,7 +50,7 @@ export default function EditEventScreen() {
   if (settings.status !== 'success' || event.status !== 'success') return null;
   if (!event.data) {
     return (
-      <Screen withTabBar={false} belowHeader>
+      <Screen withTabBar={false} belowHeader panel>
         <ThemedText themeColor="textSecondary">This entry no longer exists.</ThemedText>
       </Screen>
     );
@@ -90,7 +90,7 @@ function EditEvent({ event, unit, growthUnits }: EditEventProps) {
     ]);
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <Stack.Screen options={{ title: TITLES[event.type] }} />
       <EventForm event={event} unit={unit} growthUnits={growthUnits} onSaved={done} />
       <Button title="Delete" variant="secondary" onPress={confirmDelete} />

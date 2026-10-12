@@ -21,7 +21,7 @@ export default function LogDiaperScreen() {
   if (!child) return null;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <DiaperForm
         initial={initial}
         onSubmit={async ({ data, time, notes }) => {

@@ -1,8 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 
+import { Glass } from '@/components/glass';
+import { Icon, type IconName } from '@/components/icons/icon';
 import { StatTile } from '@/components/stat-tile';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import type { DaySummary } from '@/lib/day-summary';
 import { formatDuration } from '@/lib/format';
 import { formatVolume, type VolumeUnit } from '@/lib/units';
@@ -12,6 +15,7 @@ function plural(n: number, word: string) {
 }
 
 export function DayTotals({ summary, unit }: { summary: DaySummary; unit: VolumeUnit }) {
+  const theme = useTheme();
   const feedDetail = [
     summary.bottleMl > 0 && `${formatVolume(summary.bottleMl, unit)} bottle`,
     summary.breastMs > 0 && `${formatDuration(summary.breastMs)} breast`,
@@ -20,11 +24,16 @@ export function DayTotals({ summary, unit }: { summary: DaySummary; unit: Volume
     .join(' · ');
 
   // Less frequent things get a line of their own, only on days they happened.
-  const extras = [
-    summary.pumpCount > 0 &&
-      `🥛 Pumped ${formatVolume(summary.pumpMl, unit)} (${plural(summary.pumpCount, 'session')})`,
-    summary.medicationCount > 0 && `💊 ${plural(summary.medicationCount, 'medication')}`,
-  ].filter(Boolean);
+  const extras: { icon: IconName; text: string }[] = [];
+  if (summary.pumpCount > 0) {
+    extras.push({
+      icon: 'pump',
+      text: `Pumped ${formatVolume(summary.pumpMl, unit)} (${plural(summary.pumpCount, 'session')})`,
+    });
+  }
+  if (summary.medicationCount > 0) {
+    extras.push({ icon: 'pill', text: plural(summary.medicationCount, 'medication') });
+  }
 
   return (
     <View style={styles.container}>
@@ -53,7 +62,14 @@ export function DayTotals({ summary, unit }: { summary: DaySummary; unit: Volume
         />
       </View>
       {extras.length > 0 && (
-        <ThemedText themeColor="textSecondary">{extras.join('  ·  ')}</ThemedText>
+        <View style={styles.extras}>
+          {extras.map((extra) => (
+            <Glass key={extra.icon} radius={18} blur={false} style={styles.chip}>
+              <Icon name={extra.icon} size={16} color={theme.accent} />
+              <ThemedText type="small">{extra.text}</ThemedText>
+            </Glass>
+          ))}
+        </View>
       )}
     </View>
   );
@@ -62,4 +78,12 @@ export function DayTotals({ summary, unit }: { summary: DaySummary; unit: Volume
 const styles = StyleSheet.create({
   container: { gap: Spacing.two },
   row: { flexDirection: 'row', gap: Spacing.two },
+  extras: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one + 2,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
 });

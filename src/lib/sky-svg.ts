@@ -50,6 +50,16 @@ export function skySvg(scene: Scene, w: number, h: number): string {
     `</defs>` +
     `<rect width="${w}" height="${h}" fill="url(#sky)"/>`;
 
+  if (scene.scrim > 0.005) {
+    const veil = scene.text === '#FFFFFF' ? '#000000' : '#FFFFFF';
+    const a = r1(scene.scrim * 1000) / 1000;
+    s +=
+      `<defs><linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">` +
+      `<stop offset="0" stop-color="${veil}" stop-opacity="${a}"/><stop offset="0.66" stop-color="${veil}" stop-opacity="${a}"/><stop offset="1" stop-color="${veil}" stop-opacity="0"/>` +
+      `</linearGradient></defs>` +
+      `<rect width="${w}" height="${r1(h * 0.5)}" fill="url(#scrim)"/>`;
+  }
+
   if (scene.stars > 0.02) {
     for (let i = 0; i < 46; i++) {
       const x = ((i * 97) % 360) * (w / 360);

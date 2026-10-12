@@ -35,6 +35,8 @@ export function paletteFor(text: string, textMuted: string, accent: string) {
     growthBandOuter: light ? 'rgba(13,34,56,0.08)' : 'rgba(255,255,255,0.08)',
     growthBandInner: light ? 'rgba(13,34,56,0.16)' : 'rgba(255,255,255,0.16)',
     growthChild: light ? '#B8400B' : '#FFB070',
+    /** Roughly the glass panel's color, for a ring that separates marks from what's behind. */
+    surface: light ? '#E6F1FA' : '#1A1F45',
     danger: light ? '#B42318' : '#FF9592',
   };
 }

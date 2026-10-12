@@ -16,7 +16,7 @@ export default function LogSolidsScreen() {
   if (!child) return null;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <SolidsForm
         initial={initial}
         onSubmit={async ({ foods, time, notes }) => {

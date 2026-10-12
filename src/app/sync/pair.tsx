@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Screen } from '@/components/screen';
+import { CardTitle } from '@/components/card-title';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useChild } from '@/db/use-child';
@@ -15,7 +16,7 @@ export default function PairScreen() {
   if (!child || !family) return null;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <ThemedText>
         On the other phone, open LibreBaby and tap{' '}
         <ThemedText type="smallBold">Join with a family code</ThemedText> (in Settings → Family
@@ -38,7 +39,7 @@ export default function PairScreen() {
       </ThemedText>
 
       {lastEvent?.type === 'synced' && (
-        <ThemedText type="smallBold">✓ Synced with {lastEvent.peerName}</ThemedText>
+        <CardTitle icon="check">{`Synced with ${lastEvent.peerName}`}</CardTitle>
       )}
     </Screen>
   );

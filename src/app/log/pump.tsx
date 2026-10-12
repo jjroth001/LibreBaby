@@ -27,7 +27,7 @@ export default function LogPumpScreen() {
   const unit = settings.volumeUnit;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <PumpForm
         initial={initial}
         unit={unit}

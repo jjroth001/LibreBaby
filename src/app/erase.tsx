@@ -51,7 +51,7 @@ export default function EraseScreen() {
   };
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <View style={styles.group}>
         <ThemedText type="subtitle" style={styles.title}>
           Erase everything?

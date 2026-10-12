@@ -4,27 +4,6 @@ import { formatDuration } from './format';
 import { formatLength, formatWeight, type GrowthUnits } from './growth-units';
 import { formatVolume, type VolumeUnit } from './units';
 
-export function eventEmoji(event: BabyEvent): string {
-  switch (event.type) {
-    case 'sleep':
-      return '😴';
-    case 'feed_breast':
-      return '🤱';
-    case 'feed_bottle':
-      return '🍼';
-    case 'feed_solids':
-      return '🥣';
-    case 'diaper':
-      return event.data.dirty ? '💩' : '💧';
-    case 'medication':
-      return '💊';
-    case 'pump':
-      return '🥛';
-    case 'growth':
-      return '📏';
-  }
-}
-
 /** Short human label for an event, e.g. "Bottle · 4 oz formula", "Wet + dirty diaper". */
 export function describeEvent(
   event: BabyEvent,

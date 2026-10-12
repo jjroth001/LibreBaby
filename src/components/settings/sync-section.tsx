@@ -3,11 +3,15 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { SubmitButton } from '@/components/forms/submit-button';
+import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
+import { Icon } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import type { Child } from '@/db/types';
 import { useDbQuery } from '@/db/use-db-query';
 import { useNow } from '@/hooks/use-now';
+import { useTheme } from '@/hooks/use-theme';
 import { formatDuration } from '@/lib/format';
 import { useSync } from '@/sync/sync-provider';
 
@@ -15,6 +19,7 @@ type Peer = { device_id: string; name: string; last_synced_at: number | null };
 
 /** Settings → Family sync: set up, pair phones, see status, stop syncing. */
 export function SyncSection({ child }: { child: Child }) {
+  const theme = useTheme();
   const sync = useSync();
   const now = useNow(30_000);
   const peers = useDbQuery(['sync_peer'], (db) =>
@@ -42,8 +47,8 @@ export function SyncSection({ child }: { child: Child }) {
         : 'Looking for family phones on this Wi-Fi…';
 
   return (
-    <View style={styles.section}>
-      <ThemedText type="smallBold">Family sync</ThemedText>
+    <Card>
+      <CardTitle icon="users-three">Family sync</CardTitle>
 
       {!sync.supported ? (
         <ThemedText type="small" themeColor="textSecondary">
@@ -77,12 +82,15 @@ export function SyncSection({ child }: { child: Child }) {
             {status}
           </ThemedText>
           {(peers.data ?? []).map((peer) => (
-            <ThemedText key={peer.device_id} type="small">
-              📱 {peer.name}
-              {peer.last_synced_at
-                ? ` — synced ${formatDuration(now - peer.last_synced_at)} ago`
-                : ''}
-            </ThemedText>
+            <View key={peer.device_id} style={styles.peer}>
+              <Icon name="wifi-high" size={18} color={theme.accent} />
+              <ThemedText type="small" style={styles.peerText}>
+                {peer.name}
+                {peer.last_synced_at
+                  ? ` — synced ${formatDuration(now - peer.last_synced_at)} ago`
+                  : ''}
+              </ThemedText>
+            </View>
           ))}
           {(peers.data ?? []).length === 0 && (
             <ThemedText type="small" themeColor="textSecondary">
@@ -98,10 +106,11 @@ export function SyncSection({ child }: { child: Child }) {
           <Button title="Stop syncing on this phone" variant="secondary" onPress={leave} />
         </>
       )}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { gap: Spacing.three },
+  peer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  peerText: { flexShrink: 1 },
 });

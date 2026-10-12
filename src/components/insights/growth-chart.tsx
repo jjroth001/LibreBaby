@@ -188,7 +188,7 @@ export function GrowthChart({
                     cy={cy}
                     r={isSelected ? 7 : 5}
                     fill={theme.growthChild}
-                    stroke={theme.backgroundElement}
+                    stroke={theme.surface}
                     strokeWidth={2}
                   />
                   {/* Generous invisible hit target. */}

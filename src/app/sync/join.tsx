@@ -73,7 +73,7 @@ export default function JoinScreen() {
 
   if (!sync.supported) {
     return (
-      <Screen withTabBar={false} belowHeader>
+      <Screen withTabBar={false} belowHeader panel>
         <ThemedText>
           Family sync works in the installed app. Expo Go (the development preview) can&apos;t use
           the local network.
@@ -84,7 +84,7 @@ export default function JoinScreen() {
 
   if (!permission?.granted) {
     return (
-      <Screen withTabBar={false} belowHeader>
+      <Screen withTabBar={false} belowHeader panel>
         <ThemedText>
           LibreBaby needs the camera to scan the family code shown on the other phone. The camera is
           only used here.
@@ -95,7 +95,7 @@ export default function JoinScreen() {
   }
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <ThemedText>
         On the other phone, go to Settings → Family sync → Show family code, and point this camera
         at it.

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Switch, View } from 'react-native';
 
 import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
 import { ChildForm } from '@/components/child-form';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
@@ -10,7 +11,7 @@ import { AppearanceSection } from '@/components/settings/appearance-section';
 import { DataSection } from '@/components/settings/data-section';
 import { SyncSection } from '@/components/settings/sync-section';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { updateChild } from '@/db/children';
 import { setSetting } from '@/db/settings';
 import { useChild } from '@/db/use-child';
@@ -57,10 +58,10 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <ThemedText type="subtitle">Settings</ThemedText>
+      <ThemedText style={styles.title}>Settings</ThemedText>
 
       <Card>
-        <ThemedText type="smallBold">Baby profile</ThemedText>
+        <CardTitle icon="baby">Baby profile</CardTitle>
         <ChildForm
           key={child.id}
           initialValues={{
@@ -86,7 +87,7 @@ export default function SettingsScreen() {
       <Card>
         <View style={styles.switchRow}>
           <View style={styles.switchLabel}>
-            <ThemedText type="smallBold">Sleep window reminders</ThemedText>
+            <CardTitle icon="bell">Sleep window reminders</CardTitle>
             <ThemedText type="small" themeColor="textSecondary">
               {remindersSupported
                 ? `Get a notification before ${child.name}'s next sleep window opens.`
@@ -138,6 +139,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  title: { fontFamily: Fonts.serif, fontSize: 34, lineHeight: 42, fontWeight: 400 },
   saved: { textAlign: 'center' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   switchLabel: { flex: 1, gap: Spacing.half },

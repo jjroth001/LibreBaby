@@ -25,7 +25,7 @@ export default function LogGrowthScreen() {
   if (!child || !settings) return null;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <GrowthForm
         initial={initial}
         units={settings.growthUnits}

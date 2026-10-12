@@ -3,13 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
+import type { IconName } from '@/components/icons/icon';
 import { BarChart, type Bar } from '@/components/insights/bar-chart';
 import { GrowthView } from '@/components/insights/growth-view';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { Motion } from '@/constants/motion';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { listEvents } from '@/db/events';
 import type { Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
@@ -90,7 +92,7 @@ function Insights({ child }: { child: Child }) {
 
   return (
     <Screen>
-      <ThemedText type="subtitle">Insights</ThemedText>
+      <ThemedText style={styles.title}>Insights</ThemedText>
       <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
 
       {view === 'growth' ? (
@@ -102,19 +104,22 @@ function Insights({ child }: { child: Child }) {
           <SegmentedControl options={RANGE_OPTIONS} value={range} onChange={setRange} />
 
           {!avg ? (
-            <ThemedText themeColor="textSecondary" style={styles.empty}>
-              Trends show up here once you&apos;ve logged a full day. Today counts tomorrow.
-            </ThemedText>
+            <Card>
+              <ThemedText themeColor="textSecondary" style={styles.empty}>
+                Trends show up here once you&apos;ve logged a full day. Today counts tomorrow.
+              </ThemedText>
+            </Card>
           ) : (
             // Keyed by range so switching ranges cross-fades the charts.
             <Animated.View key={range} entering={Motion.fadeIn} style={styles.sections}>
-              <ThemedText type="small" themeColor="textSecondary">
+              <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
                 Averages use the {insights.loggedDays} complete{' '}
                 {insights.loggedDays === 1 ? 'day' : 'days'} with entries; today is shown faded.
               </ThemedText>
 
               <Section
-                title="😴 Sleep"
+                icon="moon-stars"
+                title="Sleep"
                 headline={`${formatDuration(avg.sleepMs)} / day`}
                 details={[
                   avg.longestSleepMs > 0 &&
@@ -131,7 +136,8 @@ function Insights({ child }: { child: Child }) {
               </Section>
 
               <Section
-                title="🍼 Feeds"
+                icon="bottle"
+                title="Feeds"
                 headline={`${oneDecimal(avg.feedCount)} / day`}
                 details={[
                   hasBottles && `${formatVolume(avg.bottleMl, unit)} from bottles per day`,
@@ -146,7 +152,8 @@ function Insights({ child }: { child: Child }) {
 
               {hasBottles && (
                 <Section
-                  title="🍼 Bottle volume"
+                  icon="bottle"
+                  title="Bottle volume"
                   headline={`${formatVolume(avg.bottleMl, unit)} / day`}>
                   <BarChart
                     title="Bottle volume per day"
@@ -158,7 +165,8 @@ function Insights({ child }: { child: Child }) {
               )}
 
               <Section
-                title="🧷 Diapers"
+                icon="diaper"
+                title="Diapers"
                 headline={`${oneDecimal(avg.diaperCount)} / day`}
                 details={[
                   `${oneDecimal(avg.wetCount)} wet · ${oneDecimal(avg.dirtyCount)} dirty on average`,
@@ -172,7 +180,10 @@ function Insights({ child }: { child: Child }) {
               </Section>
 
               {hasPumping && (
-                <Section title="🥛 Pumping" headline={`${formatVolume(avg.pumpMl, unit)} / day`}>
+                <Section
+                  icon="pump"
+                  title="Pumping"
+                  headline={`${formatVolume(avg.pumpMl, unit)} / day`}>
                   <BarChart
                     title="Pumped per day"
                     bars={barsFor(insights.days, (d) => d.pumpMl)}
@@ -190,18 +201,19 @@ function Insights({ child }: { child: Child }) {
 }
 
 type SectionProps = {
+  icon: IconName;
   title: string;
   headline: string;
   details?: (string | false)[];
   children: React.ReactNode;
 };
 
-function Section({ title, headline, details = [], children }: SectionProps) {
+function Section({ icon, title, headline, details = [], children }: SectionProps) {
   const lines = details.filter(Boolean) as string[];
   return (
     <Card>
       <View style={styles.sectionHeader}>
-        <ThemedText type="smallBold">{title}</ThemedText>
+        <CardTitle icon={icon}>{title}</CardTitle>
         <ThemedText style={styles.headline}>{headline}</ThemedText>
         {lines.map((line) => (
           <ThemedText key={line} type="small" themeColor="textSecondary">
@@ -217,6 +229,8 @@ function Section({ title, headline, details = [], children }: SectionProps) {
 const styles = StyleSheet.create({
   sections: { gap: Spacing.four },
   sectionHeader: { gap: Spacing.half },
-  headline: { fontSize: 24, lineHeight: 30, fontWeight: 700 },
-  empty: { textAlign: 'center', marginTop: Spacing.four },
+  headline: { fontSize: 28, lineHeight: 36, fontWeight: 300 },
+  empty: { textAlign: 'center' },
+  title: { fontFamily: Fonts.serif, fontSize: 34, lineHeight: 42, fontWeight: 400 },
+  note: { paddingHorizontal: Spacing.two },
 });

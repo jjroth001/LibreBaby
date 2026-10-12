@@ -22,7 +22,7 @@ export default function LogSleepScreen() {
   if (!child) return null;
 
   return (
-    <Screen withTabBar={false} belowHeader>
+    <Screen withTabBar={false} belowHeader panel>
       <SleepForm
         initial={initial}
         onSubmit={async ({ startAt, endAt, notes }) => {

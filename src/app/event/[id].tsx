@@ -18,6 +18,7 @@ import {
 import { GrowthForm } from '@/components/forms/growth-form';
 import { growthToValues } from '@/components/forms/growth-mapping';
 import { MedicationForm } from '@/components/forms/medication-form';
+import { MilestoneForm } from '@/components/forms/milestone-form';
 import { PumpForm } from '@/components/forms/pump-form';
 import { SleepForm } from '@/components/forms/sleep-form';
 import { SolidsForm } from '@/components/forms/solids-form';
@@ -40,6 +41,7 @@ const TITLES: Record<EventType, string> = {
   medication: 'Edit medication',
   pump: 'Edit pumping',
   growth: 'Edit measurement',
+  milestone: 'Edit milestone',
 };
 
 export default function EditEventScreen() {
@@ -229,6 +231,20 @@ function EventForm({ event, unit, growthUnits, onSaved }: EventFormProps) {
             await updateEvent<'pump'>(db, event.id, {
               ...pumpFromValues(values, unit, event),
               notes: cleanNotes(values.notes),
+            });
+            onSaved();
+          }}
+        />
+      );
+    case 'milestone':
+      return (
+        <MilestoneForm
+          initial={{ text: event.data.text, time: event.startAt, notes: event.notes ?? '' }}
+          submitLabel={submitLabel}
+          onSubmit={async ({ time, notes }) => {
+            await updateEvent<'milestone'>(db, event.id, {
+              startAt: time,
+              notes: cleanNotes(notes),
             });
             onSaved();
           }}

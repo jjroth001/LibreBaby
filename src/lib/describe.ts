@@ -55,5 +55,10 @@ export function describeEvent(
       ].filter(Boolean);
       return parts.length ? parts.join(' · ') : 'Measurement';
     }
+    case 'milestone':
+      return `Milestone · ${event.data.text}`;
+    default:
+      // An entry type from a newer version of the app (via sync).
+      return 'Entry';
   }
 }

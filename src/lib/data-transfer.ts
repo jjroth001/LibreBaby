@@ -46,6 +46,7 @@ const TYPE_LABELS: Record<EventType, string> = {
   medication: 'Medication',
   pump: 'Pumping',
   growth: 'Growth',
+  milestone: 'Milestone',
 };
 
 /** All entries as a spreadsheet, oldest first — handy for a pediatrician visit. */

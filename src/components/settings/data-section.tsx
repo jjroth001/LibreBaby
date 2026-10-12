@@ -34,6 +34,7 @@ const IMPORT_LABELS: Record<EventType, string> = {
   medication: 'medications',
   pump: 'pumping sessions',
   growth: 'measurements',
+  milestone: 'milestones',
 };
 
 function backupSummary(backup: Backup): string {

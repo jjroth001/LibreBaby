@@ -20,8 +20,9 @@ export type SyncResult = {
 /**
  * 2: phones acknowledge what they received before the sender counts it as delivered
  * (1.3.x marked rows sent even when the connection dropped, losing them for good).
+ * 3: adds milestone entries, which 1.5.0 and older can't display.
  */
-const PROTOCOL = 2;
+const PROTOCOL = 3;
 
 /** Rows per `changes` message, keeping each frame comfortably small. */
 const BATCH = 300;

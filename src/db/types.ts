@@ -37,6 +37,8 @@ export type EventDataMap = {
   pump: { leftMl: number; rightMl: number };
   /** Any combination of measurements taken at once; metric, null when not measured. */
   growth: { weightKg: number | null; lengthCm: number | null; headCm: number | null };
+  /** A developmental milestone noticed (startAt = when); text kept so it reads anywhere. */
+  milestone: { milestoneId: string; text: string };
 };
 
 export type EventType = keyof EventDataMap;

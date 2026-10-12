@@ -6,6 +6,7 @@ import { Card } from '@/components/card';
 import { CardTitle } from '@/components/card-title';
 import type { IconName } from '@/components/icons/icon';
 import { BarChart, type Bar } from '@/components/insights/bar-chart';
+import { DevelopmentView } from '@/components/insights/development-view';
 import { GrowthView } from '@/components/insights/growth-view';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
@@ -24,8 +25,9 @@ import { buildInsights, type DayInsight } from '@/lib/insights';
 import { formatVolume, type VolumeUnit } from '@/lib/units';
 
 const VIEW_OPTIONS = [
-  { value: 'trends', label: 'Daily trends' },
+  { value: 'trends', label: 'Trends' },
   { value: 'growth', label: 'Growth' },
+  { value: 'development', label: 'Development' },
 ] as const;
 type InsightsView = (typeof VIEW_OPTIONS)[number]['value'];
 
@@ -98,6 +100,10 @@ function Insights({ child }: { child: Child }) {
       {view === 'growth' ? (
         <Animated.View key="growth" entering={Motion.fadeIn}>
           <GrowthView child={child} units={settings.data.growthUnits} now={now} />
+        </Animated.View>
+      ) : view === 'development' ? (
+        <Animated.View key="development" entering={Motion.fadeIn}>
+          <DevelopmentView child={child} now={now} />
         </Animated.View>
       ) : (
         <>

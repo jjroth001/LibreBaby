@@ -29,7 +29,7 @@ Over one TCP connection, every frame is `u32 length + XChaCha20-Poly1305(family 
 with a random nonce and the family id as associated data. A frame that doesn't decrypt
 is a stranger: the connection is dropped.
 
-1. `hello` — protocol version (2), device id, name, and the port this phone listens on.
+1. `hello` — protocol version (3 since milestone entries; 2 added `ack`), device id, name, and the port this phone listens on.
    (Successful decryption is the authentication.) A different version is refused with
    a message asking to update.
 2. `changes` — rows whose `change_seq` is above what this peer was last sent,

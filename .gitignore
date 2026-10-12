@@ -50,3 +50,6 @@ example
 imports/
 *huckleberry*.csv
 *Huckleberry*.csv
+
+# Native build output of local modules
+modules/*/android/build/

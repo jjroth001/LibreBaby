@@ -21,5 +21,10 @@ export function eventIcon(event: BabyEvent): IconName {
       return 'pump';
     case 'growth':
       return 'ruler';
+    case 'milestone':
+      return 'sparkle';
+    default:
+      // An entry type from a newer version of the app (via sync).
+      return 'sparkle';
   }
 }

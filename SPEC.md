@@ -27,7 +27,7 @@ built clean-room: no decompiled code, copied assets, or copied text.
 All events: editable and deletable after the fact.
 
 ### Screens
-1. **Home** — "Last sleep / last feed / last diaper: X min ago", active timers, quick-log buttons, next-nap estimate.
+1. **Home** — "Awake for / last feed / last diaper" tiles, running timer cards, and three log buttons (Sleep · Feed · Diaper) that expand into submenus. Every type can be logged now or entered manually with a past time.
 2. **Timeline** — today's events in a vertical day view; swipe between days.
 3. **Insights** — daily totals (sleep hours, # feeds, ml, diapers) and 7-day trend.
 4. **Settings** — child profile (name, birth date), units (ml/oz), theme, data export (JSON/CSV) and import.

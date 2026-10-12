@@ -40,9 +40,11 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={hasChild}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="log/bottle" options={{ ...logSheet, title: 'Bottle' }} />
-        <Stack.Screen name="log/solids" options={{ ...logSheet, title: 'Solids' }} />
-        <Stack.Screen name="log/sleep" options={{ ...logSheet, title: 'Past sleep' }} />
+        <Stack.Screen name="log/sleep" options={{ ...logSheet, title: 'Log sleep' }} />
+        <Stack.Screen name="log/breast" options={{ ...logSheet, title: 'Log breastfeed' }} />
+        <Stack.Screen name="log/bottle" options={{ ...logSheet, title: 'Log bottle' }} />
+        <Stack.Screen name="log/solids" options={{ ...logSheet, title: 'Log solids' }} />
+        <Stack.Screen name="log/diaper" options={{ ...logSheet, title: 'Log diaper' }} />
       </Stack.Protected>
       <Stack.Protected guard={!hasChild}>
         <Stack.Screen name="onboarding" />

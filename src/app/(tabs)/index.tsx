@@ -3,8 +3,9 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import type { Action } from '@/components/home/action-grid';
 import { LastEvents } from '@/components/home/last-events';
-import { QuickLog } from '@/components/home/quick-log';
+import { LogMenu, type Category } from '@/components/home/log-menu';
 import { RunningBreastCard } from '@/components/home/running-breast-card';
 import { RunningSleepCard } from '@/components/home/running-sleep-card';
 import { UndoBanner } from '@/components/home/undo-banner';
@@ -12,7 +13,13 @@ import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { deleteEvent, getLatestEvent, insertEvent, listRunningTimers, startTimer } from '@/db/events';
+import {
+  deleteEvent,
+  getLatestEvent,
+  insertEvent,
+  listRunningTimers,
+  startTimer,
+} from '@/db/events';
 import type { BabyEvent, Child, EventDataMap } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
@@ -48,14 +55,21 @@ function Home({ child }: { child: Child }) {
     },
     [child.id],
   );
+  const [openMenu, setOpenMenu] = useState<Category | null>(null);
   const [undo, setUndo] = useState<{ eventId: string; message: string } | null>(null);
 
   const runningSleep = running.data?.find((e): e is BabyEvent<'sleep'> => e.type === 'sleep');
-  const runningBreast = running.data?.find((e): e is BabyEvent<'feed_breast'> => e.type === 'feed_breast');
+  const runningBreast = running.data?.find(
+    (e): e is BabyEvent<'feed_breast'> => e.type === 'feed_breast',
+  );
   // Tick every second while a timer is on screen; otherwise "x ago" only needs minute precision.
   const now = useNow(runningSleep || runningBreast ? 1000 : 30_000);
 
-  if (settings.status !== 'success' || running.status !== 'success' || latest.status !== 'success') {
+  if (
+    settings.status !== 'success' ||
+    running.status !== 'success' ||
+    latest.status !== 'success'
+  ) {
     return null;
   }
   const unit = settings.data.volumeUnit;
@@ -78,31 +92,90 @@ function Home({ child }: { child: Child }) {
   };
 
   const logDiaper = async (data: EventDataMap['diaper']) => {
-    const event = await insertEvent(db, { childId: child.id, type: 'diaper', startAt: Date.now(), data });
+    const event = await insertEvent(db, {
+      childId: child.id,
+      type: 'diaper',
+      startAt: Date.now(),
+      data,
+    });
     successFeedback();
     setUndo({ eventId: event.id, message: `${describeEvent(event, unit)} logged` });
   };
 
-  const actions = [
-    ...(runningSleep ? [] : [{ key: 'sleep', emoji: '😴', label: 'Sleep', detail: 'Start timer', onPress: startSleep }]),
-    ...(runningBreast
-      ? []
-      : [
-          {
-            key: 'breast',
-            emoji: '🤱',
-            label: 'Breast',
-            detail: `Start ${nextSide === 'L' ? 'left' : 'right'}`,
-            onPress: startBreastFeed,
-          },
-        ]),
-    { key: 'bottle', emoji: '🍼', label: 'Bottle', onPress: () => router.push('/log/bottle') },
-    { key: 'solids', emoji: '🥣', label: 'Solids', onPress: () => router.push('/log/solids') },
-    { key: 'wet', emoji: '💧', label: 'Wet', onPress: () => logDiaper({ wet: true, dirty: false }) },
-    { key: 'dirty', emoji: '💩', label: 'Dirty', onPress: () => logDiaper({ wet: false, dirty: true }) },
-    { key: 'both', emoji: '💧💩', label: 'Both', onPress: () => logDiaper({ wet: true, dirty: true }) },
-    { key: 'past-sleep', emoji: '🕘', label: 'Past sleep', onPress: () => router.push('/log/sleep') },
-  ];
+  const actions: Record<Category, Action[]> = {
+    sleep: [
+      ...(runningSleep
+        ? []
+        : [{ key: 'start', emoji: '⏱️', label: 'Start timer', onPress: startSleep }]),
+      {
+        key: 'manual',
+        emoji: '✏️',
+        label: 'Enter manually',
+        onPress: () => router.push('/log/sleep'),
+      },
+    ],
+    feed: [
+      ...(runningBreast
+        ? []
+        : [
+            {
+              key: 'breast',
+              emoji: '🤱',
+              label: 'Breast timer',
+              detail: `Start ${nextSide === 'L' ? 'left' : 'right'}`,
+              onPress: startBreastFeed,
+            },
+          ]),
+      {
+        key: 'bottle',
+        emoji: '🍼',
+        label: 'Bottle',
+        onPress: () => router.push('/log/bottle'),
+      },
+      {
+        key: 'solids',
+        emoji: '🥣',
+        label: 'Solids',
+        onPress: () => router.push('/log/solids'),
+      },
+      {
+        key: 'breast-manual',
+        emoji: '✏️',
+        label: 'Past breastfeed',
+        detail: 'Enter manually',
+        onPress: () => router.push('/log/breast'),
+      },
+    ],
+    diaper: [
+      {
+        key: 'wet',
+        emoji: '💧',
+        label: 'Wet',
+        detail: 'Log now',
+        onPress: () => logDiaper({ wet: true, dirty: false }),
+      },
+      {
+        key: 'dirty',
+        emoji: '💩',
+        label: 'Dirty',
+        detail: 'Log now',
+        onPress: () => logDiaper({ wet: false, dirty: true }),
+      },
+      {
+        key: 'both',
+        emoji: '💧💩',
+        label: 'Both',
+        detail: 'Log now',
+        onPress: () => logDiaper({ wet: true, dirty: true }),
+      },
+      {
+        key: 'manual',
+        emoji: '✏️',
+        label: 'Enter manually',
+        onPress: () => router.push('/log/diaper'),
+      },
+    ],
+  };
 
   return (
     <ThemedView style={styles.fill}>
@@ -124,7 +197,14 @@ function Home({ child }: { child: Child }) {
           lastDiaper={latest.data.diaper}
         />
 
-        <QuickLog actions={actions} />
+        <LogMenu
+          open={openMenu}
+          onToggle={(category) =>
+            setOpenMenu((current) => (current === category ? null : category))
+          }
+          onClose={() => setOpenMenu(null)}
+          actions={actions}
+        />
       </Screen>
 
       {undo && (

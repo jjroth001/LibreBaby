@@ -7,6 +7,7 @@ import { Button } from '@/components/button';
 import { DateTimeField } from '@/components/date-time-field';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
+import { Stepper } from '@/components/stepper';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -16,7 +17,7 @@ import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
 import { useTheme } from '@/hooks/use-theme';
-import { successFeedback, tapFeedback } from '@/lib/haptics';
+import { successFeedback } from '@/lib/haptics';
 import { fromMl, toMl, VOLUME_PRESETS, type VolumeUnit } from '@/lib/units';
 
 type Content = EventDataMap['feed_bottle']['content'];
@@ -52,11 +53,6 @@ function BottleForm({ childId, unit, last }: BottleFormProps) {
   const [time, setTime] = useState(Date.now);
   const [notes, setNotes] = useState('');
 
-  const step = (direction: 1 | -1) => {
-    tapFeedback();
-    setAmount((a) => Math.max(0, Math.round((a + direction * preset.step) * 10) / 10));
-  };
-
   const save = async () => {
     await insertEvent(db, {
       childId,
@@ -69,21 +65,15 @@ function BottleForm({ childId, unit, last }: BottleFormProps) {
     router.back();
   };
 
-  const stepButton = [styles.stepButton, { backgroundColor: theme.backgroundElement }];
-
   return (
     <Screen withTabBar={false} belowHeader>
-      <View style={styles.amountRow}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Less" onPress={() => step(-1)} style={stepButton}>
-          <ThemedText style={styles.stepLabel}>−</ThemedText>
-        </Pressable>
-        <ThemedText style={styles.amount}>
-          {amount} {unit}
-        </ThemedText>
-        <Pressable accessibilityRole="button" accessibilityLabel="More" onPress={() => step(1)} style={stepButton}>
-          <ThemedText style={styles.stepLabel}>+</ThemedText>
-        </Pressable>
-      </View>
+      <Stepper
+        value={amount}
+        onChange={setAmount}
+        step={preset.step}
+        display={`${amount} ${unit}`}
+        accessibilityName="amount"
+      />
 
       <View style={styles.quickRow}>
         {preset.quick.map((value) => {
@@ -112,16 +102,6 @@ function BottleForm({ childId, unit, last }: BottleFormProps) {
 }
 
 const styles = StyleSheet.create({
-  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  amount: { fontSize: 44, lineHeight: 52, fontWeight: 700, fontVariant: ['tabular-nums'] },
-  stepButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepLabel: { fontSize: 32, lineHeight: 36, fontWeight: 600 },
   quickRow: { flexDirection: 'row', gap: Spacing.two },
   quick: {
     flex: 1,

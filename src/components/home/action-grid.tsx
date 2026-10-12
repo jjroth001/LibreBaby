@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type Action = {
+export type Action = {
   key: string;
   emoji: string;
   label: string;
@@ -12,8 +12,8 @@ type Action = {
   onPress: () => void;
 };
 
-/** Grid of big, thumb-friendly logging buttons. */
-export function QuickLog({ actions }: { actions: Action[] }) {
+/** Two-column grid of big, thumb-friendly buttons. */
+export function ActionGrid({ actions }: { actions: Action[] }) {
   const theme = useTheme();
 
   return (
@@ -26,8 +26,7 @@ export function QuickLog({ actions }: { actions: Action[] }) {
           onPress={action.onPress}
           style={({ pressed }) => [
             styles.button,
-            { backgroundColor: theme.backgroundElement },
-            pressed && { backgroundColor: theme.backgroundSelected },
+            { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },
           ]}>
           <ThemedText style={styles.emoji}>{action.emoji}</ThemedText>
           <ThemedText style={styles.label}>{action.label}</ThemedText>
@@ -45,8 +44,8 @@ export function QuickLog({ actions }: { actions: Action[] }) {
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   button: {
-    // Three per row on phones, with gaps accounted for.
-    flexBasis: '31%',
+    // Two per row, gap accounted for; a lone last item stretches full width.
+    flexBasis: '45%',
     flexGrow: 1,
     minHeight: 96,
     borderRadius: Spacing.three,

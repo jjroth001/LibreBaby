@@ -1,5 +1,6 @@
 import {
   finishBreast,
+  manualBreast,
   pauseBreast,
   sideTotals,
   startBreast,
@@ -54,6 +55,13 @@ describe('breast feeding timer', () => {
   it('pausing twice does not double count', () => {
     const once = pauseBreast(startBreast('L', 0), MIN);
     expect(pauseBreast(once, 10 * MIN)).toEqual(once);
+  });
+
+  it('builds manual entries with the right summary and last side', () => {
+    expect(manualBreast(10 * MIN, 5 * MIN, 'L')).toMatchObject({ side: 'both', lastSide: 'L' });
+    // With one side only, `endedOn` is ignored.
+    expect(manualBreast(0, 7 * MIN, 'L')).toMatchObject({ side: 'R', lastSide: 'R', rightMs: 7 * MIN });
+    expect(manualBreast(12 * MIN, 0, 'R')).toMatchObject({ side: 'L', lastSide: 'L', activeSide: null });
   });
 
   it('suggests left when there is no history', () => {

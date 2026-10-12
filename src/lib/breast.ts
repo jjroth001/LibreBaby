@@ -44,6 +44,18 @@ export function finishBreast(data: BreastData, now: number): BreastData {
   return { ...paused, side };
 }
 
+/**
+ * Data for a feed entered after the fact. `endedOn` only matters when both sides
+ * were used; with one side, that side is where it ended.
+ */
+export function manualBreast(leftMs: number, rightMs: number, endedOn: BreastSide): BreastData {
+  const lastSide = leftMs > 0 && rightMs > 0 ? endedOn : rightMs > 0 ? 'R' : 'L';
+  return finishBreast(
+    { side: lastSide, lastSide, leftMs, rightMs, activeSide: null, activeSince: null },
+    0,
+  );
+}
+
 /** The side to start the next feed on: the opposite of where the last feed ended. */
 export function suggestedNextSide(last: BreastData | undefined): BreastSide {
   return last ? otherSide(last.lastSide) : 'L';

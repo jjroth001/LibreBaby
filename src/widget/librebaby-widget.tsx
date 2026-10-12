@@ -1,3 +1,8 @@
+// The widget library calls these components as plain functions, so the React Compiler
+// (on for the rest of the app) must not rewrite them with hooks — that throws
+// "Invalid hook call" and the widget is never drawn.
+'use no memo';
+
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
 
 import type { WidgetModel, WidgetRow } from './widget-model';
@@ -38,6 +43,24 @@ export function LibreBabyWidget({ model }: { model: WidgetModel }) {
       ) : (
         <TextWidget text="Open LibreBaby to get started" style={{ fontSize: 14, color: MUTED }} />
       )}
+    </FlexWidget>
+  );
+}
+
+/** Shown if drawing the real widget fails, so it's never just blank. */
+export function FallbackWidget() {
+  return (
+    <FlexWidget
+      clickAction="OPEN_APP"
+      style={{
+        height: 'match_parent',
+        width: 'match_parent',
+        backgroundColor: NIGHT,
+        borderRadius: 24,
+        padding: 16,
+        justifyContent: 'center',
+      }}>
+      <TextWidget text="🌙 Tap to open LibreBaby" style={{ fontSize: 15, color: MOON }} />
     </FlexWidget>
   );
 }

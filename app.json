@@ -2,14 +2,14 @@
   "expo": {
     "name": "LibreBaby",
     "slug": "LibreBaby",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "librebaby",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "org.librebaby.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#2B3A8F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

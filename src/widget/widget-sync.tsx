@@ -8,14 +8,21 @@ import { WIDGET_NAME, type WidgetModel } from './widget-model';
 
 async function redraw(model: WidgetModel) {
   // Loaded lazily: these modules touch native code that doesn't exist in Expo Go.
-  const [{ requestWidgetUpdate }, { LibreBabyWidget }] = await Promise.all([
+  const [{ requestWidgetUpdate }, { FallbackWidget, LibreBabyWidget }] = await Promise.all([
     import('react-native-android-widget'),
     import('./librebaby-widget'),
   ]);
-  await requestWidgetUpdate({
-    widgetName: WIDGET_NAME,
-    renderWidget: () => <LibreBabyWidget model={model} />,
-  });
+  // The library turns the element into a widget after renderWidget returns, so a drawing
+  // error surfaces from requestWidgetUpdate itself; fall back rather than stay blank.
+  try {
+    await requestWidgetUpdate({
+      widgetName: WIDGET_NAME,
+      renderWidget: () => <LibreBabyWidget model={model} />,
+    });
+  } catch (error) {
+    console.error('LibreBaby widget failed to draw', error);
+    await requestWidgetUpdate({ widgetName: WIDGET_NAME, renderWidget: () => <FallbackWidget /> });
+  }
 }
 
 /**

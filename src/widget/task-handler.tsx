@@ -1,13 +1,15 @@
 import { openDatabaseAsync } from 'expo-sqlite';
 import type { WidgetTaskHandler } from 'react-native-android-widget';
 
-import { LibreBabyWidget } from './librebaby-widget';
+import { FallbackWidget, LibreBabyWidget } from './librebaby-widget';
 import { loadWidgetModel } from './load-widget-model';
 import type { WidgetModel } from './widget-model';
 
 /** Reads straight from the app's database; works even when the app isn't open. */
 async function loadModel(): Promise<WidgetModel> {
-  const db = await openDatabaseAsync('librebaby.db');
+  // Its own connection: without useNewConnection, expo-sqlite may hand back the running
+  // app's cached one, and closing it below would break the app.
+  const db = await openDatabaseAsync('librebaby.db', { useNewConnection: true });
   try {
     return await loadWidgetModel(db, Date.now());
   } catch {
@@ -24,7 +26,12 @@ export const widgetTaskHandler: WidgetTaskHandler = async ({ widgetAction, rende
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
-      renderWidget(<LibreBabyWidget model={await loadModel()} />);
+      try {
+        renderWidget(<LibreBabyWidget model={await loadModel()} />);
+      } catch (error) {
+        console.error('LibreBaby widget failed to draw', error);
+        renderWidget(<FallbackWidget />);
+      }
       break;
     default:
       // WIDGET_DELETED needs no cleanup; taps use OPEN_APP, handled natively.

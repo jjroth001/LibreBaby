@@ -47,7 +47,6 @@ Simple, transparent, and explainable:
 - Growth tracking (weight/length/head) with WHO percentile charts (public data).
 - Temperature.
 - Reminders (e.g. "feed due in ~3h").
-- Home-screen widget for one-tap logging.
 - Public release: choose license, F-Droid / Play Store listing.
 
 ## Data model (v1)
@@ -95,3 +94,4 @@ Amounts are stored in metric; display units are a setting.
 4. **M3** — Timeline + edit/delete. ✅
 5. **M4** — Next-nap estimate + notifications. ✅
 6. **M5** — Insights, export/import, first APK build for family. ← *next*
+7. **M6** — Home-screen widget (last feed + next sleep window; clock times, refreshed on every log and ~30 min). Needs an installed build (react-native-android-widget), so it comes last. Requested by user; deferred to the end on 2026-10-11.

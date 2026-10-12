@@ -13,6 +13,7 @@ import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { shareBackup } from '@/lib/data-transfer';
 import { syncSleepReminder } from '@/lib/notifications';
+import { useSync } from '@/sync/sync-provider';
 
 const CONFIRM_WORD = 'DELETE';
 
@@ -25,6 +26,7 @@ export default function EraseScreen() {
   const { data: child } = useChild();
   const entries = useDbQuery(['event'], countEntries);
   const [typed, setTyped] = useState('');
+  const sync = useSync();
 
   const confirmed = typed.trim().toUpperCase() === CONFIRM_WORD;
   const name = child?.name ?? 'your baby';
@@ -42,6 +44,8 @@ export default function EraseScreen() {
   const erase = async () => {
     // Cancel a pending sleep reminder; nothing will be left to remind about.
     await syncSleepReminder(null).catch(() => {});
+    // Starting over also leaves family sync (the other phones keep their copy).
+    await sync.leave();
     // Once the profile is gone the app returns to the welcome screen on its own.
     await eraseAllData(db);
   };
@@ -54,8 +58,9 @@ export default function EraseScreen() {
         </ThemedText>
         <ThemedText>
           This permanently deletes {name}&apos;s profile, all {count}{' '}
-          {count === 1 ? 'entry' : 'entries'} and your settings from this phone, and takes you back
-          to the welcome screen. It can&apos;t be undone.
+          {count === 1 ? 'entry' : 'entries'} and your settings from this phone (and stops family
+          sync here; other phones keep their copy), and takes you back to the welcome screen. It
+          can&apos;t be undone.
         </ThemedText>
         <ThemedText themeColor="textSecondary">
           Make a backup first if you might want this data again — you can restore it later from the

@@ -1,6 +1,9 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { Alert, StyleSheet, View } from 'react-native';
 
+import { router } from 'expo-router';
+
+import { Button } from '@/components/button';
 import { ChildForm } from '@/components/child-form';
 import { SubmitButton } from '@/components/forms/submit-button';
 import { Screen } from '@/components/screen';
@@ -45,6 +48,14 @@ export default function OnboardingScreen() {
       />
 
       <View style={styles.restore}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
+          Already using LibreBaby on another phone?
+        </ThemedText>
+        <Button
+          title="Join a family (scan code)"
+          variant="secondary"
+          onPress={() => router.push('/sync/join')}
+        />
         <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
           Moving to a new phone?
         </ThemedText>

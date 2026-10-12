@@ -6,6 +6,7 @@ import { ChildForm } from '@/components/child-form';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
 import { DataSection } from '@/components/settings/data-section';
+import { SyncSection } from '@/components/settings/sync-section';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { updateChild } from '@/db/children';
@@ -118,6 +119,8 @@ export default function SettingsScreen() {
           onChange={(units) => setSetting(db, 'growthUnits', units)}
         />
       </View>
+
+      <SyncSection child={child} />
 
       <DataSection
         child={child}

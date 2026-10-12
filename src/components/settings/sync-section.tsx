@@ -1,0 +1,107 @@
+import { router } from 'expo-router';
+import { Alert, StyleSheet, View } from 'react-native';
+
+import { Button } from '@/components/button';
+import { SubmitButton } from '@/components/forms/submit-button';
+import { ThemedText } from '@/components/themed-text';
+import { Spacing } from '@/constants/theme';
+import type { Child } from '@/db/types';
+import { useDbQuery } from '@/db/use-db-query';
+import { useNow } from '@/hooks/use-now';
+import { formatDuration } from '@/lib/format';
+import { useSync } from '@/sync/sync-provider';
+
+type Peer = { device_id: string; name: string; last_synced_at: number | null };
+
+/** Settings → Family sync: set up, pair phones, see status, stop syncing. */
+export function SyncSection({ child }: { child: Child }) {
+  const sync = useSync();
+  const now = useNow(30_000);
+  const peers = useDbQuery(['sync_peer'], (db) =>
+    db.getAllAsync<Peer>('SELECT device_id, name, last_synced_at FROM sync_peer ORDER BY name'),
+  );
+
+  if (sync.family === undefined) return null;
+
+  const leave = () =>
+    Alert.alert(
+      'Stop syncing on this phone?',
+      `${child.name}'s log stays on this phone, but it won't share changes with the family anymore. You can join again later with the family code.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Stop syncing', style: 'destructive', onPress: () => void sync.leave() },
+      ],
+    );
+
+  const status = sync.syncing
+    ? 'Syncing…'
+    : sync.lastEvent?.type === 'error'
+      ? `Last attempt failed: ${sync.lastEvent.message}`
+      : sync.lastEvent?.type === 'synced'
+        ? `Synced with ${sync.lastEvent.peerName}`
+        : 'Looking for family phones on this Wi-Fi…';
+
+  return (
+    <View style={styles.section}>
+      <ThemedText type="smallBold">Family sync</ThemedText>
+
+      {!sync.supported ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Available in the installed app. Expo Go (the development preview) can&apos;t use the local
+          network.
+        </ThemedText>
+      ) : !sync.family ? (
+        <>
+          <ThemedText type="small" themeColor="textSecondary">
+            Share {child.name}&apos;s log with your family&apos;s phones over your home Wi-Fi. No
+            accounts and no cloud: phones sync directly whenever they&apos;re on the same Wi-Fi with
+            LibreBaby open.
+          </ThemedText>
+          <SubmitButton
+            title="Set up family sync"
+            busyTitle="Setting up…"
+            onPress={async () => {
+              await sync.setUp();
+              router.push('/sync/pair');
+            }}
+          />
+          <Button
+            title="Join with a family code"
+            variant="secondary"
+            onPress={() => router.push('/sync/join')}
+          />
+        </>
+      ) : (
+        <>
+          <ThemedText type="small" themeColor="textSecondary">
+            {status}
+          </ThemedText>
+          {(peers.data ?? []).map((peer) => (
+            <ThemedText key={peer.device_id} type="small">
+              📱 {peer.name}
+              {peer.last_synced_at
+                ? ` — synced ${formatDuration(now - peer.last_synced_at)} ago`
+                : ''}
+            </ThemedText>
+          ))}
+          {(peers.data ?? []).length === 0 && (
+            <ThemedText type="small" themeColor="textSecondary">
+              No other phones yet. Show the family code on this phone and scan it on the other.
+            </ThemedText>
+          )}
+          <Button title="Sync now" onPress={sync.syncNow} />
+          <Button
+            title="Show family code"
+            variant="secondary"
+            onPress={() => router.push('/sync/pair')}
+          />
+          <Button title="Stop syncing on this phone" variant="secondary" onPress={leave} />
+        </>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  section: { gap: Spacing.three },
+});

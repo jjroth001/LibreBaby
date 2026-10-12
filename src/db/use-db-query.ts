@@ -1,7 +1,7 @@
 import { addDatabaseChangeListener, useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 import { useEffect, useState, type DependencyList } from 'react';
 
-type Table = 'child' | 'event' | 'setting';
+type Table = 'child' | 'event' | 'setting' | 'sync_peer';
 
 const RERUN_DELAY_MS = 30;
 

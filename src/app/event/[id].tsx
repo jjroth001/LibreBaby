@@ -15,6 +15,8 @@ import {
   pumpFromValues,
   pumpToValues,
 } from '@/components/forms/mapping';
+import { GrowthForm } from '@/components/forms/growth-form';
+import { growthToValues } from '@/components/forms/growth-mapping';
 import { MedicationForm } from '@/components/forms/medication-form';
 import { PumpForm } from '@/components/forms/pump-form';
 import { SleepForm } from '@/components/forms/sleep-form';
@@ -26,6 +28,7 @@ import type { BabyEvent, EventType } from '@/db/types';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
 import { successFeedback } from '@/lib/haptics';
+import type { GrowthUnits } from '@/lib/growth-units';
 import type { VolumeUnit } from '@/lib/units';
 
 const TITLES: Record<EventType, string> = {
@@ -36,6 +39,7 @@ const TITLES: Record<EventType, string> = {
   diaper: 'Edit diaper',
   medication: 'Edit medication',
   pump: 'Edit pumping',
+  growth: 'Edit measurement',
 };
 
 export default function EditEventScreen() {
@@ -52,10 +56,19 @@ export default function EditEventScreen() {
     );
   }
   // Keyed so the form's fields reset if a different event is shown.
-  return <EditEvent key={event.data.id} event={event.data} unit={settings.data.volumeUnit} />;
+  return (
+    <EditEvent
+      key={event.data.id}
+      event={event.data}
+      unit={settings.data.volumeUnit}
+      growthUnits={settings.data.growthUnits}
+    />
+  );
 }
 
-function EditEvent({ event, unit }: { event: BabyEvent; unit: VolumeUnit }) {
+type EditEventProps = { event: BabyEvent; unit: VolumeUnit; growthUnits: GrowthUnits };
+
+function EditEvent({ event, unit, growthUnits }: EditEventProps) {
   const db = useSQLiteContext();
 
   const done = () => {
@@ -79,15 +92,15 @@ function EditEvent({ event, unit }: { event: BabyEvent; unit: VolumeUnit }) {
   return (
     <Screen withTabBar={false} belowHeader>
       <Stack.Screen options={{ title: TITLES[event.type] }} />
-      <EventForm event={event} unit={unit} onSaved={done} />
+      <EventForm event={event} unit={unit} growthUnits={growthUnits} onSaved={done} />
       <Button title="Delete" variant="secondary" onPress={confirmDelete} />
     </Screen>
   );
 }
 
-type EventFormProps = { event: BabyEvent; unit: VolumeUnit; onSaved: () => void };
+type EventFormProps = EditEventProps & { onSaved: () => void };
 
-function EventForm({ event, unit, onSaved }: EventFormProps) {
+function EventForm({ event, unit, growthUnits, onSaved }: EventFormProps) {
   const db = useSQLiteContext();
   const submitLabel = 'Save changes';
 
@@ -189,6 +202,19 @@ function EventForm({ event, unit, onSaved }: EventFormProps) {
               data: { name, dose },
               notes: cleanNotes(notes),
             });
+            onSaved();
+          }}
+        />
+      );
+    case 'growth':
+      return (
+        <GrowthForm
+          initial={growthToValues(event, growthUnits)}
+          units={growthUnits}
+          original={event}
+          submitLabel={submitLabel}
+          onSubmit={async ({ startAt, data, notes }) => {
+            await updateEvent<'growth'>(db, event.id, { startAt, data, notes: cleanNotes(notes) });
             onSaved();
           }}
         />

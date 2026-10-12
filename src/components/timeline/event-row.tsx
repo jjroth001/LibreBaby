@@ -6,18 +6,20 @@ import type { BabyEvent } from '@/db/types';
 import { useTheme } from '@/hooks/use-theme';
 import { describeEvent, eventEmoji } from '@/lib/describe';
 import { formatTime } from '@/lib/format';
+import type { GrowthUnits } from '@/lib/growth-units';
 import type { VolumeUnit } from '@/lib/units';
 
 type EventRowProps = {
   event: BabyEvent;
   unit: VolumeUnit;
+  growthUnits: GrowthUnits;
   /** Local midnight of the day being shown, to flag events that began the day before. */
   dayStart: number;
   running: boolean;
   onPress: () => void;
 };
 
-export function EventRow({ event, unit, dayStart, running, onPress }: EventRowProps) {
+export function EventRow({ event, unit, growthUnits, dayStart, running, onPress }: EventRowProps) {
   const theme = useTheme();
   const ranged = event.type === 'sleep' || event.type === 'feed_breast' || event.type === 'pump';
 
@@ -47,7 +49,7 @@ export function EventRow({ event, unit, dayStart, running, onPress }: EventRowPr
       <ThemedText style={styles.emoji}>{eventEmoji(event)}</ThemedText>
 
       <View style={styles.body}>
-        <ThemedText>{describeEvent(event, unit)}</ThemedText>
+        <ThemedText>{describeEvent(event, unit, growthUnits)}</ThemedText>
         {running && (
           <ThemedText type="smallBold" style={{ color: theme.tint }}>
             In progress

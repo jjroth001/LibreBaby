@@ -18,6 +18,10 @@ export const Colors = {
     onTint: '#ffffff',
     /** Chart marks; validated (dataviz checks) against backgroundElement. */
     chart: '#3E63DD',
+    /** Growth chart: WHO reference bands (sequential, outer lighter) and the child's line. */
+    growthBandOuter: '#DDE4FA',
+    growthBandInner: '#C3D0F5',
+    growthChild: '#C2410C',
     danger: '#CE2C31',
   },
   dark: {
@@ -30,6 +34,10 @@ export const Colors = {
     onTint: '#0B1437',
     /** Deeper than tint: chart fills need OKLCH L 0.48–0.67 on dark surfaces. */
     chart: '#7089EA',
+    // Bands kept dark so the child's line keeps ≥3:1 contrast over them.
+    growthBandOuter: '#232A4D',
+    growthBandInner: '#2A3463',
+    growthChild: '#E8590C',
     danger: '#FF9592',
   },
 } as const;

@@ -61,6 +61,11 @@ const MIGRATIONS: string[] = [
   ALTER TABLE event_new RENAME TO event;
   CREATE INDEX event_child_start ON event (child_id, start_at);
   `,
+
+  // 3: sex, for choosing the WHO growth chart (NULL until set)
+  `
+  ALTER TABLE child ADD COLUMN sex TEXT;
+  `,
 ];
 
 /** Runs on every app start via `SQLiteProvider.onInit`, before any screen renders. */

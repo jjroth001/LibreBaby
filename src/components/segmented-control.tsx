@@ -7,11 +7,16 @@ import { tapFeedback } from '@/lib/haptics';
 
 type SegmentedControlProps<T extends string> = {
   options: readonly { value: T; label: string }[];
-  value: T;
+  /** null shows no segment selected (e.g. a choice not made yet). */
+  value: T | null;
   onChange: (value: T) => void;
 };
 
-export function SegmentedControl<T extends string>({ options, value, onChange }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: SegmentedControlProps<T>) {
   const theme = useTheme();
 
   return (

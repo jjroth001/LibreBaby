@@ -23,6 +23,11 @@ const LEAD_OPTIONS = [
 ] as const;
 type LeadOption = (typeof LEAD_OPTIONS)[number]['value'];
 
+const GROWTH_UNIT_OPTIONS = [
+  { value: 'imperial', label: 'lb & in' },
+  { value: 'metric', label: 'kg & cm' },
+] as const;
+
 const VOLUME_OPTIONS = [
   { value: 'oz', label: 'Ounces (oz)' },
   { value: 'ml', label: 'Milliliters (ml)' },
@@ -55,7 +60,7 @@ export default function SettingsScreen() {
         <ThemedText type="smallBold">Baby profile</ThemedText>
         <ChildForm
           key={child.id}
-          initialValues={{ name: child.name, birthDate: child.birthDate }}
+          initialValues={{ name: child.name, birthDate: child.birthDate, sex: child.sex }}
           submitLabel="Save changes"
           onSubmit={async (values) => {
             await updateChild(db, child.id, values);
@@ -105,7 +110,21 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <DataSection child={child} unit={settings.volumeUnit} lastBackupAt={settings.lastBackupAt} />
+      <View style={styles.section}>
+        <ThemedText type="smallBold">Growth units</ThemedText>
+        <SegmentedControl
+          options={GROWTH_UNIT_OPTIONS}
+          value={settings.growthUnits}
+          onChange={(units) => setSetting(db, 'growthUnits', units)}
+        />
+      </View>
+
+      <DataSection
+        child={child}
+        unit={settings.volumeUnit}
+        growthUnits={settings.growthUnits}
+        lastBackupAt={settings.lastBackupAt}
+      />
     </Screen>
   );
 }

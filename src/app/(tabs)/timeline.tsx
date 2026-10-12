@@ -66,6 +66,7 @@ function Timeline({ child }: { child: Child }) {
                 <EventRow
                   event={event}
                   unit={unit}
+                  growthUnits={settings.data.growthUnits}
                   dayStart={day}
                   running={running}
                   onPress={() =>

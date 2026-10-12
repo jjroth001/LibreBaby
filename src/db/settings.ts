@@ -1,9 +1,12 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import type { GrowthUnits } from '@/lib/growth-units';
 import type { VolumeUnit } from '@/lib/units';
 
 export type Settings = {
   volumeUnit: VolumeUnit;
+  /** Weight, length and head size: lb/oz + inches, or kg + cm. */
+  growthUnits: GrowthUnits;
   /** Notify shortly before the predicted sleep window opens. */
   sleepReminders: boolean;
   /** How many minutes before the window opens to notify. */
@@ -14,8 +17,10 @@ export type Settings = {
 
 function defaultSettings(): Settings {
   const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+  const imperial = /-(US|LR|MM)\b/.test(locale);
   return {
-    volumeUnit: /-(US|LR|MM)\b/.test(locale) ? 'oz' : 'ml',
+    volumeUnit: imperial ? 'oz' : 'ml',
+    growthUnits: imperial ? 'imperial' : 'metric',
     sleepReminders: false,
     sleepReminderLeadMin: 15,
     lastBackupAt: null,

@@ -25,6 +25,7 @@ built clean-room: no decompiled code, copied assets, or copied text.
 | **Diaper** | time, wet / dirty / both, notes | One-tap buttons |
 | **Medication** | time, name, dose (free text), notes | One tap for recently given meds (shows "last given X ago"), or a form |
 | **Pumping** | start, duration, amount per side, notes | Form (start time, minutes, left/right amounts) |
+| **Growth** | time, weight, length, head circumference (any subset), notes | Insights → Growth: form in lb/oz + in or kg + cm; chart vs WHO 3rd–97th / 15th–85th bands + median, percentile per measurement (birth–24 months) |
 
 All events: editable and deletable after the fact.
 
@@ -44,7 +45,6 @@ Simple, transparent, and explainable:
 ## v2 and later
 - **Multi-caregiver sync** — self-hostable sync server (both parents' phones share one log).
 - Multiple children.
-- Growth tracking (weight/length/head) with WHO percentile charts (public data).
 - Temperature.
 - Reminders (e.g. "feed due in ~3h").
 - Public release: choose license, F-Droid / Play Store listing.
@@ -53,7 +53,7 @@ Simple, transparent, and explainable:
 
 ```
 child
-  id, name, birth_date (local YYYY-MM-DD), created_at, updated_at
+  id, name, birth_date (local YYYY-MM-DD), sex, created_at, updated_at
 
 setting
   key, value          (app preferences, e.g. units)
@@ -77,6 +77,9 @@ Type-specific `data`:
 - `diaper`: `{ "wet": bool, "dirty": bool }`
 - `medication`: `{ "name": string, "dose": string }`
 - `pump`: `{ "leftMl": n, "rightMl": n }` (duration = end_at − start_at)
+- `growth`: `{ "weightKg": n|null, "lengthCm": n|null, "headCm": n|null }`
+
+`child.sex` ('male' | 'female' | NULL, migration 3) picks the WHO chart. WHO LMS tables (0–24 mo) are bundled in `src/data/who-growth.ts`, generated from the CDC-hosted WHO CSVs; tests check the LMS math against every published percentile value.
 
 Amounts are stored in metric; display units are a setting.
 

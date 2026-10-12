@@ -1,6 +1,7 @@
 import type { BabyEvent } from '@/db/types';
 
 import { formatDuration } from './format';
+import { formatLength, formatWeight, type GrowthUnits } from './growth-units';
 import { formatVolume, type VolumeUnit } from './units';
 
 export function eventEmoji(event: BabyEvent): string {
@@ -19,11 +20,18 @@ export function eventEmoji(event: BabyEvent): string {
       return '💊';
     case 'pump':
       return '🥛';
+    case 'growth':
+      return '📏';
   }
 }
 
 /** Short human label for an event, e.g. "Bottle · 4 oz formula", "Wet + dirty diaper". */
-export function describeEvent(event: BabyEvent, unit: VolumeUnit): string {
+export function describeEvent(
+  event: BabyEvent,
+  unit: VolumeUnit,
+  // Defaults to the system that matches the volume unit; pass it where growth entries show.
+  growthUnits: GrowthUnits = unit === 'oz' ? 'imperial' : 'metric',
+): string {
   switch (event.type) {
     case 'sleep':
       return event.endAt ? `Slept ${formatDuration(event.endAt - event.startAt)}` : 'Sleeping';
@@ -58,6 +66,15 @@ export function describeEvent(event: BabyEvent, unit: VolumeUnit): string {
       const detail =
         sides.length === 2 ? ` (${sides.join(', ')})` : sides.length ? ` (${sides[0]})` : '';
       return `Pumped ${formatVolume(leftMl + rightMl, unit)}${detail}${duration}`;
+    }
+    case 'growth': {
+      const { weightKg, lengthCm, headCm } = event.data;
+      const parts = [
+        weightKg !== null && `Weight ${formatWeight(weightKg, growthUnits)}`,
+        lengthCm !== null && `Length ${formatLength(lengthCm, growthUnits)}`,
+        headCm !== null && `Head ${formatLength(headCm, growthUnits)}`,
+      ].filter(Boolean);
+      return parts.length ? parts.join(' · ') : 'Measurement';
     }
   }
 }

@@ -10,6 +10,7 @@ import { toCsv } from './csv';
 import { toLocalDateString } from './dates';
 import { describeEvent } from './describe';
 import { formatTime } from './format';
+import type { GrowthUnits } from './growth-units';
 import type { VolumeUnit } from './units';
 
 /** Writes `contents` to a cache file and opens Android's share sheet (Drive, email, Files…). */
@@ -43,10 +44,15 @@ const TYPE_LABELS: Record<EventType, string> = {
   diaper: 'Diaper',
   medication: 'Medication',
   pump: 'Pumping',
+  growth: 'Growth',
 };
 
 /** All entries as a spreadsheet, oldest first — handy for a pediatrician visit. */
-export async function shareSpreadsheet(db: SQLiteDatabase, unit: VolumeUnit): Promise<void> {
+export async function shareSpreadsheet(
+  db: SQLiteDatabase,
+  unit: VolumeUnit,
+  growthUnits: GrowthUnits,
+): Promise<void> {
   const rows = await db.getAllAsync<EventRow>(
     'SELECT * FROM event WHERE deleted_at IS NULL ORDER BY start_at',
   );
@@ -69,7 +75,7 @@ export async function shareSpreadsheet(db: SQLiteDatabase, unit: VolumeUnit): Pr
       event.endAt ? formatTime(event.endAt) : '',
       event.endAt ? Math.round((event.endAt - event.startAt) / 60_000) : '',
       TYPE_LABELS[event.type] ?? event.type,
-      describeEvent(event, unit),
+      describeEvent(event, unit, growthUnits),
       event.notes,
     ];
   });

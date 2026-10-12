@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 
 import { Card } from '@/components/card';
 import { BarChart, type Bar } from '@/components/insights/bar-chart';
+import { GrowthView } from '@/components/insights/growth-view';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
@@ -19,6 +20,12 @@ import { addLocalDays, startOfLocalDay } from '@/lib/dates';
 import { formatDuration } from '@/lib/format';
 import { buildInsights, type DayInsight } from '@/lib/insights';
 import { formatVolume, type VolumeUnit } from '@/lib/units';
+
+const VIEW_OPTIONS = [
+  { value: 'trends', label: 'Daily trends' },
+  { value: 'growth', label: 'Growth' },
+] as const;
+type InsightsView = (typeof VIEW_OPTIONS)[number]['value'];
 
 const RANGE_OPTIONS = [
   { value: '7', label: '7 days' },
@@ -63,6 +70,7 @@ function Insights({ child }: { child: Child }) {
   const settings = useSettings();
   const now = useNow(60_000);
   const todayStart = startOfLocalDay(now);
+  const [view, setView] = useState<InsightsView>('trends');
   const [range, setRange] = useState<Range>('7');
   const dayCount = Number(range);
   // One extra day back so sleeps that began the night before the range are included.
@@ -83,87 +91,99 @@ function Insights({ child }: { child: Child }) {
   return (
     <Screen>
       <ThemedText type="subtitle">Insights</ThemedText>
-      <SegmentedControl options={RANGE_OPTIONS} value={range} onChange={setRange} />
+      <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
 
-      {!avg ? (
-        <ThemedText themeColor="textSecondary" style={styles.empty}>
-          Trends show up here once you&apos;ve logged a full day. Today counts tomorrow.
-        </ThemedText>
-      ) : (
-        // Keyed by range so switching ranges cross-fades the charts.
-        <Animated.View key={range} entering={Motion.fadeIn} style={styles.sections}>
-          <ThemedText type="small" themeColor="textSecondary">
-            Averages use the {insights.loggedDays} complete{' '}
-            {insights.loggedDays === 1 ? 'day' : 'days'} with entries; today is shown faded.
-          </ThemedText>
-
-          <Section
-            title="😴 Sleep"
-            headline={`${formatDuration(avg.sleepMs)} / day`}
-            details={[
-              avg.longestSleepMs > 0 &&
-                `Longest stretch ${formatDuration(avg.longestSleepMs)} on average`,
-              insights.typicalWakeWindowMs !== null &&
-                `Typically awake ${formatDuration(insights.typicalWakeWindowMs)} between daytime sleeps`,
-            ]}>
-            <BarChart
-              title="Sleep per day"
-              bars={barsFor(insights.days, (d) => d.sleepMs)}
-              format={formatDuration}
-              average={avg.sleepMs}
-            />
-          </Section>
-
-          <Section
-            title="🍼 Feeds"
-            headline={`${oneDecimal(avg.feedCount)} / day`}
-            details={[hasBottles && `${formatVolume(avg.bottleMl, unit)} from bottles per day`]}>
-            <BarChart
-              title="Feeds per day"
-              bars={barsFor(insights.days, (d) => d.feedCount)}
-              format={(n) => oneDecimal(n)}
-              average={avg.feedCount}
-            />
-          </Section>
-
-          {hasBottles && (
-            <Section
-              title="🍼 Bottle volume"
-              headline={`${formatVolume(avg.bottleMl, unit)} / day`}>
-              <BarChart
-                title="Bottle volume per day"
-                bars={barsFor(insights.days, (d) => d.bottleMl)}
-                format={(ml) => formatVolume(ml, unit)}
-                average={avg.bottleMl}
-              />
-            </Section>
-          )}
-
-          <Section
-            title="🧷 Diapers"
-            headline={`${oneDecimal(avg.diaperCount)} / day`}
-            details={[
-              `${oneDecimal(avg.wetCount)} wet · ${oneDecimal(avg.dirtyCount)} dirty on average`,
-            ]}>
-            <BarChart
-              title="Diapers per day"
-              bars={barsFor(insights.days, (d) => d.diaperCount)}
-              format={(n) => oneDecimal(n)}
-              average={avg.diaperCount}
-            />
-          </Section>
-
-          {hasPumping && (
-            <Section title="🥛 Pumping" headline={`${formatVolume(avg.pumpMl, unit)} / day`}>
-              <BarChart
-                title="Pumped per day"
-                bars={barsFor(insights.days, (d) => d.pumpMl)}
-                format={(ml) => formatVolume(ml, unit)}
-                average={avg.pumpMl}
-              />
-            </Section>
-          )}
+      {view === 'growth' ? (
+        <Animated.View key="growth" entering={Motion.fadeIn}>
+          <GrowthView child={child} units={settings.data.growthUnits} now={now} />
         </Animated.View>
+      ) : (
+        <>
+          <SegmentedControl options={RANGE_OPTIONS} value={range} onChange={setRange} />
+
+          {!avg ? (
+            <ThemedText themeColor="textSecondary" style={styles.empty}>
+              Trends show up here once you&apos;ve logged a full day. Today counts tomorrow.
+            </ThemedText>
+          ) : (
+            // Keyed by range so switching ranges cross-fades the charts.
+            <Animated.View key={range} entering={Motion.fadeIn} style={styles.sections}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Averages use the {insights.loggedDays} complete{' '}
+                {insights.loggedDays === 1 ? 'day' : 'days'} with entries; today is shown faded.
+              </ThemedText>
+
+              <Section
+                title="😴 Sleep"
+                headline={`${formatDuration(avg.sleepMs)} / day`}
+                details={[
+                  avg.longestSleepMs > 0 &&
+                    `Longest stretch ${formatDuration(avg.longestSleepMs)} on average`,
+                  insights.typicalWakeWindowMs !== null &&
+                    `Typically awake ${formatDuration(insights.typicalWakeWindowMs)} between daytime sleeps`,
+                ]}>
+                <BarChart
+                  title="Sleep per day"
+                  bars={barsFor(insights.days, (d) => d.sleepMs)}
+                  format={formatDuration}
+                  average={avg.sleepMs}
+                />
+              </Section>
+
+              <Section
+                title="🍼 Feeds"
+                headline={`${oneDecimal(avg.feedCount)} / day`}
+                details={[
+                  hasBottles && `${formatVolume(avg.bottleMl, unit)} from bottles per day`,
+                ]}>
+                <BarChart
+                  title="Feeds per day"
+                  bars={barsFor(insights.days, (d) => d.feedCount)}
+                  format={(n) => oneDecimal(n)}
+                  average={avg.feedCount}
+                />
+              </Section>
+
+              {hasBottles && (
+                <Section
+                  title="🍼 Bottle volume"
+                  headline={`${formatVolume(avg.bottleMl, unit)} / day`}>
+                  <BarChart
+                    title="Bottle volume per day"
+                    bars={barsFor(insights.days, (d) => d.bottleMl)}
+                    format={(ml) => formatVolume(ml, unit)}
+                    average={avg.bottleMl}
+                  />
+                </Section>
+              )}
+
+              <Section
+                title="🧷 Diapers"
+                headline={`${oneDecimal(avg.diaperCount)} / day`}
+                details={[
+                  `${oneDecimal(avg.wetCount)} wet · ${oneDecimal(avg.dirtyCount)} dirty on average`,
+                ]}>
+                <BarChart
+                  title="Diapers per day"
+                  bars={barsFor(insights.days, (d) => d.diaperCount)}
+                  format={(n) => oneDecimal(n)}
+                  average={avg.diaperCount}
+                />
+              </Section>
+
+              {hasPumping && (
+                <Section title="🥛 Pumping" headline={`${formatVolume(avg.pumpMl, unit)} / day`}>
+                  <BarChart
+                    title="Pumped per day"
+                    bars={barsFor(insights.days, (d) => d.pumpMl)}
+                    format={(ml) => formatVolume(ml, unit)}
+                    average={avg.pumpMl}
+                  />
+                </Section>
+              )}
+            </Animated.View>
+          )}
+        </>
       )}
     </Screen>
   );

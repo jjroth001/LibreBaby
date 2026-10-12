@@ -179,6 +179,20 @@ export async function getLatestEvent<T extends EventType>(
   return row ? (fromRow(row) as BabyEvent<T>) : null;
 }
 
+/** Every (non-deleted) event of one type, oldest first. */
+export async function listEventsOfType<T extends EventType>(
+  db: SQLiteDatabase,
+  childId: string,
+  type: T,
+): Promise<BabyEvent<T>[]> {
+  const rows = await db.getAllAsync<EventRow>(
+    'SELECT * FROM event WHERE child_id = ? AND type = ? AND deleted_at IS NULL ORDER BY start_at',
+    childId,
+    type,
+  );
+  return rows.map(fromRow) as BabyEvent<T>[];
+}
+
 export type RecentMedication = { name: string; dose: string; lastGivenAt: number };
 
 /** Distinct medication + dose combinations, most recently given first (for one-tap re-logging). */

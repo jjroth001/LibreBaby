@@ -11,6 +11,8 @@ type ChildRow = {
   id: string;
   name: string;
   birth_date: string;
+  /** Missing in backups made before growth charts. */
+  sex?: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -68,6 +70,7 @@ function isChildRow(v: any): v is ChildRow {
     isString(v.id) &&
     isString(v.name) &&
     isString(v.birth_date) &&
+    (v.sex === undefined || v.sex === null || v.sex === 'male' || v.sex === 'female') &&
     isNumber(v.created_at) &&
     isNumber(v.updated_at)
   );
@@ -177,13 +180,14 @@ export async function importBackup(
     if (!intoChildId) {
       for (const child of backup.children) {
         await db.runAsync(
-          `INSERT INTO child (id, name, birth_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
+          `INSERT INTO child (id, name, birth_date, sex, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT (id) DO UPDATE SET name = excluded.name, birth_date = excluded.birth_date,
-             updated_at = excluded.updated_at
+             sex = excluded.sex, updated_at = excluded.updated_at
            WHERE excluded.updated_at > child.updated_at`,
           child.id,
           child.name,
           child.birth_date,
+          child.sex ?? null,
           child.created_at,
           child.updated_at,
         );

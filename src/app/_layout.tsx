@@ -81,6 +81,7 @@ function RootNavigator() {
         <Stack.Screen name="log/diaper" options={{ ...logSheet, title: 'Log diaper' }} />
         <Stack.Screen name="log/pump" options={{ ...logSheet, title: 'Log pumping' }} />
         <Stack.Screen name="log/medication" options={{ ...logSheet, title: 'Log medication' }} />
+        <Stack.Screen name="log/growth" options={{ ...logSheet, title: 'Log measurement' }} />
         <Stack.Screen name="event/[id]" options={{ ...logSheet, title: 'Edit' }} />
       </Stack.Protected>
       <Stack.Protected guard={!hasChild}>

@@ -1,8 +1,12 @@
+export type Sex = 'male' | 'female';
+
 export type Child = {
   id: string;
   name: string;
   /** Local calendar date, YYYY-MM-DD. */
   birthDate: string;
+  /** Picks the WHO growth chart; null until the parent sets it. */
+  sex: Sex | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -31,6 +35,8 @@ export type EventDataMap = {
   medication: { name: string; dose: string };
   /** A pumping session; its duration is `endAt - startAt`. */
   pump: { leftMl: number; rightMl: number };
+  /** Any combination of measurements taken at once; metric, null when not measured. */
+  growth: { weightKg: number | null; lengthCm: number | null; headCm: number | null };
 };
 
 export type EventType = keyof EventDataMap;

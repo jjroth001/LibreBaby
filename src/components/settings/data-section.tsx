@@ -10,6 +10,7 @@ import type { Child } from '@/db/types';
 import { useNow } from '@/hooks/use-now';
 import { pickBackup, shareBackup, shareSpreadsheet } from '@/lib/data-transfer';
 import { formatDuration } from '@/lib/format';
+import type { GrowthUnits } from '@/lib/growth-units';
 import type { VolumeUnit } from '@/lib/units';
 
 function backupSummary(backup: Backup): string {
@@ -20,10 +21,15 @@ function backupSummary(backup: Backup): string {
   return `It has ${live.length} entries, from ${first} to ${last}.`;
 }
 
-type DataSectionProps = { child: Child; unit: VolumeUnit; lastBackupAt: number | null };
+type DataSectionProps = {
+  child: Child;
+  unit: VolumeUnit;
+  growthUnits: GrowthUnits;
+  lastBackupAt: number | null;
+};
 
 /** Backup, restore and spreadsheet export. */
-export function DataSection({ child, unit, lastBackupAt }: DataSectionProps) {
+export function DataSection({ child, unit, growthUnits, lastBackupAt }: DataSectionProps) {
   const db = useSQLiteContext();
   const now = useNow(60_000);
 
@@ -38,7 +44,7 @@ export function DataSection({ child, unit, lastBackupAt }: DataSectionProps) {
 
   const exportSpreadsheet = async () => {
     try {
-      await shareSpreadsheet(db, unit);
+      await shareSpreadsheet(db, unit, growthUnits);
     } catch (error) {
       Alert.alert('Export failed', (error as Error).message);
     }

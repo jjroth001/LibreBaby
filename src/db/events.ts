@@ -78,6 +78,21 @@ export async function updateEvent<T extends EventType>(
 }
 
 /**
+ * Runs read-then-write operations one at a time, so a quick double tap can't
+ * interleave two of them.
+ *
+ * Deliberately not `withExclusiveTransactionAsync`: that uses a second connection,
+ * and change listeners fire before its commit — screens would re-query, see the
+ * old data, and never hear about the commit.
+ */
+let queue: Promise<unknown> = Promise.resolve();
+function serialized<R>(task: () => Promise<R>): Promise<R> {
+  const result = queue.then(task);
+  queue = result.catch(() => {});
+  return result;
+}
+
+/**
  * Read-modify-write against the latest stored row, so rapid taps never compute
  * from stale on-screen state.
  */
@@ -86,9 +101,9 @@ export async function modifyEvent<T extends EventType>(
   id: string,
   change: (current: BabyEvent<T>) => Partial<Pick<BabyEvent<T>, 'startAt' | 'endAt' | 'data' | 'notes'>>,
 ): Promise<void> {
-  await db.withExclusiveTransactionAsync(async (txn) => {
-    const row = await txn.getFirstAsync<EventRow>('SELECT * FROM event WHERE id = ?', id);
-    if (row) await updateEvent<T>(txn, id, change(fromRow(row) as BabyEvent<T>));
+  await serialized(async () => {
+    const row = await db.getFirstAsync<EventRow>('SELECT * FROM event WHERE id = ?', id);
+    if (row) await updateEvent<T>(db, id, change(fromRow(row) as BabyEvent<T>));
   });
 }
 
@@ -125,17 +140,15 @@ export async function startTimer<T extends TimerType>(
   db: SQLiteDatabase,
   input: NewEvent<T>,
 ): Promise<BabyEvent<T>> {
-  let result: BabyEvent<T> | undefined;
-  await db.withExclusiveTransactionAsync(async (txn) => {
-    const running = await txn.getFirstAsync<EventRow>(
+  return serialized(async () => {
+    const running = await db.getFirstAsync<EventRow>(
       `SELECT * FROM event
        WHERE child_id = ? AND type = ? AND end_at IS NULL AND deleted_at IS NULL`,
       input.childId,
       input.type,
     );
-    result = running ? (fromRow(running) as BabyEvent<T>) : await insertEvent(txn, input);
+    return running ? (fromRow(running) as BabyEvent<T>) : insertEvent(db, input);
   });
-  return result!;
 }
 
 /** Most recent event of the given types, ignoring timers still running. */

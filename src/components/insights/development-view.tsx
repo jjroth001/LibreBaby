@@ -84,6 +84,30 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
     }
   };
 
+  const arrow = (delta: 1 | -1) => {
+    const target = stepNote(noteKey, delta);
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={delta < 0 ? 'Previous' : 'Next'}
+        disabled={!target}
+        onPress={() => browse(delta)}
+        style={({ pressed }) => [
+          styles.arrow,
+          { backgroundColor: theme.backgroundElement },
+          !target && styles.disabled,
+          pressed && styles.arrowPressed,
+        ]}>
+        <Icon
+          name={delta < 0 ? 'caret-left' : 'caret-right'}
+          size={18}
+          color={theme.text}
+          duotone={false}
+        />
+      </Pressable>
+    );
+  };
+
   const { done, total } = checklistProgress(checklist, noticed);
   const past = checklist.months < current.months;
 
@@ -91,38 +115,15 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
     <View style={styles.sections}>
       {/* This week */}
       <Card style={styles.noteCard}>
+        {/* ‹  WEEK 3 · NOW  › */}
         <View style={styles.noteHeader}>
+          {arrow(-1)}
           <ThemedText type="smallBold" themeColor="textSecondary" style={styles.eyebrow}>
             {isCurrentNote
               ? `${noteLabel(noteKey).toUpperCase()} · NOW`
               : noteLabel(noteKey).toUpperCase()}
           </ThemedText>
-          <View style={styles.arrows}>
-            {([-1, 1] as const).map((delta) => {
-              const target = stepNote(noteKey, delta);
-              return (
-                <Pressable
-                  key={delta}
-                  accessibilityRole="button"
-                  accessibilityLabel={delta < 0 ? 'Previous' : 'Next'}
-                  disabled={!target}
-                  onPress={() => browse(delta)}
-                  style={({ pressed }) => [
-                    styles.arrow,
-                    { backgroundColor: theme.backgroundElement },
-                    !target && styles.disabled,
-                    pressed && styles.arrowPressed,
-                  ]}>
-                  <Icon
-                    name={delta < 0 ? 'caret-left' : 'caret-right'}
-                    size={18}
-                    color={theme.text}
-                    duotone={false}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
+          {arrow(1)}
         </View>
         <Animated.View
           key={`${noteKey.kind}${noteKey.n}`}
@@ -141,7 +142,7 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
         </Animated.View>
         {!isCurrentNote && (
           <Pressable accessibilityRole="button" onPress={() => setNoteKey(currentKey)}>
-            <ThemedText type="smallBold" style={{ color: theme.accent }}>
+            <ThemedText type="smallBold" style={[styles.centered, { color: theme.accent }]}>
               Back to {child.name}’s age now ({formatAge(child.birthDate, new Date(now))})
             </ThemedText>
           </Pressable>
@@ -275,8 +276,8 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
 const styles = StyleSheet.create({
   noteCard: { padding: Spacing.four, gap: Spacing.three },
   noteHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  eyebrow: { flex: 1, fontSize: 11, lineHeight: 16, letterSpacing: 1.2 },
-  arrows: { flexDirection: 'row', gap: Spacing.two },
+  eyebrow: { flex: 1, fontSize: 11, lineHeight: 16, letterSpacing: 1.2, textAlign: 'center' },
+  centered: { textAlign: 'center' },
   arrow: {
     width: 36,
     height: 36,
@@ -285,17 +286,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   arrowPressed: { opacity: 0.7 },
-  noteTitle: { fontFamily: Fonts.serif, fontSize: 26, lineHeight: 32, fontWeight: 400 },
-  noteText: { fontSize: 15, lineHeight: 23 },
-  noteBody: { gap: Spacing.two + 2 },
+  noteTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: 400,
+    textAlign: 'center',
+  },
+  noteText: { fontSize: 15, lineHeight: 23, textAlign: 'center' },
+  noteBody: { gap: Spacing.two + 2, alignItems: 'center' },
+  // Centered like the note: icon above the text.
   tip: {
-    flexDirection: 'row',
-    gap: Spacing.two,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    gap: Spacing.one,
     padding: Spacing.three,
     borderRadius: 18,
-    alignItems: 'flex-start',
   },
-  tipText: { flex: 1 },
+  tipText: { textAlign: 'center' },
   disabled: { opacity: 0.3 },
   ages: { gap: Spacing.two, paddingVertical: Spacing.one },
   age: { paddingHorizontal: Spacing.three, height: 40, justifyContent: 'center' },

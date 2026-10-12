@@ -5,9 +5,12 @@ import type { ChildRow, EventRow } from '@/db/backup';
 
 /** Protocol messages between two phones. */
 export type Message =
-  | { t: 'hello'; v: 1; deviceId: string; name: string }
+  /** `port`: where this phone listens, so the other can dial it back later. */
+  | { t: 'hello'; v: number; deviceId: string; name: string; port?: number }
   | { t: 'changes'; children: ChildRow[]; events: EventRow[] }
-  | { t: 'done' };
+  | { t: 'done' }
+  /** Everything received has been saved; only now may the sender count it as delivered. */
+  | { t: 'ack' };
 
 /** Supplies cryptographically random bytes (expo-crypto in the app, node in tests). */
 export type RandomBytes = (length: number) => Uint8Array;

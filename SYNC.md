@@ -29,15 +29,28 @@ Over one TCP connection, every frame is `u32 length + XChaCha20-Poly1305(family 
 with a random nonce and the family id as associated data. A frame that doesn't decrypt
 is a stranger: the connection is dropped.
 
-1. `hello` — device id, name. (Successful decryption is the authentication.)
+1. `hello` — protocol version (2), device id, name, and the port this phone listens on.
+   (Successful decryption is the authentication.) A different version is refused with
+   a message asking to update.
 2. `changes` — rows whose `change_seq` is above what this peer was last sent,
    in batches; then `done`.
 3. Each side merges: a row is written if it's new or its `updated_at` is newer than
-   ours (soft deletes are just rows with `deleted_at`). Then running timers are
-   reconciled: two running sleeps (or breastfeeds) → keep the earlier, delete the other.
-4. Each side records the counter value it read before collecting as `last_sent_seq`.
+   ours (soft deletes are just rows with `deleted_at`).
+4. `ack` — each side sends it once everything it received is saved, and waits for the
+   other's. Running timers are then reconciled: two running sleeps (or breastfeeds) →
+   keep the earlier, delete the other.
+5. Only after the peer's `ack` does a side record the counter value it read before
+   collecting as `last_sent_seq`. If the connection drops anywhere before that, nothing
+   is recorded and the same rows go again next time (merging makes repeats harmless).
+   The connection is closed with a graceful `end()` so queued frames are flushed.
 
-To avoid two connections per pair, the phone with the smaller device id connects.
+Protocol 1 (1.3.x) had no `ack` and closed with `destroy()`: a phone could drop its
+own last, still-unflushed frames, yet record them as sent — so they never arrived.
+
+When two phones first discover each other, the one with the smaller device id connects.
+After that either side may connect (after a local change, "Sync now", or every minute
+while the app is open). Discovery is often one-sided on Android, so a phone that is
+connected *to* remembers the caller's address and advertised port, and can call back.
 
 ## Discovery
 

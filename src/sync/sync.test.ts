@@ -192,10 +192,56 @@ describe('family sync', () => {
     expect(await mom.db.getFirstAsync('SELECT name FROM child')).toEqual({ name: 'Robin' });
   });
 
+  it('recovers entries that 1.3.x recorded as sent but lost (upgrade to 1.4.1)', async () => {
+    const { a, b, child } = await family();
+    await sync(a, b);
+    // On 1.3.x (migrations 1-5), A logged entries and recorded B as sent-to without B
+    // ever receiving them.
+    const lost = await insertEvent(a.db, diaper(child.id, clock - 5 * MIN));
+    await a.db.runAsync('UPDATE sync_peer SET last_sent_seq = (SELECT n FROM sync_counter)');
+    await sync(a, b);
+    expect(await all(b, child.id)).toHaveLength(0); // the stuck state
+
+    // Simulate the upgrade by re-running migration 6 (both test phones are on the latest).
+    await runMigrations(a.db, 5);
+    await sync(a, b);
+    expect((await all(b, child.id)).map((e) => e.id)).toEqual([lost.id]);
+  });
+
   it('refuses a phone with the wrong family key, without changing anything', async () => {
     const { a, b, child } = await family();
     await insertEvent(a.db, diaper(child.id, clock));
     await expect(sync(a, b, newKey())).rejects.toThrow(/different family/);
     expect(await all(b, child.id)).toHaveLength(0);
+  });
+
+  it('resends what a dropped connection lost, instead of treating it as delivered', async () => {
+    const { a, b, child } = await family();
+    await sync(a, b);
+    await insertEvent(a.db, diaper(child.id, clock - 5 * MIN));
+
+    // The connection dies right after A's hello: A's new entry never reaches B.
+    const key = newKey();
+    const [ca, cb] = channelPair(key, key, 'family', 'family', 1);
+    // As in the app, a phone closes its connection when its session ends or fails.
+    await Promise.allSettled([
+      runSyncSession({ db: a.db, channel: ca, me: a }).finally(() => ca.close()),
+      runSyncSession({ db: b.db, channel: cb, me: b }).finally(() => cb.close()),
+    ]);
+    expect(await all(b, child.id)).toHaveLength(0);
+
+    // The next sync must still carry it.
+    await sync(a, b);
+    expect(await all(b, child.id)).toHaveLength(1);
+  });
+
+  it('delivers both ways in one sync, whichever phone dials', async () => {
+    const { a, b, child } = await family();
+    await sync(a, b);
+    await insertEvent(a.db, diaper(child.id, clock - 20 * MIN));
+    await insertEvent(b.db, diaper(child.id, clock - 10 * MIN));
+    await sync(b, a);
+    expect(await all(a, child.id)).toHaveLength(2);
+    expect(await all(b, child.id)).toHaveLength(2);
   });
 });

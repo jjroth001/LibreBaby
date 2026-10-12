@@ -20,13 +20,22 @@ export type SyncEvent =
 
 const SERVICE = { type: 'librebaby', protocol: 'tcp', domain: 'local.' } as const;
 const CONNECT_TIMEOUT_MS = 8_000;
+/**
+ * While the app is open, sync this often even without local changes, so the other phone's
+ * changes arrive even if its own "sync after a change" couldn't reach us.
+ */
+const PERIODIC_SYNC_MS = 60_000;
+
+/** An IPv4 peer can show up as "::ffff:192.168.1.5" on a dual-stack socket. */
+const plainAddress = (address: string) => address.replace(/^::ffff:/, '');
 
 /**
  * Runs family sync on the local network while the app is open:
  * - listens for other family phones (TCP server on a random port),
  * - announces itself and looks for them with zeroconf/mDNS,
- * - syncs with each one it finds, and again whenever asked (after local changes, or
- *   "Sync now"). Native modules are loaded lazily — this only runs in installed builds.
+ * - syncs with each one it finds, again whenever asked (after local changes, or
+ *   "Sync now"), and every minute. Native modules are loaded lazily — this only runs in
+ *   installed builds.
  */
 export class SyncManager {
   private server: Server | null = null;
@@ -38,6 +47,8 @@ export class SyncManager {
   private readonly tag: string;
   private readonly serviceName: string;
   private stopped = false;
+  private port = 0;
+  private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly db: SQLiteDatabase,
@@ -68,6 +79,7 @@ export class SyncManager {
     });
     const address = server.address();
     if (!address) throw new Error('Could not open the sync port.');
+    this.port = address.port;
 
     const zeroconf = new Zeroconf();
     this.zeroconf = zeroconf;
@@ -85,10 +97,13 @@ export class SyncManager {
       txt: { f: this.tag, d: this.me.deviceId },
     });
     zeroconf.scan(SERVICE);
+    this.timer = setInterval(() => this.syncNow(), PERIODIC_SYNC_MS);
   }
 
   stop(): void {
     this.stopped = true;
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
     const zeroconf = this.zeroconf;
     if (zeroconf) {
       zeroconf.unpublishService(this.serviceName).catch(() => {});
@@ -144,7 +159,21 @@ export class SyncManager {
       peerName: deviceId ? (this.peers.get(deviceId)?.name ?? null) : null,
     });
     try {
-      const result = await runSyncSession({ db: this.db, channel, me: this.me });
+      const result = await runSyncSession({
+        db: this.db,
+        channel,
+        me: { ...this.me, port: this.port },
+      });
+      // A phone that called us may be one network discovery never showed us (it's often
+      // one-sided on Android); remember how to reach it so we can sync back too.
+      const host = socket.remoteAddress;
+      if (!this.peers.has(result.peer.deviceId) && host && result.peer.port) {
+        this.peers.set(result.peer.deviceId, {
+          host: plainAddress(host),
+          port: result.peer.port,
+          name: result.peer.name,
+        });
+      }
       this.onEvent({
         type: 'synced',
         peerName: result.peer.name,

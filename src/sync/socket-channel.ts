@@ -7,6 +7,7 @@ type Socket = InstanceType<typeof TcpSocket.Socket>;
 
 /** No message for this long means the other phone went away (left Wi-Fi, app closed). */
 const IDLE_TIMEOUT_MS = 20_000;
+const CLOSE_GRACE_MS = 5_000;
 
 /** Wraps a TCP socket in the encrypted message Channel the sync session speaks. */
 export function socketChannel(
@@ -73,7 +74,12 @@ export function socketChannel(
       });
     },
     close() {
-      socket.destroy();
+      // end() sends anything still queued before closing; destroy() would drop it.
+      // Destroy anyway shortly after, in case the other side never closes its end.
+      if (failure) return;
+      failure = new Error('Connection closed.');
+      socket.end();
+      setTimeout(() => socket.destroy(), CLOSE_GRACE_MS);
     },
   };
 }

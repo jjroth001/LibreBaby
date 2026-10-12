@@ -121,6 +121,14 @@ const MIGRATIONS: string[] = [
   UPDATE event SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE change_seq IS NULL;
   UPDATE child SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE change_seq IS NULL;
   `,
+
+  // 6: sync protocol 1 (1.3.x) could record rows as sent to a phone that never received
+  // them (the connection closed before they were flushed). Forget what was sent, so the
+  // first sync on protocol 2 sends everything once more; merging ignores what's already
+  // there.
+  `
+  UPDATE sync_peer SET last_sent_seq = 0;
+  `,
 ];
 
 /** The migration SQL in order (for tests that build a database from scratch). */

@@ -12,10 +12,16 @@ export type Channel = {
 };
 
 export type SyncResult = {
-  peer: { deviceId: string; name: string };
+  peer: { deviceId: string; name: string; port?: number };
   sent: number;
   received: number;
 };
+
+/**
+ * 2: phones acknowledge what they received before the sender counts it as delivered
+ * (1.3.x marked rows sent even when the connection dropped, losing them for good).
+ */
+const PROTOCOL = 2;
 
 /** Rows per `changes` message, keeping each frame comfortably small. */
 const BATCH = 300;
@@ -33,20 +39,32 @@ async function expect<T extends Message['t']>(
 /**
  * One sync between this phone and a peer. Both sides run the same steps at once:
  * introduce ourselves, send everything changed since we last sent to this peer while
- * merging what it sends, then remember how far we got.
+ * merging what it sends, confirm to each other that it's all saved, and only then
+ * remember how far we got — so anything lost on the way is simply sent again next time.
  */
 export async function runSyncSession(options: {
   db: SQLiteDatabase;
   channel: Channel;
-  me: { deviceId: string; name: string };
+  me: { deviceId: string; name: string; port?: number };
   now?: () => number;
 }): Promise<SyncResult> {
   const { db, channel, me } = options;
   const now = options.now ?? Date.now;
 
-  await channel.send({ t: 'hello', v: 1, deviceId: me.deviceId, name: me.name });
+  await channel.send({
+    t: 'hello',
+    v: PROTOCOL,
+    deviceId: me.deviceId,
+    name: me.name,
+    ...(me.port ? { port: me.port } : {}),
+  });
   const hello = await expect(channel, 'hello');
-  if (hello.v !== 1) throw new Error('The other phone runs an incompatible LibreBaby version.');
+  if (hello.v !== PROTOCOL)
+    throw new Error(
+      hello.v < PROTOCOL
+        ? `Update LibreBaby on ${hello.name} to sync with it.`
+        : 'Update LibreBaby on this phone to sync with the other one.',
+    );
   if (hello.deviceId === me.deviceId) throw new Error('Connected to ourselves.');
 
   const peerRow = await db.getFirstAsync<{ last_sent_seq: number }>(
@@ -81,6 +99,9 @@ export async function runSyncSession(options: {
   };
 
   const [, received] = await Promise.all([send(), receive()]);
+  // Everything from the other phone is saved: say so, and wait to hear the same back.
+  await channel.send({ t: 'ack' });
+  await expect(channel, 'ack');
   await reconcileRunningTimers(db, now());
 
   await db.runAsync(
@@ -94,7 +115,7 @@ export async function runSyncSession(options: {
   );
 
   return {
-    peer: { deviceId: hello.deviceId, name: hello.name },
+    peer: { deviceId: hello.deviceId, name: hello.name, port: hello.port },
     sent: outgoing.children.length + outgoing.events.length,
     received,
   };

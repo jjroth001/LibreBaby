@@ -1,4 +1,4 @@
-import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { isInstalledBuild } from './platform';
 
 type NotificationsModule = typeof import('expo-notifications');
 
@@ -10,8 +10,7 @@ const REMINDER_ID = 'sleep-window-reminder';
  * support was removed there in SDK 53), so reminders only run in a real build of the
  * app. The module is loaded lazily so Expo Go never touches it.
  */
-export const remindersSupported =
-  Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
+export const remindersSupported = isInstalledBuild;
 
 let loaded: Promise<NotificationsModule> | null = null;
 

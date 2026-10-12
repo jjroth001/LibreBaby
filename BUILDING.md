@@ -37,7 +37,9 @@ cd android
 ./gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
 ```
 
-with `JAVA_HOME` and `ANDROID_HOME` set. Output:
+with `JAVA_HOME` and `ANDROID_HOME` set. Note: `prebuild` rewrites the `android`/`ios` npm
+scripts in package.json to `expo run:*`; undo just those two lines (we develop in Expo Go)
+rather than `git checkout package.json`, which also drops any uncommitted dependency changes. Output:
 `android/app/build/outputs/apk/release/app-release.apk`.
 
 `arm64-v8a` covers practically all phones from the last several years and halves build
@@ -45,6 +47,13 @@ time; drop the flag to build for every architecture.
 
 Before each new release, bump `expo.android.versionCode` (and `version`) in `app.json` —
 Android refuses to install an update with the same or a lower versionCode.
+
+## Home-screen widget
+
+The widget (`src/widget/`) uses react-native-android-widget, configured in app.json's
+plugins. Android draws it through a background task registered in `index.js` (the app
+entry), which reads the database directly; the running app also redraws it whenever data
+changes (`WidgetSync`). None of it loads in Expo Go — test widgets in an installed build.
 
 ## Installing on a phone
 

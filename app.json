@@ -2,14 +2,14 @@
   "expo": {
     "name": "LibreBaby",
     "slug": "LibreBaby",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "librebaby",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "org.librebaby.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#2B3A8F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -59,7 +59,26 @@
       "@react-native-community/datetimepicker",
       "expo-notifications",
       "expo-sharing",
-      "./plugins/with-release-signing"
+      "./plugins/with-release-signing",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "LibreBaby",
+              "label": "LibreBaby",
+              "description": "Last feed, next sleep window and last diaper",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/images/widget-preview.png",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

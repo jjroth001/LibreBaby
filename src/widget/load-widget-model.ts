@@ -1,0 +1,33 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
+
+import { getChild } from '@/db/children';
+import { getLatestEvent } from '@/db/events';
+import { getSettings } from '@/db/settings';
+import { loadRecentSleeps, sleepStateFrom } from '@/db/sleep-state';
+
+import { buildWidgetModel, type WidgetModel } from './widget-model';
+
+const FEED_TYPES = ['feed_breast', 'feed_bottle', 'feed_solids'] as const;
+
+/** Reads everything the widget shows. Used by the app and by the widget's background task. */
+export async function loadWidgetModel(db: SQLiteDatabase, now: number): Promise<WidgetModel> {
+  const child = await getChild(db);
+  if (!child) return { kind: 'empty' };
+
+  const [settings, lastFeed, lastDiaper, sleeps] = await Promise.all([
+    getSettings(db),
+    getLatestEvent(db, child.id, FEED_TYPES),
+    getLatestEvent(db, child.id, ['diaper']),
+    loadRecentSleeps(db, child.id, now),
+  ]);
+
+  return buildWidgetModel({
+    child,
+    lastFeed,
+    lastDiaper,
+    sleep: sleepStateFrom(child, sleeps),
+    unit: settings.volumeUnit,
+    growthUnits: settings.growthUnits,
+    now,
+  });
+}

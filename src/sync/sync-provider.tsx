@@ -1,22 +1,16 @@
-import * as Device from 'expo-device';
+import { BackgroundSync } from '@modules/background-sync/src';
 import { getRandomBytes, randomUUID } from 'expo-crypto';
 import { addDatabaseChangeListener, useSQLiteContext } from 'expo-sqlite';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
+import { useSettings } from '@/db/use-settings';
 import { isInstalledBuild } from '@/lib/platform';
 
-import { clearFamily, getDeviceId, getFamily, saveFamily, type Family } from './identity';
+import { clearFamily, getFamily, saveFamily, type Family } from './identity';
 import type { SyncEvent } from './manager';
 import { adoptFamilyChild, newFamily, type Invite } from './pairing';
+import { syncService } from './sync-service';
 
 type SyncContextValue = {
   /** Networking needs native modules that only exist in installed builds. */
@@ -44,21 +38,20 @@ const CHANGE_DEBOUNCE_MS = 4_000;
 /** Writes made by a sync itself also fire change events; ignore those. */
 const QUIET_AFTER_SYNC_MS = 3_000;
 
-const deviceName = () => Device.deviceName ?? Device.modelName ?? 'Android phone';
-
 /**
- * Owns family sync for the app: loads the family from secure storage, runs the network
- * side while the app is in the foreground, and syncs shortly after local changes.
+ * Family sync for the app's screens: loads the family from secure storage, keeps the shared
+ * sync engine running while the app is open — and, with background sync on, after it's
+ * closed too (via the background-sync service) — and syncs shortly after local changes.
  */
 export function SyncProvider({ children }: { children: ReactNode }) {
   const db = useSQLiteContext();
+  const settings = useSettings();
   const [family, setFamily] = useState<Family | null | undefined>(undefined);
   const [active, setActive] = useState(AppState.currentState === 'active');
-  const [syncing, setSyncing] = useState(false);
-  const [lastEvent, setLastEvent] = useState<SyncEvent | null>(null);
-  const manager = useRef<import('./manager').SyncManager | null>(null);
-  const lastSyncEnd = useRef(0);
-  const inSync = useRef(false);
+  const [syncing, setSyncing] = useState(syncService.syncing);
+  const [lastEvent, setLastEvent] = useState<SyncEvent | null>(syncService.lastEvent);
+  const background = settings.data?.backgroundSync ?? true;
+  const settingsLoaded = settings.status === 'success';
 
   useEffect(() => {
     getFamily()
@@ -67,59 +60,59 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const subscription = AppState.addEventListener('change', (state) =>
       setActive(state === 'active'),
     );
-    return () => subscription.remove();
+    const unsubscribe = syncService.subscribe((event) => {
+      setSyncing(syncService.syncing);
+      if (event.type !== 'syncing') setLastEvent(event);
+    });
+    return () => {
+      subscription.remove();
+      unsubscribe();
+    };
   }, []);
 
-  // Run the network only while the app is open (Android limits background networking).
+  // Open app: always sync. Closed app: keep going only with background sync on, where the
+  // service keeps the process (and this engine) alive.
   useEffect(() => {
-    if (!isInstalledBuild || !family || !active) return;
-    let cancelled = false;
-    let current: import('./manager').SyncManager | null = null;
-
-    (async () => {
-      const { SyncManager } = await import('./manager');
-      const deviceId = await getDeviceId();
-      if (cancelled) return;
-      current = new SyncManager(db, family, { deviceId, name: deviceName() }, (event) => {
-        if (event.type === 'syncing') {
-          inSync.current = true;
-          setSyncing(true);
-        } else {
-          inSync.current = false;
-          lastSyncEnd.current = Date.now();
-          setSyncing(false);
-          setLastEvent(event);
-        }
-      });
-      manager.current = current;
-      await current.start();
-    })().catch((error: Error) => setLastEvent({ type: 'error', message: error.message }));
-
-    return () => {
-      cancelled = true;
-      current?.stop();
-      manager.current = null;
-      setSyncing(false);
-    };
-  }, [db, family, active]);
+    if (!isInstalledBuild || family === undefined || !settingsLoaded) return;
+    const service = BackgroundSync;
+    const keepInBackground = background && service != null;
+    if (!family) {
+      service?.stop();
+      void syncService.stop();
+      return;
+    }
+    if (active) {
+      void syncService.ensureRunning();
+      // Can only be started while the app is in the foreground.
+      if (keepInBackground) service.start();
+      else service?.stop();
+    } else if (!keepInBackground) {
+      void syncService.stop();
+    }
+  }, [family, active, background, settingsLoaded]);
 
   // Sync a few seconds after something changes here.
   useEffect(() => {
     if (!isInstalledBuild || !family) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let lastSyncEnd = 0;
+    const unsubscribe = syncService.subscribe((event) => {
+      if (event.type !== 'syncing') lastSyncEnd = Date.now();
+    });
     const subscription = addDatabaseChangeListener(({ tableName }) => {
       if (tableName !== 'event' && tableName !== 'child') return;
-      if (inSync.current || Date.now() - lastSyncEnd.current < QUIET_AFTER_SYNC_MS) return;
+      if (syncService.syncing || Date.now() - lastSyncEnd < QUIET_AFTER_SYNC_MS) return;
       clearTimeout(timer);
-      timer = setTimeout(() => manager.current?.syncNow(), CHANGE_DEBOUNCE_MS);
+      timer = setTimeout(() => syncService.syncNow(), CHANGE_DEBOUNCE_MS);
     });
     return () => {
       clearTimeout(timer);
       subscription.remove();
+      unsubscribe();
     };
   }, [family]);
 
-  const syncNow = useCallback(() => manager.current?.syncNow(), []);
+  const syncNow = useCallback(() => syncService.syncNow(), []);
 
   const setUp = useCallback(async () => {
     const created = newFamily(getRandomBytes, randomUUID);
@@ -138,7 +131,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   );
 
   const leave = useCallback(async () => {
+    BackgroundSync?.stop();
     await clearFamily();
+    await syncService.stop();
     await db.runAsync('DELETE FROM sync_peer');
     setFamily(null);
   }, [db]);

@@ -138,7 +138,11 @@ export function migrateSql(): readonly string[] {
 
 /** Runs on every app start via `SQLiteProvider.onInit`, before any screen renders. */
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+  // busy_timeout: the app and the sync engine use separate connections; wait for each
+  // other's writes instead of failing with "database is locked".
+  await db.execAsync(
+    'PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;',
+  );
 
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const current = row?.user_version ?? 0;

@@ -1,6 +1,8 @@
 import { hexToBytes } from '@noble/ciphers/utils.js';
 import { getRandomBytes } from 'expo-crypto';
+import { BackgroundSync } from '@modules/background-sync/src';
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { AppState } from 'react-native';
 import type TcpSocketModule from 'react-native-tcp-socket';
 import type ZeroconfClass from 'react-native-zeroconf';
 import type { Service } from 'react-native-zeroconf';
@@ -21,10 +23,14 @@ export type SyncEvent =
 const SERVICE = { type: 'librebaby', protocol: 'tcp', domain: 'local.' } as const;
 const CONNECT_TIMEOUT_MS = 8_000;
 /**
- * While the app is open, sync this often even without local changes, so the other phone's
- * changes arrive even if its own "sync after a change" couldn't reach us.
+ * Sync this often even without local changes, so the other phone's changes arrive even if
+ * its own "sync after a change" couldn't reach us: every minute while the app is open,
+ * every five while it runs in the background (changes still sync right away either way).
  */
 const PERIODIC_SYNC_MS = 60_000;
+const BACKGROUND_EVERY_N_TICKS = 5;
+/** Upper bound on keeping the CPU awake for one sync; released as soon as it finishes. */
+const SYNC_AWAKE_MS = 45_000;
 
 /** An IPv4 peer can show up as "::ffff:192.168.1.5" on a dual-stack socket. */
 const plainAddress = (address: string) => address.replace(/^::ffff:/, '');
@@ -49,6 +55,8 @@ export class SyncManager {
   private stopped = false;
   private port = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private ticks = 0;
+  private activeRuns = 0;
 
   constructor(
     private readonly db: SQLiteDatabase,
@@ -97,7 +105,11 @@ export class SyncManager {
       txt: { f: this.tag, d: this.me.deviceId },
     });
     zeroconf.scan(SERVICE);
-    this.timer = setInterval(() => this.syncNow(), PERIODIC_SYNC_MS);
+    this.timer = setInterval(() => {
+      this.ticks += 1;
+      const open = AppState.currentState === 'active';
+      if (open || this.ticks % BACKGROUND_EVERY_N_TICKS === 0) this.syncNow();
+    }, PERIODIC_SYNC_MS);
   }
 
   stop(): void {
@@ -153,6 +165,9 @@ export class SyncManager {
   }
 
   private async run(socket: Socket, deviceId: string | null) {
+    // With the app closed the phone may be dozing; stay awake just long enough to finish.
+    this.activeRuns += 1;
+    BackgroundSync?.holdAwake(SYNC_AWAKE_MS);
     const channel = socketChannel(socket, this.key, this.family.familyId, getRandomBytes);
     this.onEvent({
       type: 'syncing',
@@ -185,6 +200,8 @@ export class SyncManager {
     } finally {
       channel.close();
       if (deviceId) this.busy.delete(deviceId);
+      this.activeRuns -= 1;
+      if (this.activeRuns === 0) BackgroundSync?.release();
     }
   }
 }

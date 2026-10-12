@@ -11,6 +11,8 @@ export type Settings = {
   sleepReminders: boolean;
   /** How many minutes before the window opens to notify. */
   sleepReminderLeadMin: number;
+  /** Keep family sync running while the app is closed (a quiet ongoing notification). */
+  backgroundSync: boolean;
   /** Ongoing notification with a live clock while a sleep or feed timer runs. */
   timerNotifications: boolean;
   /** When a backup was last shared from this phone (unix ms). */
@@ -35,6 +37,7 @@ function defaultSettings(): Settings {
     sleepReminders: false,
     sleepReminderLeadMin: 15,
     timerNotifications: true,
+    backgroundSync: true,
     lastBackupAt: null,
     appearance: 'sky',
     skyLocation: null,

@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <!-- Syncing with the family's other phones over the local network. Android 14+ also
+       requires one of the network permissions the sync libraries already declare. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+  <application>
+    <service
+      android:name="org.librebaby.backgroundsync.SyncForegroundService"
+      android:exported="false"
+      android:foregroundServiceType="connectedDevice" />
+    <!-- Restarts background sync after a reboot or an app update, if it was on. -->
+    <receiver
+      android:name="org.librebaby.backgroundsync.SyncRestartReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

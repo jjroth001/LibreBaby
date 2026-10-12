@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'org.librebaby'
+version = '1.0.0'
+
+android {
+  namespace "org.librebaby.backgroundsync"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Headless JS task APIs (the version is pinned by the app's React Native).
+  implementation 'com.facebook.react:react-android'
+}

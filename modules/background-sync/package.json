@@ -1,0 +1,6 @@
+{
+  "name": "background-sync",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts"
+}

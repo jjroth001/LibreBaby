@@ -1,5 +1,8 @@
+import { BackgroundSync } from '@modules/background-sync/src';
 import { router } from 'expo-router';
-import { Alert, StyleSheet, View } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useEffect, useState } from 'react';
+import { Alert, AppState, StyleSheet, Switch, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { SubmitButton } from '@/components/forms/submit-button';
@@ -9,7 +12,9 @@ import { Icon } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import type { Child } from '@/db/types';
+import { setSetting } from '@/db/settings';
 import { useDbQuery } from '@/db/use-db-query';
+import { useSettings } from '@/db/use-settings';
 import { useNow } from '@/hooks/use-now';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDuration } from '@/lib/format';
@@ -17,11 +22,23 @@ import { useSync } from '@/sync/sync-provider';
 
 type Peer = { device_id: string; name: string; last_synced_at: number | null };
 
+const isUnrestricted = () => BackgroundSync?.isIgnoringBatteryOptimizations() ?? true;
+
 /** Settings → Family sync: set up, pair phones, see status, stop syncing. */
 export function SyncSection({ child }: { child: Child }) {
   const theme = useTheme();
   const sync = useSync();
   const now = useNow(30_000);
+  const db = useSQLiteContext();
+  const { data: settings } = useSettings();
+  const [unrestricted, setUnrestricted] = useState(isUnrestricted);
+  // Re-check when coming back from Android's prompt.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setUnrestricted(isUnrestricted());
+    });
+    return () => subscription.remove();
+  }, []);
   const peers = useDbQuery(['sync_peer'], (db) =>
     db.getAllAsync<Peer>('SELECT device_id, name, last_synced_at FROM sync_peer ORDER BY name'),
   );
@@ -97,6 +114,36 @@ export function SyncSection({ child }: { child: Child }) {
               No other phones yet. Show the family code on this phone and scan it on the other.
             </ThemedText>
           )}
+          {BackgroundSync && settings && (
+            <View style={styles.switchRow}>
+              <View style={styles.switchLabel}>
+                <ThemedText type="smallBold">Keep syncing when the app is closed</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Shows a quiet “Family sync is on” notification while it runs. Turn off to sync
+                  only while LibreBaby is open.
+                </ThemedText>
+              </View>
+              <Switch
+                value={settings.backgroundSync}
+                onValueChange={(on) => setSetting(db, 'backgroundSync', on)}
+                trackColor={{ true: theme.accent, false: theme.backgroundSelected }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          )}
+          {BackgroundSync && settings?.backgroundSync && !unrestricted && (
+            <>
+              <ThemedText type="small" themeColor="textSecondary">
+                Android may pause background sync while the phone sleeps. Allowing LibreBaby to run
+                unrestricted keeps it reliable.
+              </ThemedText>
+              <Button
+                title="Allow background activity"
+                variant="secondary"
+                onPress={() => BackgroundSync?.requestIgnoreBatteryOptimizations()}
+              />
+            </>
+          )}
           <Button title="Sync now" onPress={sync.syncNow} />
           <Button
             title="Show family code"
@@ -111,6 +158,8 @@ export function SyncSection({ child }: { child: Child }) {
 }
 
 const styles = StyleSheet.create({
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  switchLabel: { flex: 1, gap: Spacing.half },
   peer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   peerText: { flexShrink: 1 },
 });

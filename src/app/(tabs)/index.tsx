@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import type { Action } from '@/components/home/action-grid';
 import { LastEvents } from '@/components/home/last-events';
@@ -65,6 +65,10 @@ function Home({ child }: { child: Child }) {
   ]);
   const sleepState = useSleepPrediction(child);
   const [openMenu, setOpenMenu] = useState<Category | null>(null);
+  // The log menu is the last thing on Home, so when a submenu opens we scroll to the
+  // bottom to bring its options into view — once they've been laid out.
+  const scrollRef = useRef<ScrollView>(null);
+  const revealMenu = useRef(false);
   const [undo, setUndo] = useState<{ eventId: string; message: string } | null>(null);
 
   const runningSleep = running.data?.find((e): e is BabyEvent<'sleep'> => e.type === 'sleep');
@@ -226,7 +230,13 @@ function Home({ child }: { child: Child }) {
 
   return (
     <ThemedView style={styles.fill}>
-      <Screen>
+      <Screen
+        ref={scrollRef}
+        onContentSizeChange={() => {
+          if (!revealMenu.current) return;
+          revealMenu.current = false;
+          scrollRef.current?.scrollToEnd({ animated: true });
+        }}>
         <View style={styles.header}>
           <ThemedText type="subtitle">{child.name}</ThemedText>
           <ThemedText themeColor="textSecondary">{formatAge(child.birthDate)} old</ThemedText>
@@ -248,10 +258,18 @@ function Home({ child }: { child: Child }) {
 
         <LogMenu
           open={openMenu}
-          onToggle={(category) =>
-            setOpenMenu((current) => (current === category ? null : category))
-          }
-          onClose={() => setOpenMenu(null)}
+          onToggle={(category) => {
+            const opening = openMenu !== category;
+            revealMenu.current = opening;
+            // Switching between two open submenus of equal height won't change the
+            // content size, so also scroll right away in that case.
+            if (opening && openMenu !== null) scrollRef.current?.scrollToEnd({ animated: true });
+            setOpenMenu(opening ? category : null);
+          }}
+          onClose={() => {
+            revealMenu.current = false;
+            setOpenMenu(null);
+          }}
           actions={actions}
         />
       </Screen>

@@ -2,7 +2,7 @@ import type { BabyEvent, Child } from '@/db/types';
 
 import { SCENES } from '@/lib/sky';
 
-import { buildWidgetModel, widgetTime } from './widget-model';
+import { buildWidgetModel, widgetAgo, widgetTime } from './widget-model';
 
 const child: Child = {
   id: 'c',
@@ -47,7 +47,7 @@ describe('widget model', () => {
     });
   });
 
-  it('shows last feed, next sleep window and last diaper as clock times', () => {
+  it('shows time since the last feed, the next sleep window, and the last diaper', () => {
     const model = buildWidgetModel({
       ...base,
       lastFeed: bottle,
@@ -66,8 +66,8 @@ describe('widget model', () => {
     if (model.kind !== 'ready') throw new Error('expected ready');
     const [feed, sleep, diaper] = model.rows;
     expect(feed.label).toBe('Last feed');
-    expect(feed.value).toMatch(/2:10/);
-    expect(feed.detail).toBe('Bottle · 4 oz formula');
+    expect(feed.value).toBe('50m ago');
+    expect(feed.detail).toMatch(/^2:10.* · Bottle · 4 oz formula$/);
     expect(sleep.label).toBe('Next sleep');
     expect(sleep.value).toMatch(/3:30.*–.*4:00/);
     expect(diaper).toMatchObject({ value: '—', detail: 'Nothing logged yet' });
@@ -81,6 +81,11 @@ describe('widget model', () => {
     if (model.kind !== 'ready') throw new Error('expected ready');
     expect(model.rows[1].label).toBe('Asleep since');
     expect(model.rows[1].value).toMatch(/1:05/);
+  });
+
+  it('says "Just now" for the first minute', () => {
+    expect(widgetAgo(now - 30_000, now)).toBe('Just now');
+    expect(widgetAgo(now - 2 * 3_600_000, now)).toBe('2h ago');
   });
 
   it('adds the weekday for anything before today', () => {

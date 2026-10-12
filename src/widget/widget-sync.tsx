@@ -1,3 +1,4 @@
+import { LiveTimer } from '@modules/live-timer/src';
 import { useEffect } from 'react';
 
 import { useDbQuery } from '@/db/use-db-query';
@@ -38,6 +39,16 @@ export function WidgetSync() {
 }
 
 function WidgetSyncInner() {
+  // Keeps the widget's "time since" fresh (also re-armed after the phone restarts, which
+  // clears alarms, the next time the app or widget runs).
+  useEffect(() => {
+    import('./task-handler')
+      .then(({ WIDGET_REFRESH_MINUTES }) =>
+        LiveTimer?.scheduleWidgetRefresh(WIDGET_REFRESH_MINUTES),
+      )
+      .catch(() => {});
+  }, []);
+
   const model = useDbQuery(['event', 'child', 'setting'], (db) => loadWidgetModel(db, Date.now()));
   const key = model.status === 'success' ? JSON.stringify(model.data) : null;
 

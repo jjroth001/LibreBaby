@@ -3,7 +3,7 @@ import type { SleepState } from '@/db/sleep-state';
 import type { BabyEvent, Child } from '@/db/types';
 import { startOfLocalDay } from '@/lib/dates';
 import { describeEvent } from '@/lib/describe';
-import { formatTime } from '@/lib/format';
+import { formatDuration, formatTime } from '@/lib/format';
 import type { GrowthUnits } from '@/lib/growth-units';
 import type { Scene } from '@/lib/sky';
 import type { VolumeUnit } from '@/lib/units';
@@ -18,16 +18,21 @@ export type WidgetModel =
 
 export type WidgetRow = { icon: IconName; label: string; value: string; detail: string };
 
-/**
- * Widgets only refresh every ~30 minutes on their own, so we show clock times (always
- * right) rather than "x minutes ago" (stale between refreshes). Older than today gets
- * the weekday too, so yesterday's 9 PM feed isn't mistaken for tonight's.
- */
+/** Clock time, with the weekday for anything before today ("Sun 9:00 PM"). */
 export function widgetTime(ms: number, now: number): string {
   const time = formatTime(ms);
   if (startOfLocalDay(ms) === startOfLocalDay(now)) return time;
   const day = new Date(ms).toLocaleDateString(undefined, { weekday: 'short' });
   return `${day} ${time}`;
+}
+
+/**
+ * "1h 20m ago". Computed when the widget is drawn, which happens whenever something is
+ * logged and every ~10 minutes while the phone is awake; the clock time goes alongside
+ * in the detail, which is exact whenever you look.
+ */
+export function widgetAgo(ms: number, now: number): string {
+  return now - ms < 60_000 ? 'Just now' : `${formatDuration(now - ms)} ago`;
 }
 
 type ModelInput = {
@@ -52,8 +57,8 @@ export function buildWidgetModel(input: ModelInput): WidgetModel {
     ? {
         icon: 'bottle',
         label: 'Last feed',
-        value: widgetTime(lastFeed.startAt, now),
-        detail: describe(lastFeed),
+        value: widgetAgo(lastFeed.startAt, now),
+        detail: `${widgetTime(lastFeed.startAt, now)} · ${describe(lastFeed)}`,
       }
     : { icon: 'bottle', label: 'Last feed', value: '—', detail: 'Nothing logged yet' };
 
@@ -78,8 +83,8 @@ export function buildWidgetModel(input: ModelInput): WidgetModel {
     ? {
         icon: 'diaper',
         label: 'Last diaper',
-        value: widgetTime(lastDiaper.startAt, now),
-        detail: describe(lastDiaper),
+        value: widgetAgo(lastDiaper.startAt, now),
+        detail: `${widgetTime(lastDiaper.startAt, now)} · ${describe(lastDiaper)}`,
       }
     : { icon: 'diaper', label: 'Last diaper', value: '—', detail: 'Nothing logged yet' };
 

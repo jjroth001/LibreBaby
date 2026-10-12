@@ -1,3 +1,4 @@
+import { LiveTimer } from '@modules/live-timer/src';
 import { openDatabaseAsync } from 'expo-sqlite';
 import type { WidgetTaskHandler } from 'react-native-android-widget';
 
@@ -22,6 +23,18 @@ async function loadModel(): Promise<WidgetModel> {
   }
 }
 
+/** "Time since" goes stale between Android's 30-minute updates; redraw more often. */
+export const WIDGET_REFRESH_MINUTES = 10;
+
+function keepRefreshing() {
+  try {
+    // Re-arms (or, after the last widget is removed, cancels) the refresh alarm.
+    LiveTimer?.scheduleWidgetRefresh(WIDGET_REFRESH_MINUTES);
+  } catch {
+    // Best effort: Android's own 30-minute updates still apply.
+  }
+}
+
 /** Android calls this to draw the widget: when added, resized, and on its update schedule. */
 export const widgetTaskHandler: WidgetTaskHandler = async ({
   widgetAction,
@@ -32,6 +45,7 @@ export const widgetTaskHandler: WidgetTaskHandler = async ({
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
+      keepRefreshing();
       try {
         renderWidget(
           <LibreBabyWidget
@@ -45,8 +59,11 @@ export const widgetTaskHandler: WidgetTaskHandler = async ({
         renderWidget(<FallbackWidget />);
       }
       break;
+    case 'WIDGET_DELETED':
+      keepRefreshing();
+      break;
     default:
-      // WIDGET_DELETED needs no cleanup; taps use OPEN_APP, handled natively.
+      // Taps use OPEN_APP, handled natively.
       break;
   }
 };

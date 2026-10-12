@@ -6,6 +6,7 @@ import * as SystemUI from 'expo-system-ui';
 import { Suspense, useEffect } from 'react';
 
 import { SkyProvider, useSky } from '@/components/sky/sky-provider';
+import { TimerNotificationSync } from '@/components/timer-notification-sync';
 import { migrateDbIfNeeded } from '@/db/migrations';
 import { useChild } from '@/db/use-child';
 import { useTheme } from '@/hooks/use-theme';
@@ -78,6 +79,7 @@ function RootNavigator() {
       <StatusBar style={theme.light ? 'dark' : 'light'} />
       {/* At the root (not in the tabs) so it also resets the widget after an erase. */}
       <WidgetSync />
+      <TimerNotificationSync />
       <SyncProvider>
         <Stack
           screenOptions={{

@@ -11,6 +11,8 @@ export type Settings = {
   sleepReminders: boolean;
   /** How many minutes before the window opens to notify. */
   sleepReminderLeadMin: number;
+  /** Ongoing notification with a live clock while a sleep or feed timer runs. */
+  timerNotifications: boolean;
   /** When a backup was last shared from this phone (unix ms). */
   lastBackupAt: number | null;
   /** Background follows the time of day, or stays night (easier on the eyes at 3 AM). */
@@ -32,6 +34,7 @@ function defaultSettings(): Settings {
     growthUnits: imperial ? 'imperial' : 'metric',
     sleepReminders: false,
     sleepReminderLeadMin: 15,
+    timerNotifications: true,
     lastBackupAt: null,
     appearance: 'sky',
     skyLocation: null,

@@ -85,9 +85,10 @@ export default function SettingsScreen() {
       <AppearanceSection settings={settings} />
 
       <Card>
+        <CardTitle icon="bell">Notifications</CardTitle>
         <View style={styles.switchRow}>
           <View style={styles.switchLabel}>
-            <CardTitle icon="bell">Sleep window reminders</CardTitle>
+            <ThemedText type="smallBold">Sleep window reminders</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {remindersSupported
                 ? `Get a notification before ${child.name}'s next sleep window opens.`
@@ -109,6 +110,21 @@ export default function SettingsScreen() {
             onChange={(lead) => setSetting(db, 'sleepReminderLeadMin', Number(lead))}
           />
         )}
+        <View style={styles.switchRow}>
+          <View style={styles.switchLabel}>
+            <ThemedText type="smallBold">Running timer in notifications</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              While a sleep or feed timer runs, show it with a live clock in your notifications.
+            </ThemedText>
+          </View>
+          <Switch
+            disabled={!remindersSupported}
+            value={remindersSupported && settings.timerNotifications}
+            onValueChange={(on) => setSetting(db, 'timerNotifications', on)}
+            trackColor={{ true: theme.accent, false: theme.backgroundSelected }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
       </Card>
 
       <Card>

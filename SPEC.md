@@ -69,8 +69,8 @@ event
 ```
 
 Type-specific `data`:
-- `feed_breast`: `{ "side": "L"|"R"|"both", "left_ms": n, "right_ms": n }`
-- `feed_bottle`: `{ "amount_ml": n, "content": "breast_milk"|"formula" }`
+- `feed_breast`: `{ "side": "L"|"R"|"both", "leftMs": n, "rightMs": n }`
+- `feed_bottle`: `{ "amountMl": n, "content": "breast_milk"|"formula" }`
 - `feed_solids`: `{ "foods": string[] }`
 - `diaper`: `{ "wet": bool, "dirty": bool }`
 

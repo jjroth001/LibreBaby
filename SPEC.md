@@ -52,7 +52,10 @@ Simple, transparent, and explainable:
 
 ```
 child
-  id, name, birth_date, created_at
+  id, name, birth_date (local YYYY-MM-DD), created_at, updated_at
+
+setting
+  key, value          (app preferences, e.g. units)
 
 event
   id            text (uuid)
@@ -76,14 +79,14 @@ Amounts are stored in metric; display units are a setting.
 ## Tech stack
 - Expo SDK 57 + React Native + TypeScript
 - Expo Router (file-based navigation, `src/app/`)
-- `expo-sqlite` + Drizzle ORM (typed schema + migrations)
+- `expo-sqlite` with a small typed data layer (`src/db/`) and `PRAGMA user_version` migrations — no ORM; screens stay live via SQLite change listeners
 - `expo-notifications` (nap window alerts)
 - Distribution: EAS Build → APK, sideloaded to family phones
 
 ## Milestones
-1. **M0** — Scaffold, spec, run template on phone via Expo Go. ← *we are here*
-2. **M1** — Database + data model, child profile setup screen.
-3. **M2** — Home screen with sleep, feed, diaper logging + timers.
+1. **M0** — Scaffold, spec, run template on phone via Expo Go. ✅
+2. **M1** — Database + data model, child profile setup screen. ✅
+3. **M2** — Home screen with sleep, feed, diaper logging + timers. ← *next*
 4. **M3** — Timeline + edit/delete.
 5. **M4** — Next-nap estimate + notifications.
 6. **M5** — Insights, export/import, first APK build for family.

@@ -2,6 +2,7 @@ import type { ReactNode, Ref } from 'react';
 import { ScrollView, StyleSheet, type ScrollViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTabBarSpace } from '@/components/app-tabs';
 import { Card } from '@/components/card';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -28,6 +29,7 @@ export function Screen({
   onContentSizeChange,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
 
   return (
     <ThemedView style={styles.container}>
@@ -39,8 +41,8 @@ export function Screen({
           styles.content,
           {
             paddingTop: (belowHeader ? 0 : insets.top) + Spacing.four,
-            // The tab bar sits below the content and handles the bottom inset itself.
-            paddingBottom: (withTabBar ? 0 : insets.bottom) + Spacing.four,
+            // The tab bar floats over the bottom, so leave room to scroll clear of it.
+            paddingBottom: (withTabBar ? tabBarSpace : insets.bottom) + Spacing.four,
           },
         ]}>
         {panel ? <Card style={styles.panel}>{children}</Card> : children}

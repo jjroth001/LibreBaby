@@ -18,6 +18,15 @@ const TABS: { name: string; title: string; icon: IconName }[] = [
 const BAR_HEIGHT = 58;
 const BUBBLE_INSET = 5;
 
+/**
+ * Room to leave at the bottom of a tab screen's scrolling content: the tab bar floats over
+ * the screen, so the last item can still scroll clear of it.
+ */
+export function useTabBarSpace(): number {
+  const insets = useSafeAreaInsets();
+  return insets.bottom + Spacing.two + BAR_HEIGHT + Spacing.two;
+}
+
 type TabBarProps = {
   state: { index: number; routes: { key: string; name: string }[] };
   navigation: {
@@ -28,7 +37,7 @@ type TabBarProps = {
 };
 
 /**
- * A floating glass pill. The white "selected" bubble follows the pager while you swipe, so
+ * A floating glass pill over the bottom of the screen. The white "selected" bubble follows the pager while you swipe, so
  * it glides between tabs rather than jumping.
  */
 function GlassTabBar({ state, navigation, position }: TabBarProps) {
@@ -42,7 +51,9 @@ function GlassTabBar({ state, navigation, position }: TabBarProps) {
   });
 
   return (
-    <View style={[styles.wrap, { paddingBottom: insets.bottom + Spacing.two }]}>
+    <View
+      pointerEvents="box-none"
+      style={[styles.wrap, { paddingBottom: insets.bottom + Spacing.two }]}>
       <Glass
         radius={BAR_HEIGHT / 2}
         style={styles.bar}
@@ -103,9 +114,13 @@ export default function AppTabs() {
 }
 
 const styles = StyleSheet.create({
+  // Floats over the screens, so content scrolls underneath instead of stopping at an edge.
   wrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
   },
   bar: {
     height: BAR_HEIGHT,

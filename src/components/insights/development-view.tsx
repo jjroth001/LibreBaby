@@ -90,40 +90,46 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
   return (
     <View style={styles.sections}>
       {/* This week */}
-      <Card>
+      <Card style={styles.noteCard}>
         <View style={styles.noteHeader}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Previous"
-            hitSlop={8}
-            disabled={!stepNote(noteKey, -1)}
-            onPress={() => browse(-1)}
-            style={!stepNote(noteKey, -1) && styles.disabled}>
-            <Icon name="caret-left" size={22} color={theme.text} duotone={false} />
-          </Pressable>
-          <View style={styles.noteHeading}>
-            <ThemedText type="smallBold" themeColor="textSecondary" style={styles.eyebrow}>
-              {isCurrentNote
-                ? `${noteLabel(noteKey).toUpperCase()} · NOW`
-                : noteLabel(noteKey).toUpperCase()}
-            </ThemedText>
-            <ThemedText style={styles.noteTitle}>{note.title}</ThemedText>
+          <ThemedText type="smallBold" themeColor="textSecondary" style={styles.eyebrow}>
+            {isCurrentNote
+              ? `${noteLabel(noteKey).toUpperCase()} · NOW`
+              : noteLabel(noteKey).toUpperCase()}
+          </ThemedText>
+          <View style={styles.arrows}>
+            {([-1, 1] as const).map((delta) => {
+              const target = stepNote(noteKey, delta);
+              return (
+                <Pressable
+                  key={delta}
+                  accessibilityRole="button"
+                  accessibilityLabel={delta < 0 ? 'Previous' : 'Next'}
+                  disabled={!target}
+                  onPress={() => browse(delta)}
+                  style={({ pressed }) => [
+                    styles.arrow,
+                    { backgroundColor: theme.backgroundElement },
+                    !target && styles.disabled,
+                    pressed && styles.arrowPressed,
+                  ]}>
+                  <Icon
+                    name={delta < 0 ? 'caret-left' : 'caret-right'}
+                    size={18}
+                    color={theme.text}
+                    duotone={false}
+                  />
+                </Pressable>
+              );
+            })}
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Next"
-            hitSlop={8}
-            disabled={!stepNote(noteKey, 1)}
-            onPress={() => browse(1)}
-            style={!stepNote(noteKey, 1) && styles.disabled}>
-            <Icon name="caret-right" size={22} color={theme.text} duotone={false} />
-          </Pressable>
         </View>
         <Animated.View
           key={`${noteKey.kind}${noteKey.n}`}
           entering={Motion.fadeIn}
           style={styles.noteBody}>
-          <ThemedText>{note.body}</ThemedText>
+          <ThemedText style={styles.noteTitle}>{note.title}</ThemedText>
+          <ThemedText style={styles.noteText}>{note.body}</ThemedText>
           {note.tip && (
             <View style={[styles.tip, { backgroundColor: theme.backgroundElement }]}>
               <Icon name="sparkle" size={18} color={theme.accent} />
@@ -267,17 +273,21 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
 }
 
 const styles = StyleSheet.create({
+  noteCard: { padding: Spacing.four, gap: Spacing.three },
   noteHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  noteHeading: { flex: 1, alignItems: 'center' },
-  eyebrow: { fontSize: 11, lineHeight: 16, letterSpacing: 1.2 },
-  noteTitle: {
-    fontFamily: Fonts.serif,
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: 400,
-    textAlign: 'center',
+  eyebrow: { flex: 1, fontSize: 11, lineHeight: 16, letterSpacing: 1.2 },
+  arrows: { flexDirection: 'row', gap: Spacing.two },
+  arrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  noteBody: { gap: Spacing.three },
+  arrowPressed: { opacity: 0.7 },
+  noteTitle: { fontFamily: Fonts.serif, fontSize: 26, lineHeight: 32, fontWeight: 400 },
+  noteText: { fontSize: 15, lineHeight: 23 },
+  noteBody: { gap: Spacing.two + 2 },
   tip: {
     flexDirection: 'row',
     gap: Spacing.two,

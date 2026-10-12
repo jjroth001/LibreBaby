@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { useTabBarSpace } from '@/components/app-tabs';
 import { Glass } from '@/components/glass';
 import { ThemedText } from '@/components/themed-text';
 import { Motion } from '@/constants/motion';
@@ -19,6 +20,7 @@ type UndoBannerProps = {
 /** Snackbar confirming a one-tap log, with a short window to undo it. Re-key it to restart the timer. */
 export function UndoBanner({ message, onUndo, onDismiss }: UndoBannerProps) {
   const theme = useTheme();
+  const tabBarSpace = useTabBarSpace();
 
   // The parent re-renders every second (running timers), so don't restart the countdown
   // when `onDismiss` changes identity — only when the banner is re-keyed.
@@ -29,7 +31,10 @@ export function UndoBanner({ message, onUndo, onDismiss }: UndoBannerProps) {
   }, []);
 
   return (
-    <Animated.View entering={Motion.rise} exiting={Motion.sink} style={styles.position}>
+    <Animated.View
+      entering={Motion.rise}
+      exiting={Motion.sink}
+      style={[styles.position, { bottom: tabBarSpace + Spacing.two }]}>
       <Pressable onPress={onDismiss} accessibilityLiveRegion="polite">
         <Glass radius={28} style={styles.banner}>
           <ThemedText style={styles.message}>{message}</ThemedText>
@@ -47,7 +52,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: Spacing.three,
     right: Spacing.three,
-    bottom: Spacing.three,
   },
   banner: {
     minHeight: 56,

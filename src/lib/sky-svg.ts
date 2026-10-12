@@ -30,11 +30,14 @@ function crescent(x: number, y: number, r: number) {
 
 /**
  * The sky as an SVG document, `w`×`h` px: gradient, stars, sun/moon glow, clouds, mist and
- * three hills. One renderer for the app background and the home-screen widget.
+ * three hills. One renderer for the app background and the home-screen widget (which
+ * passes `radius` for its rounded corners).
  */
-export function skySvg(scene: Scene, w: number, h: number): string {
+export function skySvg(scene: Scene, w: number, h: number, radius = 0): string {
   const { sky, glow, body, mist, hills } = scene;
-  const unit = w; // sizes (glow, sun) scale with width so they look the same on any phone
+  // Sun, moon and glow scale with the width on a phone; on a wide, short widget they'd be
+  // huge, so there the height (at a phone's proportions) sets the size.
+  const unit = Math.min(w, h * 0.5);
   let s =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
     `<defs>` +
@@ -47,7 +50,11 @@ export function skySvg(scene: Scene, w: number, h: number): string {
     `<linearGradient id="mist" x1="0" y1="0" x2="0" y2="1">` +
     `<stop offset="0" stop-color="${mist.color}" stop-opacity="0"/><stop offset="0.5" stop-color="${mist.color}" stop-opacity="${mist.opacity}"/><stop offset="1" stop-color="${mist.color}" stop-opacity="0"/>` +
     `</linearGradient>` +
+    (radius > 0
+      ? `<clipPath id="round"><rect width="${w}" height="${h}" rx="${radius}" ry="${radius}"/></clipPath>`
+      : '') +
     `</defs>` +
+    (radius > 0 ? `<g clip-path="url(#round)">` : '') +
     `<rect width="${w}" height="${h}" fill="url(#sky)"/>`;
 
   if (scene.scrim > 0.005) {
@@ -104,5 +111,5 @@ export function skySvg(scene: Scene, w: number, h: number): string {
       s += `<rect y="${r1(y - (40 * h) / 760)}" width="${w}" height="${r1((120 * h) / 760)}" fill="url(#mist)"/>`;
     }
   });
-  return s + '</svg>';
+  return s + (radius > 0 ? '</g>' : '') + '</svg>';
 }

@@ -12,6 +12,13 @@ describe('skySvg', () => {
     expect(day).not.toContain('opacity="0.35"'); // no stars
   });
 
+  it('clips to rounded corners when asked (widget)', () => {
+    const svg = skySvg(SCENES.day, 320, 160, 24);
+    expect(svg).toContain('rx="24"');
+    expect(svg).toContain('clip-path="url(#round)"');
+    expect(svg.match(/<g/g)!.length).toBe(svg.match(/<\/g>/g)!.length);
+  });
+
   it('is a well-formed document with numbers only (no NaN)', () => {
     for (const scene of Object.values(SCENES)) {
       const svg = skySvg(scene, 393, 851);

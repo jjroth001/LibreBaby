@@ -1,9 +1,11 @@
+import type { IconName } from '@/components/icons/icon-paths';
 import type { SleepState } from '@/db/sleep-state';
 import type { BabyEvent, Child } from '@/db/types';
 import { startOfLocalDay } from '@/lib/dates';
 import { describeEvent } from '@/lib/describe';
 import { formatTime } from '@/lib/format';
 import type { GrowthUnits } from '@/lib/growth-units';
+import type { Scene } from '@/lib/sky';
 import type { VolumeUnit } from '@/lib/units';
 
 /** Must match the widget `name` in app.json's react-native-android-widget plugin config. */
@@ -11,9 +13,10 @@ export const WIDGET_NAME = 'LibreBaby';
 
 /** What the home-screen widget shows; built from data, rendered by `LibreBabyWidget`. */
 export type WidgetModel =
-  { kind: 'empty' } | { kind: 'ready'; childName: string; rows: WidgetRow[] };
+  | { kind: 'empty'; scene: Scene }
+  | { kind: 'ready'; scene: Scene; childName: string; rows: WidgetRow[] };
 
-export type WidgetRow = { label: string; value: string; detail: string };
+export type WidgetRow = { icon: IconName; label: string; value: string; detail: string };
 
 /**
  * Widgets only refresh every ~30 minutes on their own, so we show clock times (always
@@ -35,36 +38,50 @@ type ModelInput = {
   unit: VolumeUnit;
   growthUnits: GrowthUnits;
   now: number;
+  /** The sky at `now`, so the widget matches the app. */
+  scene: Scene;
 };
 
 export function buildWidgetModel(input: ModelInput): WidgetModel {
-  const { child, lastFeed, lastDiaper, sleep, unit, growthUnits, now } = input;
-  if (!child) return { kind: 'empty' };
+  const { child, lastFeed, lastDiaper, sleep, unit, growthUnits, now, scene } = input;
+  if (!child) return { kind: 'empty', scene };
 
   const describe = (event: BabyEvent) => describeEvent(event, unit, growthUnits);
 
   const feed: WidgetRow = lastFeed
-    ? { label: 'Last feed', value: widgetTime(lastFeed.startAt, now), detail: describe(lastFeed) }
-    : { label: 'Last feed', value: '—', detail: 'Nothing logged yet' };
+    ? {
+        icon: 'bottle',
+        label: 'Last feed',
+        value: widgetTime(lastFeed.startAt, now),
+        detail: describe(lastFeed),
+      }
+    : { icon: 'bottle', label: 'Last feed', value: '—', detail: 'Nothing logged yet' };
 
   const sleepRow: WidgetRow =
     sleep.status === 'sleeping'
-      ? { label: 'Asleep since', value: widgetTime(sleep.since, now), detail: '' }
+      ? {
+          icon: 'moon-stars',
+          label: 'Asleep since',
+          value: widgetTime(sleep.since, now),
+          detail: '',
+        }
       : sleep.status === 'awake'
         ? {
+            icon: 'moon-stars',
             label: 'Next sleep',
             value: `${formatTime(sleep.prediction.opensAt)} – ${formatTime(sleep.prediction.closesAt)}`,
             detail: '',
           }
-        : { label: 'Next sleep', value: '—', detail: 'Log a sleep to see it' };
+        : { icon: 'moon-stars', label: 'Next sleep', value: '—', detail: 'Log a sleep to see it' };
 
   const diaper: WidgetRow = lastDiaper
     ? {
+        icon: 'diaper',
         label: 'Last diaper',
         value: widgetTime(lastDiaper.startAt, now),
         detail: describe(lastDiaper),
       }
-    : { label: 'Last diaper', value: '—', detail: 'Nothing logged yet' };
+    : { icon: 'diaper', label: 'Last diaper', value: '—', detail: 'Nothing logged yet' };
 
-  return { kind: 'ready', childName: child.name, rows: [feed, sleepRow, diaper] };
+  return { kind: 'ready', scene, childName: child.name, rows: [feed, sleepRow, diaper] };
 }

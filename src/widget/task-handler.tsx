@@ -1,6 +1,8 @@
 import { openDatabaseAsync } from 'expo-sqlite';
 import type { WidgetTaskHandler } from 'react-native-android-widget';
 
+import { SCENES } from '@/lib/sky';
+
 import { FallbackWidget, LibreBabyWidget } from './librebaby-widget';
 import { loadWidgetModel } from './load-widget-model';
 import type { WidgetModel } from './widget-model';
@@ -14,7 +16,7 @@ async function loadModel(): Promise<WidgetModel> {
     return await loadWidgetModel(db, Date.now());
   } catch {
     // e.g. the app was updated but not opened yet, so the database isn't migrated.
-    return { kind: 'empty' };
+    return { kind: 'empty', scene: SCENES.night };
   } finally {
     await db.closeAsync();
   }

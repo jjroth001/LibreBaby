@@ -1,5 +1,7 @@
 import type { BabyEvent, Child } from '@/db/types';
 
+import { SCENES } from '@/lib/sky';
+
 import { buildWidgetModel, widgetTime } from './widget-model';
 
 const child: Child = {
@@ -34,11 +36,15 @@ const base = {
   unit: 'oz' as const,
   growthUnits: 'imperial' as const,
   now,
+  scene: SCENES.day,
 };
 
 describe('widget model', () => {
   it('is empty before a profile exists', () => {
-    expect(buildWidgetModel({ ...base, child: null })).toEqual({ kind: 'empty' });
+    expect(buildWidgetModel({ ...base, child: null })).toEqual({
+      kind: 'empty',
+      scene: SCENES.day,
+    });
   });
 
   it('shows last feed, next sleep window and last diaper as clock times', () => {

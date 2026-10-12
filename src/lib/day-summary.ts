@@ -13,6 +13,9 @@ export type DaySummary = {
   diaperCount: number;
   wetCount: number;
   dirtyCount: number;
+  pumpCount: number;
+  pumpMl: number;
+  medicationCount: number;
 };
 
 /** Totals for the day [dayStart, dayEnd). Running timers count up to `now`. */
@@ -31,6 +34,9 @@ export function summarizeDay(
     diaperCount: 0,
     wetCount: 0,
     dirtyCount: 0,
+    pumpCount: 0,
+    pumpMl: 0,
+    medicationCount: 0,
   };
 
   for (const event of events) {
@@ -62,6 +68,14 @@ export function summarizeDay(
         summary.diaperCount++;
         if (event.data.wet) summary.wetCount++;
         if (event.data.dirty) summary.dirtyCount++;
+        break;
+      case 'pump':
+        if (!startedToday) break;
+        summary.pumpCount++;
+        summary.pumpMl += event.data.leftMl + event.data.rightMl;
+        break;
+      case 'medication':
+        if (startedToday) summary.medicationCount++;
         break;
     }
   }

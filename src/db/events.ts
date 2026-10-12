@@ -58,6 +58,14 @@ export async function insertEvent<T extends EventType>(
   return event;
 }
 
+/** Logs an event happening right now (one-tap buttons). */
+export function insertEventNow<T extends EventType>(
+  db: SQLiteDatabase,
+  input: Omit<NewEvent<T>, 'startAt'>,
+): Promise<BabyEvent<T>> {
+  return insertEvent(db, { ...input, startAt: Date.now() } as NewEvent<T>);
+}
+
 export async function updateEvent<T extends EventType>(
   db: SQLiteDatabase,
   id: string,
@@ -169,6 +177,28 @@ export async function getLatestEvent<T extends EventType>(
     ...types,
   );
   return row ? (fromRow(row) as BabyEvent<T>) : null;
+}
+
+export type RecentMedication = { name: string; dose: string; lastGivenAt: number };
+
+/** Distinct medication + dose combinations, most recently given first (for one-tap re-logging). */
+export async function listRecentMedications(
+  db: SQLiteDatabase,
+  childId: string,
+  limit: number,
+): Promise<RecentMedication[]> {
+  return db.getAllAsync<RecentMedication>(
+    `SELECT json_extract(data, '$.name') AS name,
+            json_extract(data, '$.dose') AS dose,
+            MAX(start_at) AS lastGivenAt
+     FROM event
+     WHERE child_id = ? AND type = 'medication' AND deleted_at IS NULL
+     GROUP BY lower(json_extract(data, '$.name')), json_extract(data, '$.dose')
+     ORDER BY lastGivenAt DESC
+     LIMIT ?`,
+    childId,
+    limit,
+  );
 }
 
 export async function getEvent(db: SQLiteDatabase, id: string): Promise<BabyEvent | null> {

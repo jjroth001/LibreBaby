@@ -17,9 +17,11 @@ import { Spacing } from '@/constants/theme';
 import {
   deleteEvent,
   getLatestEvent,
-  insertEvent,
+  insertEventNow,
+  listRecentMedications,
   listRunningTimers,
   startTimer,
+  type RecentMedication,
 } from '@/db/events';
 import type { BabyEvent, BreastSide, Child, EventDataMap } from '@/db/types';
 import { useChild } from '@/db/use-child';
@@ -30,6 +32,7 @@ import { useSleepPrediction } from '@/hooks/use-sleep-prediction';
 import { startBreast } from '@/lib/breast';
 import { formatAge } from '@/lib/dates';
 import { describeEvent } from '@/lib/describe';
+import { formatDuration } from '@/lib/format';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 
 const FEED_TYPES = ['feed_breast', 'feed_bottle', 'feed_solids'] as const;
@@ -57,6 +60,9 @@ function Home({ child }: { child: Child }) {
     },
     [child.id],
   );
+  const recentMeds = useDbQuery(['event'], (db) => listRecentMedications(db, child.id, 3), [
+    child.id,
+  ]);
   const sleepState = useSleepPrediction(child);
   const [openMenu, setOpenMenu] = useState<Category | null>(null);
   const [undo, setUndo] = useState<{ eventId: string; message: string } | null>(null);
@@ -71,7 +77,8 @@ function Home({ child }: { child: Child }) {
   if (
     settings.status !== 'success' ||
     running.status !== 'success' ||
-    latest.status !== 'success'
+    latest.status !== 'success' ||
+    recentMeds.status !== 'success'
   ) {
     return null;
   }
@@ -95,11 +102,16 @@ function Home({ child }: { child: Child }) {
   };
 
   const logDiaper = async (data: EventDataMap['diaper']) => {
-    const event = await insertEvent(db, {
+    const event = await insertEventNow(db, { childId: child.id, type: 'diaper', data });
+    successFeedback();
+    setUndo({ eventId: event.id, message: `${describeEvent(event, unit)} logged` });
+  };
+
+  const logMedication = async (med: RecentMedication) => {
+    const event = await insertEventNow(db, {
       childId: child.id,
-      type: 'diaper',
-      startAt: Date.now(),
-      data,
+      type: 'medication',
+      data: { name: med.name, dose: med.dose },
     });
     successFeedback();
     setUndo({ eventId: event.id, message: `${describeEvent(event, unit)} logged` });
@@ -150,6 +162,13 @@ function Home({ child }: { child: Child }) {
         onPress: () => router.push('/log/solids'),
       },
       {
+        key: 'pump',
+        emoji: '🥛',
+        label: 'Pump',
+        detail: 'Amount per side',
+        onPress: () => router.push('/log/pump'),
+      },
+      {
         key: 'breast-manual',
         emoji: '✏️',
         label: 'Past breastfeed',
@@ -184,6 +203,23 @@ function Home({ child }: { child: Child }) {
         emoji: '✏️',
         label: 'Enter manually',
         onPress: () => router.push('/log/diaper'),
+      },
+    ],
+    meds: [
+      // Recently given medications log in one tap; showing when each was last given
+      // helps avoid an accidental early repeat dose.
+      ...recentMeds.data.map((med) => ({
+        key: `med-${med.name}|${med.dose}`,
+        emoji: '💊',
+        label: med.dose ? `${med.name} · ${med.dose}` : med.name,
+        detail: `Last ${formatDuration(now - med.lastGivenAt)} ago`,
+        onPress: () => logMedication(med),
+      })),
+      {
+        key: 'med-other',
+        emoji: '✏️',
+        label: recentMeds.data.length ? 'Other / enter manually' : 'Log medication',
+        onPress: () => router.push('/log/medication'),
       },
     ],
   };

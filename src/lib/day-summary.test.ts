@@ -53,6 +53,11 @@ describe('summarizeDay', () => {
       event('feed_solids', dayStart + 8 * HOUR, null, { foods: ['banana'] }),
       event('diaper', dayStart + 2 * HOUR, null, { wet: true, dirty: false }),
       event('diaper', dayStart + 3 * HOUR, null, { wet: true, dirty: true }),
+      event('pump', dayStart + 5 * HOUR, dayStart + 5 * HOUR + 15 * MIN, {
+        leftMl: 60,
+        rightMl: 45,
+      }),
+      event('medication', dayStart + 7 * HOUR, null, { name: 'Vitamin D', dose: '1 drop' }),
     ];
     const summary = summarizeDay(events, dayStart, dayEnd, dayStart + 6 * HOUR + 12 * MIN);
     expect(summary).toMatchObject({
@@ -62,7 +67,12 @@ describe('summarizeDay', () => {
       diaperCount: 2,
       wetCount: 2,
       dirtyCount: 1,
+      pumpCount: 1,
+      pumpMl: 105,
+      medicationCount: 1,
     });
+    // Pumping is milk for later, not a feed.
+    expect(summary.feedCount).toBe(4);
   });
 });
 

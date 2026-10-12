@@ -23,6 +23,8 @@ built clean-room: no decompiled code, copied assets, or copied text.
 | **Feed — bottle** | time, amount (ml/oz), content (breast milk/formula) | Quick entry with last amount prefilled |
 | **Feed — solids** | time, foods, notes | Quick entry |
 | **Diaper** | time, wet / dirty / both, notes | One-tap buttons |
+| **Medication** | time, name, dose (free text), notes | One tap for recently given meds (shows "last given X ago"), or a form |
+| **Pumping** | start, duration, amount per side, notes | Form (start time, minutes, left/right amounts) |
 
 All events: editable and deletable after the fact.
 
@@ -43,7 +45,7 @@ Simple, transparent, and explainable:
 - **Multi-caregiver sync** — self-hostable sync server (both parents' phones share one log).
 - Multiple children.
 - Growth tracking (weight/length/head) with WHO percentile charts (public data).
-- Pumping, medications, temperature.
+- Temperature.
 - Reminders (e.g. "feed due in ~3h").
 - Home-screen widget for one-tap logging.
 - Public release: choose license, F-Droid / Play Store listing.
@@ -60,7 +62,8 @@ setting
 event
   id            text (uuid)
   child_id      → child.id
-  type          'sleep' | 'feed_breast' | 'feed_bottle' | 'feed_solids' | 'diaper'
+  type          'sleep' | 'feed_breast' | 'feed_bottle' | 'feed_solids' | 'diaper' | 'medication' | 'pump'
+                (no CHECK constraint since migration 2; the TS EventType union is the source of truth)
   start_at      integer (unix ms)
   end_at        integer (unix ms, null = in progress / instantaneous)
   data          text (JSON, type-specific — see below)
@@ -73,6 +76,8 @@ Type-specific `data`:
 - `feed_bottle`: `{ "amountMl": n, "content": "breast_milk"|"formula" }`
 - `feed_solids`: `{ "foods": string[] }`
 - `diaper`: `{ "wet": bool, "dirty": bool }`
+- `medication`: `{ "name": string, "dose": string }`
+- `pump`: `{ "leftMl": n, "rightMl": n }` (duration = end_at − start_at)
 
 Amounts are stored in metric; display units are a setting.
 

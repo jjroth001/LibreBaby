@@ -36,6 +36,31 @@ const MIGRATIONS: string[] = [
     value  TEXT NOT NULL
   );
   `,
+
+  // 2: allow new event types (medication, pump). SQLite can't alter a CHECK constraint,
+  // so the table is rebuilt — without the type list this time, so new types never need
+  // another rebuild. Valid types are enforced by the TypeScript EventType union instead.
+  `
+  CREATE TABLE event_new (
+    id          TEXT PRIMARY KEY NOT NULL,
+    child_id    TEXT NOT NULL REFERENCES child(id) ON DELETE CASCADE,
+    type        TEXT NOT NULL,
+    start_at    INTEGER NOT NULL,
+    end_at      INTEGER,
+    data        TEXT NOT NULL DEFAULT '{}',
+    notes       TEXT,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    deleted_at  INTEGER
+  );
+
+  INSERT INTO event_new (id, child_id, type, start_at, end_at, data, notes, created_at, updated_at, deleted_at)
+    SELECT id, child_id, type, start_at, end_at, data, notes, created_at, updated_at, deleted_at FROM event;
+
+  DROP TABLE event;
+  ALTER TABLE event_new RENAME TO event;
+  CREATE INDEX event_child_start ON event (child_id, start_at);
+  `,
 ];
 
 /** Runs on every app start via `SQLiteProvider.onInit`, before any screen renders. */

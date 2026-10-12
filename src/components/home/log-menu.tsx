@@ -5,12 +5,13 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export type Category = 'sleep' | 'feed' | 'diaper';
+export type Category = 'sleep' | 'feed' | 'diaper' | 'meds';
 
 const CATEGORIES: { key: Category; emoji: string; label: string }[] = [
   { key: 'sleep', emoji: '😴', label: 'Sleep' },
   { key: 'feed', emoji: '🍼', label: 'Feed' },
   { key: 'diaper', emoji: '🧷', label: 'Diaper' },
+  { key: 'meds', emoji: '💊', label: 'Meds' },
 ];
 
 type LogMenuProps = {

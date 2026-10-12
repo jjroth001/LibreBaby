@@ -12,7 +12,11 @@ import {
   breastFromValues,
   breastToValues,
   cleanNotes,
+  pumpFromValues,
+  pumpToValues,
 } from '@/components/forms/mapping';
+import { MedicationForm } from '@/components/forms/medication-form';
+import { PumpForm } from '@/components/forms/pump-form';
 import { SleepForm } from '@/components/forms/sleep-form';
 import { SolidsForm } from '@/components/forms/solids-form';
 import { Screen } from '@/components/screen';
@@ -30,6 +34,8 @@ const TITLES: Record<EventType, string> = {
   feed_bottle: 'Edit bottle',
   feed_solids: 'Edit solids',
   diaper: 'Edit diaper',
+  medication: 'Edit medication',
+  pump: 'Edit pumping',
 };
 
 export default function EditEventScreen() {
@@ -160,6 +166,43 @@ function EventForm({ event, unit, onSaved }: EventFormProps) {
               startAt: time,
               data,
               notes: cleanNotes(notes),
+            });
+            onSaved();
+          }}
+        />
+      );
+    case 'medication':
+      return (
+        <MedicationForm
+          initial={{
+            name: event.data.name,
+            dose: event.data.dose,
+            time: event.startAt,
+            notes: event.notes ?? '',
+          }}
+          recent={[]}
+          showLastGiven={false}
+          submitLabel={submitLabel}
+          onSubmit={async ({ name, dose, time, notes }) => {
+            await updateEvent<'medication'>(db, event.id, {
+              startAt: time,
+              data: { name, dose },
+              notes: cleanNotes(notes),
+            });
+            onSaved();
+          }}
+        />
+      );
+    case 'pump':
+      return (
+        <PumpForm
+          initial={pumpToValues(event, unit)}
+          unit={unit}
+          submitLabel={submitLabel}
+          onSubmit={async (values) => {
+            await updateEvent<'pump'>(db, event.id, {
+              ...pumpFromValues(values, unit, event),
+              notes: cleanNotes(values.notes),
             });
             onSaved();
           }}

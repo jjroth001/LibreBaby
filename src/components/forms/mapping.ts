@@ -1,5 +1,6 @@
 import type { BottleValues } from '@/components/forms/bottle-form';
 import type { BreastValues } from '@/components/forms/breast-form';
+import type { PumpValues } from '@/components/forms/pump-form';
 import type { BabyEvent, EventDataMap } from '@/db/types';
 import { manualBreast } from '@/lib/breast';
 import { fromMl, toMl, type VolumeUnit } from '@/lib/units';
@@ -57,12 +58,46 @@ export function bottleToValues(event: BabyEvent<'feed_bottle'>, unit: VolumeUnit
   };
 }
 
+/** Display amount → ml, keeping `originalMl` exactly when the shown amount wasn't changed. */
+function keepMl(amount: number, unit: VolumeUnit, originalMl: number | undefined): number {
+  if (originalMl !== undefined && amount === fromMl(originalMl, unit)) return originalMl;
+  return toMl(amount, unit);
+}
+
 export function bottleAmountMl(
   values: BottleValues,
   unit: VolumeUnit,
   original?: BabyEvent<'feed_bottle'>,
 ): number {
-  if (original && values.amount === fromMl(original.data.amountMl, unit))
-    return original.data.amountMl;
-  return toMl(values.amount, unit);
+  return keepMl(values.amount, unit, original?.data.amountMl);
+}
+
+export function pumpToValues(event: BabyEvent<'pump'>, unit: VolumeUnit): PumpValues {
+  return {
+    startAt: event.startAt,
+    minutes: Math.round(((event.endAt ?? event.startAt) - event.startAt) / MINUTE),
+    leftAmount: fromMl(event.data.leftMl, unit),
+    rightAmount: fromMl(event.data.rightMl, unit),
+    notes: event.notes ?? '',
+  };
+}
+
+export function pumpFromValues(
+  values: PumpValues,
+  unit: VolumeUnit,
+  original?: BabyEvent<'pump'>,
+): { startAt: number; endAt: number; data: EventDataMap['pump'] } {
+  const before = original && pumpToValues(original, unit);
+  const durationMs =
+    before && values.minutes === before.minutes && original.endAt != null
+      ? original.endAt - original.startAt
+      : values.minutes * MINUTE;
+  return {
+    startAt: values.startAt,
+    endAt: values.startAt + durationMs,
+    data: {
+      leftMl: keepMl(values.leftAmount, unit, original?.data.leftMl),
+      rightMl: keepMl(values.rightAmount, unit, original?.data.rightMl),
+    },
+  };
 }

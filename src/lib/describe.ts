@@ -15,6 +15,10 @@ export function eventEmoji(event: BabyEvent): string {
       return '🥣';
     case 'diaper':
       return event.data.dirty ? '💩' : '💧';
+    case 'medication':
+      return '💊';
+    case 'pump':
+      return '🥛';
   }
 }
 
@@ -41,6 +45,19 @@ export function describeEvent(event: BabyEvent, unit: VolumeUnit): string {
     case 'diaper': {
       const { wet, dirty } = event.data;
       return wet && dirty ? 'Wet + dirty diaper' : dirty ? 'Dirty diaper' : 'Wet diaper';
+    }
+    case 'medication':
+      return event.data.dose ? `${event.data.name} · ${event.data.dose}` : event.data.name;
+    case 'pump': {
+      const { leftMl, rightMl } = event.data;
+      const sides = [
+        leftMl > 0 && `L ${formatVolume(leftMl, unit)}`,
+        rightMl > 0 && `R ${formatVolume(rightMl, unit)}`,
+      ].filter(Boolean);
+      const duration = event.endAt ? ` · ${formatDuration(event.endAt - event.startAt)}` : '';
+      const detail =
+        sides.length === 2 ? ` (${sides.join(', ')})` : sides.length ? ` (${sides[0]})` : '';
+      return `Pumped ${formatVolume(leftMl + rightMl, unit)}${detail}${duration}`;
     }
   }
 }

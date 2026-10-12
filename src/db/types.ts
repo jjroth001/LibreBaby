@@ -27,6 +27,10 @@ export type EventDataMap = {
   feed_bottle: { amountMl: number; content: 'breast_milk' | 'formula' };
   feed_solids: { foods: string[] };
   diaper: { wet: boolean; dirty: boolean };
+  /** `dose` is free text as written on the label, e.g. "2.5 ml" or "1 drop"; may be empty. */
+  medication: { name: string; dose: string };
+  /** A pumping session; its duration is `endAt - startAt`. */
+  pump: { leftMl: number; rightMl: number };
 };
 
 export type EventType = keyof EventDataMap;

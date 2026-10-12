@@ -19,7 +19,7 @@ type EventRowProps = {
 
 export function EventRow({ event, unit, dayStart, running, onPress }: EventRowProps) {
   const theme = useTheme();
-  const ranged = event.type === 'sleep' || event.type === 'feed_breast';
+  const ranged = event.type === 'sleep' || event.type === 'feed_breast' || event.type === 'pump';
 
   return (
     <Pressable

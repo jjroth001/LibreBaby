@@ -1,7 +1,16 @@
 import type { BabyEvent } from '@/db/types';
 import { finishBreast, startBreast, tapSide } from '@/lib/breast';
 
-import { bottleAmountMl, bottleToValues, breastFromValues, breastToValues } from './mapping';
+import {
+  bottleAmountMl,
+  bottleToValues,
+  breastFromValues,
+  breastToValues,
+  pumpFromValues,
+  pumpToValues,
+} from './mapping';
+
+const HOUR = 60 * 60 * 1000;
 
 const SEC = 1000;
 const MIN = 60 * SEC;
@@ -80,5 +89,33 @@ describe('bottle form mapping', () => {
   it('converts an edited amount', () => {
     const values = { ...bottleToValues(bottle, 'oz'), amount: 5 };
     expect(bottleAmountMl(values, 'oz', bottle)).toBeCloseTo(147.87, 1);
+  });
+});
+
+describe('pump form mapping', () => {
+  const pump: BabyEvent<'pump'> = {
+    id: 'p1',
+    childId: 'c1',
+    type: 'pump',
+    startAt: 0,
+    endAt: 17 * MIN + 20 * SEC,
+    data: { leftMl: 85, rightMl: 70 },
+    notes: null,
+    createdAt: 0,
+    updatedAt: 0,
+  };
+
+  it('round-trips without drifting amounts or duration', () => {
+    const result = pumpFromValues(pumpToValues(pump, 'oz'), 'oz', pump);
+    expect(result).toEqual({ startAt: 0, endAt: pump.endAt, data: pump.data });
+  });
+
+  it('applies edited minutes and amounts', () => {
+    const values = { ...pumpToValues(pump, 'ml'), startAt: HOUR, minutes: 20, rightAmount: 90 };
+    expect(pumpFromValues(values, 'ml', pump)).toEqual({
+      startAt: HOUR,
+      endAt: HOUR + 20 * MIN,
+      data: { leftMl: 85, rightMl: 90 },
+    });
   });
 });

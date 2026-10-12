@@ -1,33 +1,19 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button } from '@/components/button';
-import { DateTimeField } from '@/components/date-time-field';
+import { BottleForm } from '@/components/forms/bottle-form';
+import { bottleAmountMl, cleanNotes } from '@/components/forms/mapping';
 import { Screen } from '@/components/screen';
-import { SegmentedControl } from '@/components/segmented-control';
-import { Stepper } from '@/components/stepper';
-import { TextField } from '@/components/text-field';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
 import { getLatestEvent, insertEvent } from '@/db/events';
-import type { BabyEvent, EventDataMap } from '@/db/types';
+import type { BabyEvent } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
-import { useTheme } from '@/hooks/use-theme';
 import { successFeedback } from '@/lib/haptics';
-import { fromMl, toMl, VOLUME_PRESETS, type VolumeUnit } from '@/lib/units';
+import { fromMl, VOLUME_PRESETS, type VolumeUnit } from '@/lib/units';
 
-type Content = EventDataMap['feed_bottle']['content'];
-
-const CONTENT_OPTIONS = [
-  { value: 'breast_milk', label: 'Breast milk' },
-  { value: 'formula', label: 'Formula' },
-] as const;
-
-export default function BottleScreen() {
+export default function LogBottleScreen() {
   const child = useChild();
   const settings = useSettings();
   const childId = child.data?.id;
@@ -38,76 +24,38 @@ export default function BottleScreen() {
   );
 
   if (!childId || settings.status !== 'success' || last.status !== 'success') return null;
-  return <BottleForm childId={childId} unit={settings.data.volumeUnit} last={last.data} />;
+  return <LogBottle childId={childId} unit={settings.data.volumeUnit} last={last.data} />;
 }
 
-type BottleFormProps = { childId: string; unit: VolumeUnit; last: BabyEvent<'feed_bottle'> | null };
+type LogBottleProps = { childId: string; unit: VolumeUnit; last: BabyEvent<'feed_bottle'> | null };
 
-function BottleForm({ childId, unit, last }: BottleFormProps) {
+function LogBottle({ childId, unit, last }: LogBottleProps) {
   const db = useSQLiteContext();
-  const theme = useTheme();
-  const preset = VOLUME_PRESETS[unit];
-  // Prefill with the previous bottle — most days it's the same amount.
-  const [amount, setAmount] = useState(last ? fromMl(last.data.amountMl, unit) : preset.quick[3]);
-  const [content, setContent] = useState<Content>(last?.data.content ?? 'breast_milk');
-  const [time, setTime] = useState(Date.now);
-  const [notes, setNotes] = useState('');
-
-  const save = async () => {
-    await insertEvent(db, {
-      childId,
-      type: 'feed_bottle',
-      startAt: time,
-      data: { amountMl: toMl(amount, unit), content },
-      notes: notes.trim() || null,
-    });
-    successFeedback();
-    router.back();
-  };
+  // Prefill with the previous bottle — most days it's the same amount and content.
+  const [initial] = useState(() => ({
+    amount: last ? fromMl(last.data.amountMl, unit) : VOLUME_PRESETS[unit].quick[3],
+    content: last?.data.content ?? ('breast_milk' as const),
+    time: Date.now(),
+    notes: '',
+  }));
 
   return (
     <Screen withTabBar={false} belowHeader>
-      <Stepper
-        value={amount}
-        onChange={setAmount}
-        step={preset.step}
-        display={`${amount} ${unit}`}
-        accessibilityName="amount"
+      <BottleForm
+        initial={initial}
+        unit={unit}
+        onSubmit={async (values) => {
+          await insertEvent(db, {
+            childId,
+            type: 'feed_bottle',
+            startAt: values.time,
+            data: { amountMl: bottleAmountMl(values, unit), content: values.content },
+            notes: cleanNotes(values.notes),
+          });
+          successFeedback();
+          router.back();
+        }}
       />
-
-      <View style={styles.quickRow}>
-        {preset.quick.map((value) => {
-          const selected = value === amount;
-          return (
-            <Pressable
-              key={value}
-              accessibilityRole="button"
-              onPress={() => setAmount(value)}
-              style={[
-                styles.quick,
-                { backgroundColor: selected ? theme.tint : theme.backgroundElement },
-              ]}>
-              <ThemedText style={{ color: selected ? theme.onTint : theme.text }}>{value}</ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <SegmentedControl options={CONTENT_OPTIONS} value={content} onChange={setContent} />
-      <DateTimeField label="Time" value={time} onChange={setTime} />
-      <TextField label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional" multiline />
-      <Button title="Save" onPress={save} disabled={amount <= 0} />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  quickRow: { flexDirection: 'row', gap: Spacing.two },
-  quick: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: Spacing.three,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

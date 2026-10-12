@@ -28,7 +28,7 @@ All events: editable and deletable after the fact.
 
 ### Screens
 1. **Home** — "Awake for / last feed / last diaper" tiles, running timer cards, and three log buttons (Sleep · Feed · Diaper) that expand into submenus. Every type can be logged now or entered manually with a past time.
-2. **Timeline** — today's events in a vertical day view; swipe between days.
+2. **Timeline** — day totals (sleep, feeds, diapers) and that day's entries newest first; ‹ › to change day or tap the date to jump. Tap an entry to edit or delete it.
 3. **Insights** — daily totals (sleep hours, # feeds, ml, diapers) and 7-day trend.
 4. **Settings** — child profile (name, birth date), units (ml/oz), theme, data export (JSON/CSV) and import.
 
@@ -87,6 +87,6 @@ Amounts are stored in metric; display units are a setting.
 1. **M0** — Scaffold, spec, run template on phone via Expo Go. ✅
 2. **M1** — Database + data model, child profile setup screen. ✅
 3. **M2** — Home screen with sleep, feed, diaper logging + timers. ✅ (also: ml/oz setting, unit tests via `npm test`)
-4. **M3** — Timeline + edit/delete. ← *next*
-5. **M4** — Next-nap estimate + notifications.
+4. **M3** — Timeline + edit/delete. ✅
+5. **M4** — Next-nap estimate + notifications. ← *next*
 6. **M5** — Insights, export/import, first APK build for family.

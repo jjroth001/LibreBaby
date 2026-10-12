@@ -60,3 +60,15 @@ export function formatAge(birthDate: string, now: Date = new Date()): string {
   const restMonths = months % 12;
   return restMonths ? `${plural(years, 'year')}, ${plural(restMonths, 'month')}` : plural(years, 'year');
 }
+
+/** Local midnight at the start of the day containing `ms`. */
+export function startOfLocalDay(ms: number): number {
+  const d = new Date(ms);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** Local midnight `days` days after the midnight `dayStart` (DST-safe, unlike adding 24h). */
+export function addLocalDays(dayStart: number, days: number): number {
+  const d = new Date(dayStart);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days).getTime();
+}

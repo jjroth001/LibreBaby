@@ -99,7 +99,9 @@ function serialized<R>(task: () => Promise<R>): Promise<R> {
 export async function modifyEvent<T extends EventType>(
   db: SQLiteDatabase,
   id: string,
-  change: (current: BabyEvent<T>) => Partial<Pick<BabyEvent<T>, 'startAt' | 'endAt' | 'data' | 'notes'>>,
+  change: (
+    current: BabyEvent<T>,
+  ) => Partial<Pick<BabyEvent<T>, 'startAt' | 'endAt' | 'data' | 'notes'>>,
 ): Promise<void> {
   await serialized(async () => {
     const row = await db.getFirstAsync<EventRow>('SELECT * FROM event WHERE id = ?', id);
@@ -167,6 +169,14 @@ export async function getLatestEvent<T extends EventType>(
     ...types,
   );
   return row ? (fromRow(row) as BabyEvent<T>) : null;
+}
+
+export async function getEvent(db: SQLiteDatabase, id: string): Promise<BabyEvent | null> {
+  const row = await db.getFirstAsync<EventRow>(
+    'SELECT * FROM event WHERE id = ? AND deleted_at IS NULL',
+    id,
+  );
+  return row ? fromRow(row) : null;
 }
 
 /** Events overlapping [fromMs, toMs), oldest first. */

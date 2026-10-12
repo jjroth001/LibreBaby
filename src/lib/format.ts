@@ -1,3 +1,5 @@
+import { startOfLocalDay } from './dates';
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
@@ -27,14 +29,9 @@ export function formatTime(ms: number): string {
   return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-function startOfDay(ms: number): number {
-  const d = new Date(ms);
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-}
-
 /** "Today, 3:42 PM", "Yesterday, 11:05 PM", "Oct 3, 9:15 AM". */
 export function formatDayTime(ms: number, now: number = Date.now()): string {
-  const dayDiff = Math.round((startOfDay(now) - startOfDay(ms)) / (24 * HOUR));
+  const dayDiff = Math.round((startOfLocalDay(now) - startOfLocalDay(ms)) / (24 * HOUR));
   const time = formatTime(ms);
   if (dayDiff === 0) return `Today, ${time}`;
   if (dayDiff === 1) return `Yesterday, ${time}`;

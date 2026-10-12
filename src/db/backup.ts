@@ -7,7 +7,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 export const BACKUP_FORMAT = 1;
 
-type ChildRow = {
+export type ChildRow = {
   id: string;
   name: string;
   birth_date: string;

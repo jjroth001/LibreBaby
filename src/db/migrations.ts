@@ -66,7 +66,58 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE child ADD COLUMN sex TEXT;
   `,
+
+  // 4: family sync. Every write to a child or event row takes the next number from a
+  // per-phone counter (change_seq), via triggers — including rows merged in from another
+  // phone, so changes relay onward. A counter, not a clock: "send everything after N" can
+  // never skip a change, whatever the clocks do. UPDATE OF lists every column except
+  // change_seq, so a trigger can't re-fire itself.
+  `
+  CREATE TABLE sync_counter (
+    id  INTEGER PRIMARY KEY CHECK (id = 1),
+    n   INTEGER NOT NULL
+  );
+  INSERT INTO sync_counter (id, n) VALUES (1, 0);
+
+  ALTER TABLE event ADD COLUMN change_seq INTEGER;
+  ALTER TABLE child ADD COLUMN change_seq INTEGER;
+  CREATE INDEX event_change_seq ON event (change_seq);
+
+  CREATE TRIGGER event_changed_insert AFTER INSERT ON event BEGIN
+    UPDATE sync_counter SET n = n + 1 WHERE id = 1;
+    UPDATE event SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE id = NEW.id;
+  END;
+  CREATE TRIGGER event_changed_update
+  AFTER UPDATE OF child_id, type, start_at, end_at, data, notes, updated_at, deleted_at ON event
+  BEGIN
+    UPDATE sync_counter SET n = n + 1 WHERE id = 1;
+    UPDATE event SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE id = NEW.id;
+  END;
+
+  CREATE TRIGGER child_changed_insert AFTER INSERT ON child BEGIN
+    UPDATE sync_counter SET n = n + 1 WHERE id = 1;
+    UPDATE child SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE id = NEW.id;
+  END;
+  CREATE TRIGGER child_changed_update AFTER UPDATE OF name, birth_date, sex, updated_at ON child
+  BEGIN
+    UPDATE sync_counter SET n = n + 1 WHERE id = 1;
+    UPDATE child SET change_seq = (SELECT n FROM sync_counter WHERE id = 1) WHERE id = NEW.id;
+  END;
+
+  -- Per paired phone: the counter value up to which we've sent it our changes.
+  CREATE TABLE sync_peer (
+    device_id       TEXT PRIMARY KEY NOT NULL,
+    name            TEXT NOT NULL,
+    last_sent_seq   INTEGER NOT NULL DEFAULT 0,
+    last_synced_at  INTEGER
+  );
+  `,
 ];
+
+/** The migration SQL in order (for tests that build a database from scratch). */
+export function migrateSql(): readonly string[] {
+  return MIGRATIONS;
+}
 
 /** Runs on every app start via `SQLiteProvider.onInit`, before any screen renders. */
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {

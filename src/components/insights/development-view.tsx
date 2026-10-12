@@ -149,15 +149,29 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
         )}
       </Card>
 
-      {/* Checklist ages */}
+      {/*
+        Checklist ages: one row that runs to the screen edges (not clipped at the cards'
+        margin), lined up with the cards at rest and scrolling off the edge of the screen.
+      */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.agesBleed}
         contentContainerStyle={styles.ages}>
         {CHECKLISTS.map((c) => {
           const selected = c.months === months;
           const progress = checklistProgress(c, noticed);
+          const complete = progress.done === progress.total;
           const label = c.months < 24 ? `${c.months} mo` : `${c.months / 12} yr`;
+          const ink = selected ? InkOnWhite : theme.text;
+          const content = (
+            <>
+              <ThemedText style={[styles.ageText, { color: ink }]} numberOfLines={1}>
+                {label}
+              </ThemedText>
+              {complete && <Icon name="check" size={14} color={ink} duotone={false} />}
+            </>
+          );
           return (
             <Pressable
               key={c.months}
@@ -169,15 +183,10 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
                 setMonths(c.months);
               }}>
               {selected ? (
-                <View style={[styles.age, styles.ageSelected]}>
-                  <ThemedText style={[styles.ageText, { color: InkOnWhite }]}>{label}</ThemedText>
-                </View>
+                <View style={[styles.age, styles.ageSelected]}>{content}</View>
               ) : (
                 <Glass radius={20} blur={false} flat style={styles.age}>
-                  <ThemedText style={styles.ageText}>
-                    {label}
-                    {progress.done === progress.total ? ' ✓' : ''}
-                  </ThemedText>
+                  {content}
                 </Glass>
               )}
             </Pressable>
@@ -305,8 +314,17 @@ const styles = StyleSheet.create({
   },
   tipText: { textAlign: 'center' },
   disabled: { opacity: 0.3 },
-  ages: { gap: Spacing.two, paddingVertical: Spacing.one },
-  age: { paddingHorizontal: Spacing.three, height: 40, justifyContent: 'center' },
+  // Cancels the screen's side padding so the row reaches the screen edges.
+  agesBleed: { marginHorizontal: -Spacing.four },
+  ages: { gap: Spacing.two, paddingHorizontal: Spacing.four },
+  age: {
+    height: 40,
+    paddingHorizontal: Spacing.three,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
   ageSelected: { borderRadius: 20, backgroundColor: '#FFFFFF' },
   ageText: { fontSize: 14, lineHeight: 18, fontWeight: 600 },
   sections: { gap: Spacing.four },

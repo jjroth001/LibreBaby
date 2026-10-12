@@ -10,6 +10,7 @@ import { toCsv } from './csv';
 import { toLocalDateString } from './dates';
 import { describeEvent } from './describe';
 import { formatTime } from './format';
+import { parseHuckleberryCsv, type HuckleberryParse } from './huckleberry';
 import type { GrowthUnits } from './growth-units';
 import type { VolumeUnit } from './units';
 
@@ -85,6 +86,18 @@ export async function shareSpreadsheet(
     'text/csv',
     'Export LibreBaby entries',
   );
+}
+
+/** Lets the user pick a Huckleberry CSV export. Returns null if they cancel; throws if it isn't one. */
+export async function pickHuckleberryExport(): Promise<HuckleberryParse | null> {
+  const result = await DocumentPicker.getDocumentAsync({
+    // CSVs show up under several MIME types depending on where they're stored.
+    type: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/octet-stream'],
+    copyToCacheDirectory: true,
+  });
+  if (result.canceled) return null;
+  const text = await new File(result.assets[0].uri).text();
+  return parseHuckleberryCsv(text);
 }
 
 /** Lets the user pick a backup file. Returns null if they cancel; throws if it's not valid. */

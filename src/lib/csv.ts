@@ -11,3 +11,46 @@ const BOM = String.fromCharCode(0xfeff);
 export function toCsv(rows: (string | number | null | undefined)[][]): string {
   return BOM + rows.map((row) => row.map(csvField).join(',')).join('\r\n') + '\r\n';
 }
+
+/**
+ * Parses CSV text (RFC 4180: quoted fields, "" escapes, CRLF or LF, optional BOM)
+ * into rows of strings.
+ */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let quoted = false;
+  const s = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (quoted) {
+      if (c === '"' && s[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (c === '"') {
+        quoted = false;
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      quoted = true;
+    } else if (c === ',') {
+      row.push(field);
+      field = '';
+    } else if (c === '\n') {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else if (c !== '\r') {
+      field += c;
+    }
+  }
+  if (field !== '' || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}

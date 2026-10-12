@@ -9,12 +9,30 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { importBackup, type Backup } from '@/db/backup';
 import { setSetting } from '@/db/settings';
-import type { Child } from '@/db/types';
 import { useNow } from '@/hooks/use-now';
-import { pickBackup, shareBackup, shareSpreadsheet } from '@/lib/data-transfer';
+import { importHuckleberry } from '@/db/huckleberry-import';
+import type { Child, EventType } from '@/db/types';
+import {
+  pickBackup,
+  pickHuckleberryExport,
+  shareBackup,
+  shareSpreadsheet,
+} from '@/lib/data-transfer';
+import type { HuckleberryParse } from '@/lib/huckleberry';
 import { formatDuration } from '@/lib/format';
 import type { GrowthUnits } from '@/lib/growth-units';
 import type { VolumeUnit } from '@/lib/units';
+
+const IMPORT_LABELS: Record<EventType, string> = {
+  sleep: 'sleeps',
+  feed_breast: 'breastfeeds',
+  feed_bottle: 'bottles',
+  feed_solids: 'solids',
+  diaper: 'diapers',
+  medication: 'medications',
+  pump: 'pumping sessions',
+  growth: 'measurements',
+};
 
 function backupSummary(backup: Backup): string {
   const live = backup.events.filter((e) => e.deleted_at === null);
@@ -51,6 +69,55 @@ export function DataSection({ child, unit, growthUnits, lastBackupAt }: DataSect
     } catch (error) {
       Alert.alert('Export failed', (error as Error).message);
     }
+  };
+
+  const importFromHuckleberry = async () => {
+    let parsed: HuckleberryParse | null;
+    try {
+      parsed = await pickHuckleberryExport();
+    } catch (error) {
+      Alert.alert('Couldn’t import', (error as Error).message);
+      return;
+    }
+    if (!parsed) return;
+    const picked = parsed;
+
+    const found = Object.entries(picked.counts)
+      .map(([type, n]) => `${n} ${IMPORT_LABELS[type as EventType]}`)
+      .join(', ');
+    const skipped = Object.entries(picked.skipped)
+      .map(([reason, n]) => `${reason}: ${n}`)
+      .join('\n');
+    const message = [
+      `Found ${picked.events.length} entries: ${found}.`,
+      skipped && `Won’t be imported:\n${skipped}`,
+      'Entries you’ve already logged in LibreBaby at the same time are skipped, so nothing is doubled.',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    Alert.alert('Import from Huckleberry?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Import',
+        onPress: async () => {
+          try {
+            const result = await importHuckleberry(db, child.id, picked);
+            const notes = [
+              result.matchedExisting &&
+                `${result.matchedExisting} were already logged in LibreBaby`,
+              result.alreadyImported && `${result.alreadyImported} were imported before`,
+            ].filter(Boolean);
+            Alert.alert(
+              'Huckleberry data imported',
+              `Added ${result.added} entries.${notes.length ? ` Skipped: ${notes.join('; ')}.` : ''}`,
+            );
+          } catch (error) {
+            Alert.alert('Couldn’t import', (error as Error).message);
+          }
+        },
+      },
+    ]);
   };
 
   const restore = async () => {
@@ -101,6 +168,12 @@ export function DataSection({ child, unit, growthUnits, lastBackupAt }: DataSect
         busyTitle="Opening…"
         variant="secondary"
         onPress={restore}
+      />
+      <SubmitButton
+        title="Import from Huckleberry"
+        busyTitle="Opening…"
+        variant="secondary"
+        onPress={importFromHuckleberry}
       />
       <SubmitButton
         title="Export spreadsheet (CSV)"

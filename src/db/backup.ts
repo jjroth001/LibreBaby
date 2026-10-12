@@ -45,7 +45,10 @@ export async function createBackup(db: SQLiteDatabase): Promise<Backup> {
   const [children, events, settings] = await Promise.all([
     db.getAllAsync<ChildRow>('SELECT * FROM child ORDER BY created_at'),
     db.getAllAsync<EventRow>('SELECT * FROM event ORDER BY start_at'),
-    db.getAllAsync<SettingRow>('SELECT key, value FROM setting ORDER BY key'),
+    // The rounded location stays on this phone.
+    db.getAllAsync<SettingRow>(
+      "SELECT key, value FROM setting WHERE key <> 'skyLocation' ORDER BY key",
+    ),
   ]);
   return {
     app: 'LibreBaby',
@@ -211,6 +214,7 @@ export async function importBackup(
       );
     }
     for (const s of backup.settings) {
+      if (s.key === 'skyLocation') continue;
       await db.runAsync('INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', s.key, s.value);
     }
   });

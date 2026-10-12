@@ -28,18 +28,23 @@ export function LastEvents({
   const sleepTile = sleeping
     ? { value: 'Asleep', detail: 'Timer running' }
     : lastSleep?.endAt
-      ? { value: formatDuration(now - lastSleep.endAt), detail: describeEvent(lastSleep, unit) }
+      ? {
+          value: formatDuration(now - lastSleep.endAt),
+          detail: describeEvent(lastSleep, unit),
+        }
       : null;
 
   return (
     <View style={styles.row}>
-      <StatTile title="Awake" value={sleepTile?.value} detail={sleepTile?.detail} />
+      <StatTile icon="timer" title="Awake" value={sleepTile?.value} detail={sleepTile?.detail} />
       <StatTile
-        title="Last feed"
+        icon="bottle"
+        title="Fed"
         value={lastFeed && `${formatDuration(now - lastFeed.startAt)} ago`}
         detail={lastFeed ? describeEvent(lastFeed, unit) : undefined}
       />
       <StatTile
+        icon="diaper"
         title="Diaper"
         value={lastDiaper && `${formatDuration(now - lastDiaper.startAt)} ago`}
         detail={lastDiaper ? describeEvent(lastDiaper, unit) : undefined}

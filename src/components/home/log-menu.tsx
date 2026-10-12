@@ -1,20 +1,24 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { Glass } from '@/components/glass';
 import { ActionGrid, type Action } from '@/components/home/action-grid';
+import { Icon, type IconName } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Motion } from '@/constants/motion';
-import { Spacing } from '@/constants/theme';
+import { InkOnWhite, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type Category = 'sleep' | 'feed' | 'diaper' | 'meds';
 
-const CATEGORIES: { key: Category; emoji: string; label: string }[] = [
-  { key: 'sleep', emoji: '😴', label: 'Sleep' },
-  { key: 'feed', emoji: '🍼', label: 'Feed' },
-  { key: 'diaper', emoji: '🧷', label: 'Diaper' },
-  { key: 'meds', emoji: '💊', label: 'Meds' },
+const CATEGORIES: { key: Category; icon: IconName; label: string }[] = [
+  { key: 'sleep', icon: 'moon-stars', label: 'Sleep' },
+  { key: 'feed', icon: 'bottle', label: 'Feed' },
+  { key: 'diaper', icon: 'diaper', label: 'Diaper' },
+  { key: 'meds', icon: 'pill', label: 'Meds' },
 ];
+
+const SIZE = 68;
 
 type LogMenuProps = {
   open: Category | null;
@@ -24,7 +28,7 @@ type LogMenuProps = {
   actions: Record<Category, Action[]>;
 };
 
-/** Three category buttons; the open one reveals its options right underneath. */
+/** Round glass category buttons; the open one turns white and reveals its options below. */
 export function LogMenu({ open, onToggle, onClose, actions }: LogMenuProps) {
   const theme = useTheme();
 
@@ -37,17 +41,20 @@ export function LogMenu({ open, onToggle, onClose, actions }: LogMenuProps) {
             <Pressable
               key={category.key}
               accessibilityRole="button"
+              accessibilityLabel={category.label}
               accessibilityState={{ expanded: selected }}
               onPress={() => onToggle(category.key)}
-              style={({ pressed }) => [
-                styles.category,
-                { backgroundColor: selected ? theme.tint : theme.backgroundElement },
-                pressed && !selected && { backgroundColor: theme.backgroundSelected },
-              ]}>
-              <ThemedText style={styles.emoji}>{category.emoji}</ThemedText>
-              <ThemedText style={[styles.label, { color: selected ? theme.onTint : theme.text }]}>
-                {category.label}
-              </ThemedText>
+              style={({ pressed }) => [styles.slot, pressed && styles.pressed]}>
+              {selected ? (
+                <View style={[styles.circle, styles.selected]}>
+                  <Icon name={category.icon} size={30} color={InkOnWhite} />
+                </View>
+              ) : (
+                <Glass radius={SIZE / 2} style={styles.circle}>
+                  <Icon name={category.icon} size={30} color={theme.text} />
+                </Glass>
+              )}
+              <ThemedText style={styles.label}>{category.label}</ThemedText>
             </Pressable>
           );
         })}
@@ -72,16 +79,24 @@ export function LogMenu({ open, onToggle, onClose, actions }: LogMenuProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: Spacing.two },
-  row: { flexDirection: 'row', gap: Spacing.two },
-  category: {
-    flex: 1,
-    minHeight: 104,
-    borderRadius: Spacing.three,
+  container: { gap: Spacing.three },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  slot: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    minWidth: SIZE + Spacing.two,
+  },
+  circle: {
+    width: SIZE,
+    height: SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.one,
   },
-  emoji: { fontSize: 32, lineHeight: 40 },
-  label: { fontSize: 18, fontWeight: 700 },
+  selected: {
+    borderRadius: SIZE / 2,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0px 6px 18px rgba(0,0,0,0.18)',
+  },
+  label: { fontSize: 14, lineHeight: 18, fontWeight: 600 },
+  pressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
 });

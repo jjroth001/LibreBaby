@@ -13,9 +13,8 @@ import { SleepWindowCard } from '@/components/home/sleep-window-card';
 import { UndoBanner } from '@/components/home/undo-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Motion } from '@/constants/motion';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import {
   deleteEvent,
   getLatestEvent,
@@ -93,7 +92,12 @@ function Home({ child }: { child: Child }) {
 
   const startSleep = async () => {
     tapFeedback();
-    await startTimer(db, { childId: child.id, type: 'sleep', startAt: Date.now(), data: {} });
+    await startTimer(db, {
+      childId: child.id,
+      type: 'sleep',
+      startAt: Date.now(),
+      data: {},
+    });
   };
 
   const startBreastFeed = async (side: BreastSide) => {
@@ -108,9 +112,16 @@ function Home({ child }: { child: Child }) {
   };
 
   const logDiaper = async (data: EventDataMap['diaper']) => {
-    const event = await insertEventNow(db, { childId: child.id, type: 'diaper', data });
+    const event = await insertEventNow(db, {
+      childId: child.id,
+      type: 'diaper',
+      data,
+    });
     successFeedback();
-    setUndo({ eventId: event.id, message: `${describeEvent(event, unit)} logged` });
+    setUndo({
+      eventId: event.id,
+      message: `${describeEvent(event, unit)} logged`,
+    });
   };
 
   const logMedication = async (med: RecentMedication) => {
@@ -120,18 +131,31 @@ function Home({ child }: { child: Child }) {
       data: { name: med.name, dose: med.dose },
     });
     successFeedback();
-    setUndo({ eventId: event.id, message: `${describeEvent(event, unit)} logged` });
+    setUndo({
+      eventId: event.id,
+      message: `${describeEvent(event, unit)} logged`,
+    });
   };
 
   const actions: Record<Category, Action[]> = {
     sleep: [
       ...(runningSleep
         ? []
-        : [{ key: 'start', emoji: '⏱️', label: 'Start timer', onPress: startSleep }]),
+        : [
+            {
+              key: 'start',
+              icon: 'timer' as const,
+              label: 'Start timer',
+              wide: true,
+              primary: true,
+              onPress: startSleep,
+            },
+          ]),
       {
         key: 'manual',
-        emoji: '✏️',
+        icon: 'pencil-simple',
         label: 'Enter manually',
+        wide: true,
         onPress: () => router.push('/log/sleep'),
       },
     ],
@@ -142,72 +166,75 @@ function Home({ child }: { child: Child }) {
         : [
             {
               key: 'breast-left',
-              emoji: '🤱',
-              label: 'Left',
-              detail: lastSide === 'L' ? 'Last side' : 'Start timer',
+              icon: 'breast' as const,
+              label: 'Start left',
+              wide: true,
+              detail: lastSide === 'L' ? 'Used last time' : 'Starts a timer',
               onPress: () => startBreastFeed('L'),
             },
             {
               key: 'breast-right',
-              emoji: '🤱',
-              label: 'Right',
-              detail: lastSide === 'R' ? 'Last side' : 'Start timer',
+              icon: 'breast' as const,
+              label: 'Start right',
+              wide: true,
+              detail: lastSide === 'R' ? 'Used last time' : 'Starts a timer',
               onPress: () => startBreastFeed('R'),
             },
           ]),
       {
         key: 'bottle',
-        emoji: '🍼',
+        icon: 'bottle',
         label: 'Bottle',
         onPress: () => router.push('/log/bottle'),
       },
       {
         key: 'solids',
-        emoji: '🥣',
+        icon: 'bowl-food',
         label: 'Solids',
         onPress: () => router.push('/log/solids'),
       },
       {
         key: 'pump',
-        emoji: '🥛',
+        icon: 'pump',
         label: 'Pump',
         detail: 'Amount per side',
         onPress: () => router.push('/log/pump'),
       },
       {
         key: 'breast-manual',
-        emoji: '✏️',
-        label: 'Past breastfeed',
-        detail: 'Enter manually',
+        icon: 'pencil-simple',
+        label: 'Past feed',
+        detail: 'Enter a past breastfeed',
         onPress: () => router.push('/log/breast'),
       },
     ],
     diaper: [
       {
         key: 'wet',
-        emoji: '💧',
+        icon: 'drop',
         label: 'Wet',
         detail: 'Log now',
         onPress: () => logDiaper({ wet: true, dirty: false }),
       },
       {
         key: 'dirty',
-        emoji: '💩',
+        icon: 'diaper-dirty',
         label: 'Dirty',
         detail: 'Log now',
         onPress: () => logDiaper({ wet: false, dirty: true }),
       },
       {
         key: 'both',
-        emoji: '💧💩',
+        icon: 'diaper',
         label: 'Both',
         detail: 'Log now',
         onPress: () => logDiaper({ wet: true, dirty: true }),
       },
       {
         key: 'manual',
-        emoji: '✏️',
-        label: 'Enter manually',
+        icon: 'pencil-simple',
+        label: 'Past',
+        detail: 'Enter manually',
         onPress: () => router.push('/log/diaper'),
       },
     ],
@@ -216,14 +243,16 @@ function Home({ child }: { child: Child }) {
       // helps avoid an accidental early repeat dose.
       ...recentMeds.data.map((med) => ({
         key: `med-${med.name}|${med.dose}`,
-        emoji: '💊',
+        icon: 'pill' as const,
+        wide: true,
         label: med.dose ? `${med.name} · ${med.dose}` : med.name,
         detail: `Last ${formatDuration(now - med.lastGivenAt)} ago`,
         onPress: () => logMedication(med),
       })),
       {
         key: 'med-other',
-        emoji: '✏️',
+        icon: 'pencil-simple',
+        wide: true,
         label: recentMeds.data.length ? 'Other / enter manually' : 'Log medication',
         onPress: () => router.push('/log/medication'),
       },
@@ -231,7 +260,7 @@ function Home({ child }: { child: Child }) {
   };
 
   return (
-    <ThemedView style={styles.fill}>
+    <View style={styles.fill}>
       <Screen
         ref={scrollRef}
         onContentSizeChange={() => {
@@ -240,7 +269,7 @@ function Home({ child }: { child: Child }) {
           scrollRef.current?.scrollToEnd({ animated: true });
         }}>
         <View style={styles.header}>
-          <ThemedText type="subtitle">{child.name}</ThemedText>
+          <ThemedText style={styles.name}>{child.name}</ThemedText>
           <ThemedText themeColor="textSecondary">{formatAge(child.birthDate)} old</ThemedText>
         </View>
 
@@ -304,11 +333,17 @@ function Home({ child }: { child: Child }) {
           }}
         />
       )}
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  header: { gap: Spacing.one },
+  header: { gap: Spacing.half },
+  name: {
+    fontFamily: Fonts.serif,
+    fontSize: 36,
+    lineHeight: 44,
+    fontWeight: 400,
+  },
 });

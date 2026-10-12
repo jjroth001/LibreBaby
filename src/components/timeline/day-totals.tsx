@@ -30,16 +30,19 @@ export function DayTotals({ summary, unit }: { summary: DaySummary; unit: Volume
     <View style={styles.container}>
       <View style={styles.row}>
         <StatTile
+          icon="moon-stars"
           title="Sleep"
           value={summary.sleepMs > 0 ? formatDuration(summary.sleepMs) : '0'}
           detail={summary.sleepCount ? plural(summary.sleepCount, 'sleep') : undefined}
         />
         <StatTile
+          icon="bottle"
           title="Feeds"
           value={String(summary.feedCount)}
           detail={feedDetail || undefined}
         />
         <StatTile
+          icon="diaper"
           title="Diapers"
           value={String(summary.diaperCount)}
           detail={

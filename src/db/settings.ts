@@ -13,7 +13,16 @@ export type Settings = {
   sleepReminderLeadMin: number;
   /** When a backup was last shared from this phone (unix ms). */
   lastBackupAt: number | null;
+  /** Background follows the time of day, or stays night (easier on the eyes at 3 AM). */
+  appearance: 'sky' | 'night';
+  /**
+   * Rounded (~10 km) location for local sunrise/sunset; only set after the user opts in,
+   * never leaves the phone (not synced, not in backups).
+   */
+  skyLocation: SkyLocation | null;
 };
+
+export type SkyLocation = { lat: number; lon: number; updatedAt: number };
 
 function defaultSettings(): Settings {
   const locale = Intl.DateTimeFormat().resolvedOptions().locale;
@@ -24,6 +33,8 @@ function defaultSettings(): Settings {
     sleepReminders: false,
     sleepReminderLeadMin: 15,
     lastBackupAt: null,
+    appearance: 'sky',
+    skyLocation: null,
   };
 }
 

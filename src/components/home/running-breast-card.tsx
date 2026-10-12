@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { deleteEvent, modifyEvent } from '@/db/events';
@@ -14,7 +15,13 @@ import { successFeedback, tapFeedback } from '@/lib/haptics';
 
 const SIDE_LABEL: Record<BreastSide, string> = { L: 'Left', R: 'Right' };
 
-export function RunningBreastCard({ event, now }: { event: BabyEvent<'feed_breast'>; now: number }) {
+export function RunningBreastCard({
+  event,
+  now,
+}: {
+  event: BabyEvent<'feed_breast'>;
+  now: number;
+}) {
   const db = useSQLiteContext();
   const { data } = event;
   const totals = sideTotals(data, now);
@@ -39,19 +46,28 @@ export function RunningBreastCard({ event, now }: { event: BabyEvent<'feed_breas
   const discard = () =>
     Alert.alert('Discard this feed?', 'The running feed timer will be removed.', [
       { text: 'Keep', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => deleteEvent(db, event.id) },
+      {
+        text: 'Discard',
+        style: 'destructive',
+        onPress: () => deleteEvent(db, event.id),
+      },
     ]);
 
   return (
     <Card>
-      <ThemedText type="smallBold">
-        🤱 Breastfeeding · {data.activeSide ? `on ${SIDE_LABEL[data.activeSide].toLowerCase()}` : 'paused'}
-      </ThemedText>
+      <CardTitle icon="breast">
+        {`Breastfeeding · ${data.activeSide ? `on ${SIDE_LABEL[data.activeSide].toLowerCase()}` : 'paused'}`}
+      </CardTitle>
       <ThemedText style={styles.clock}>{formatClock(totals.leftMs + totals.rightMs)}</ThemedText>
 
       <View style={styles.sides}>
         <SideButton side="L" ms={totals.leftMs} active={data.activeSide === 'L'} onPress={onSide} />
-        <SideButton side="R" ms={totals.rightMs} active={data.activeSide === 'R'} onPress={onSide} />
+        <SideButton
+          side="R"
+          ms={totals.rightMs}
+          active={data.activeSide === 'R'}
+          onPress={onSide}
+        />
       </View>
 
       <View style={styles.actions}>
@@ -93,17 +109,27 @@ function SideButton({ side, ms, active, onPress }: SideButtonProps) {
 }
 
 const styles = StyleSheet.create({
-  clock: { fontSize: 48, lineHeight: 56, fontWeight: 600, fontVariant: ['tabular-nums'] },
+  clock: {
+    fontSize: 52,
+    lineHeight: 60,
+    fontWeight: 300,
+    fontVariant: ['tabular-nums'],
+  },
   sides: { flexDirection: 'row', gap: Spacing.two },
   side: {
     flex: 1,
     minHeight: 96,
-    borderRadius: Spacing.three,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.one,
   },
-  sideClock: { fontSize: 28, lineHeight: 34, fontWeight: 600, fontVariant: ['tabular-nums'] },
+  sideClock: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: 600,
+    fontVariant: ['tabular-nums'],
+  },
   pressed: { opacity: 0.8 },
   actions: { flexDirection: 'row', gap: Spacing.two },
   primary: { flex: 1 },

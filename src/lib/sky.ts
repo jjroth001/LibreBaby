@@ -4,12 +4,20 @@
  * tint, text) comes from here, so it always matches the sky behind it.
  */
 
+import { sunTimes } from './sun';
+
 export type Scene = {
   /** Sky gradient, top → bottom. */
   sky: [string, string, string];
   /** Soft light around the sun/moon; position as fractions of the screen. */
   glow: { x: number; y: number; r: number; color: string; opacity: number };
-  body: { x: number; y: number; r: number; color: string; kind: 'sun' | 'moon' };
+  body: {
+    x: number;
+    y: number;
+    r: number;
+    color: string;
+    kind: 'sun' | 'moon';
+  };
   stars: number;
   clouds: number;
   mist: { color: string; opacity: number };
@@ -129,7 +137,7 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function mixHex(a: string, b: string, t: number): string {
+export function mixHex(a: string, b: string, t: number): string {
   const [r1, g1, b1] = hexToRgb(a);
   const [r2, g2, b2] = hexToRgb(b);
   const c = (x: number, y: number) =>
@@ -196,7 +204,10 @@ export function sceneAt(now: number, sunrise: number, sunset: number): Scene {
 }
 
 /** Without location: typical sunrise 6:30 AM and sunset 7:00 PM, local time. */
-export function defaultSunTimes(now: number): { sunrise: number; sunset: number } {
+export function defaultSunTimes(now: number): {
+  sunrise: number;
+  sunset: number;
+} {
   const d = new Date(now);
   return {
     sunrise: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 6, 30).getTime(),
@@ -206,3 +217,29 @@ export function defaultSunTimes(now: number): { sunrise: number; sunset: number 
 
 /** True when text on this scene is dark (the day sky); used for status bar and widgets. */
 export const isLightScene = (scene: Scene) => scene.text !== '#FFFFFF';
+
+/**
+ * The scene to show at `now`: always night when asked, otherwise from the real sunrise and
+ * sunset at `location` (or typical times without one).
+ */
+export function sceneFor(
+  now: number,
+  appearance: 'sky' | 'night',
+  location: { lat: number; lon: number } | null,
+): Scene {
+  if (appearance === 'night') return SCENES.night;
+  if (!location) {
+    const { sunrise, sunset } = defaultSunTimes(now);
+    return sceneAt(now, sunrise, sunset);
+  }
+  const d = new Date(now);
+  const times = sunTimes(
+    d.getFullYear(),
+    d.getMonth() + 1,
+    d.getDate(),
+    location.lat,
+    location.lon,
+  );
+  if (times.kind !== 'normal') return times.kind === 'always-up' ? SCENES.day : SCENES.night;
+  return sceneAt(now, times.sunrise, times.sunset);
+}

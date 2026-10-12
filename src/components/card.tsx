@@ -1,16 +1,16 @@
 import { StyleSheet, type ViewProps } from 'react-native';
 
-import { ThemedView } from '@/components/themed-view';
+import { Glass } from '@/components/glass';
 import { Spacing } from '@/constants/theme';
 
-export function Card({ style, ...rest }: ViewProps) {
-  return <ThemedView type="backgroundElement" style={[styles.card, style]} {...rest} />;
+/** A content panel: liquid glass over the sky. */
+export function Card({ style, blur, ...rest }: ViewProps & { blur?: boolean }) {
+  return <Glass radius={28} blur={blur} style={[styles.card, style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    padding: Spacing.three + Spacing.one,
     gap: Spacing.three,
   },
 });

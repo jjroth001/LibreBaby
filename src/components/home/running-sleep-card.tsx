@@ -3,6 +3,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
 import { DateTimeField } from '@/components/date-time-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -22,12 +23,16 @@ export function RunningSleepCard({ event, now }: { event: BabyEvent<'sleep'>; no
   const discard = () =>
     Alert.alert('Discard this sleep?', 'The running sleep timer will be removed.', [
       { text: 'Keep', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => deleteEvent(db, event.id) },
+      {
+        text: 'Discard',
+        style: 'destructive',
+        onPress: () => deleteEvent(db, event.id),
+      },
     ]);
 
   return (
     <Card>
-      <ThemedText type="smallBold">😴 Sleeping</ThemedText>
+      <CardTitle icon="moon-stars">Sleeping</CardTitle>
       <ThemedText style={styles.clock}>{formatClock(now - event.startAt)}</ThemedText>
       <DateTimeField
         label="Fell asleep"
@@ -43,7 +48,12 @@ export function RunningSleepCard({ event, now }: { event: BabyEvent<'sleep'>; no
 }
 
 const styles = StyleSheet.create({
-  clock: { fontSize: 48, lineHeight: 56, fontWeight: 600, fontVariant: ['tabular-nums'] },
+  clock: {
+    fontSize: 52,
+    lineHeight: 60,
+    fontWeight: 300,
+    fontVariant: ['tabular-nums'],
+  },
   actions: { flexDirection: 'row', gap: Spacing.two },
   primary: { flex: 1 },
 });

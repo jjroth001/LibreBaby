@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { Glass } from '@/components/glass';
 import { ThemedText } from '@/components/themed-text';
 import { Motion } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
@@ -29,14 +30,13 @@ export function UndoBanner({ message, onUndo, onDismiss }: UndoBannerProps) {
 
   return (
     <Animated.View entering={Motion.rise} exiting={Motion.sink} style={styles.position}>
-      <Pressable
-        onPress={onDismiss}
-        style={[styles.banner, { backgroundColor: theme.text }]}
-        accessibilityLiveRegion="polite">
-        <ThemedText style={[styles.message, { color: theme.background }]}>{message}</ThemedText>
-        <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={12}>
-          <ThemedText style={[styles.undo, { color: theme.tint }]}>UNDO</ThemedText>
-        </Pressable>
+      <Pressable onPress={onDismiss} accessibilityLiveRegion="polite">
+        <Glass radius={28} style={styles.banner}>
+          <ThemedText style={styles.message}>{message}</ThemedText>
+          <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={12}>
+            <ThemedText style={[styles.undo, { color: theme.accent }]}>UNDO</ThemedText>
+          </Pressable>
+        </Glass>
       </Pressable>
     </Animated.View>
   );
@@ -51,8 +51,7 @@ const styles = StyleSheet.create({
   },
   banner: {
     minHeight: 56,
-    borderRadius: Spacing.three,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.four,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

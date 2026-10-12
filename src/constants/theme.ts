@@ -7,42 +7,40 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
-export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-    tint: '#3E63DD',
-    onTint: '#ffffff',
-    /** Chart marks; validated (dataviz checks) against backgroundElement. */
-    chart: '#3E63DD',
-    /** Growth chart: WHO reference bands (sequential, outer lighter) and the child's line. */
-    growthBandOuter: '#DDE4FA',
-    growthBandInner: '#C3D0F5',
-    growthChild: '#C2410C',
-    danger: '#CE2C31',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-    tint: '#9EB1FF',
-    onTint: '#0B1437',
-    /** Deeper than tint: chart fills need OKLCH L 0.48–0.67 on dark surfaces. */
-    chart: '#7089EA',
-    // Bands kept dark so the child's line keeps ≥3:1 contrast over them.
-    growthBandOuter: '#232A4D',
-    growthBandInner: '#2A3463',
-    growthChild: '#E8590C',
-    danger: '#FF9592',
-  },
-} as const;
+/** Dark ink used on solid white controls (selected buttons, the primary pill). */
+export const InkOnWhite = '#1B1E3D';
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+/**
+ * UI colors for the current sky (see lib/sky.ts): light text over the night, sunrise and
+ * sunset skies, dark text over the day sky. Surfaces are translucent so the sky and the glass
+ * panels show through; contrast on glass is enforced by sky.test.ts.
+ */
+export function paletteFor(text: string, textMuted: string, accent: string) {
+  const light = text !== '#FFFFFF';
+  return {
+    light,
+    text,
+    textSecondary: textMuted,
+    accent,
+    background: 'transparent',
+    /** Inputs and chips inside a glass panel. */
+    backgroundElement: light ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.12)',
+    backgroundSelected: light ? 'rgba(13,34,56,0.12)' : 'rgba(255,255,255,0.22)',
+    /** Primary controls: solid white with dark ink, or (by day) deep blue with white. */
+    tint: light ? '#1D5FAE' : '#FFFFFF',
+    onTint: light ? '#FFFFFF' : InkOnWhite,
+    chart: accent,
+    // Bands in the text color at low opacity, so they read on any sky; the child's line
+    // stays ≥3:1 over them.
+    growthBandOuter: light ? 'rgba(13,34,56,0.08)' : 'rgba(255,255,255,0.08)',
+    growthBandInner: light ? 'rgba(13,34,56,0.16)' : 'rgba(255,255,255,0.16)',
+    growthChild: light ? '#B8400B' : '#FFB070',
+    danger: light ? '#B42318' : '#FF9592',
+  };
+}
+
+export type Palette = ReturnType<typeof paletteFor>;
+export type ThemeColor = Exclude<keyof Palette, 'light'>;
 
 export const Fonts = Platform.select({
   ios: {

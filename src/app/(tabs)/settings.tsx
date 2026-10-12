@@ -2,9 +2,11 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { Alert, StyleSheet, Switch, View } from 'react-native';
 
+import { Card } from '@/components/card';
 import { ChildForm } from '@/components/child-form';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
+import { AppearanceSection } from '@/components/settings/appearance-section';
 import { DataSection } from '@/components/settings/data-section';
 import { SyncSection } from '@/components/settings/sync-section';
 import { ThemedText } from '@/components/themed-text';
@@ -57,11 +59,15 @@ export default function SettingsScreen() {
     <Screen>
       <ThemedText type="subtitle">Settings</ThemedText>
 
-      <View style={styles.section}>
+      <Card>
         <ThemedText type="smallBold">Baby profile</ThemedText>
         <ChildForm
           key={child.id}
-          initialValues={{ name: child.name, birthDate: child.birthDate, sex: child.sex }}
+          initialValues={{
+            name: child.name,
+            birthDate: child.birthDate,
+            sex: child.sex,
+          }}
           submitLabel="Save changes"
           onSubmit={async (values) => {
             await updateChild(db, child.id, values);
@@ -73,9 +79,11 @@ export default function SettingsScreen() {
             Saved
           </ThemedText>
         )}
-      </View>
+      </Card>
 
-      <View style={styles.section}>
+      <AppearanceSection settings={settings} />
+
+      <Card>
         <View style={styles.switchRow}>
           <View style={styles.switchLabel}>
             <ThemedText type="smallBold">Sleep window reminders</ThemedText>
@@ -89,8 +97,8 @@ export default function SettingsScreen() {
             disabled={!remindersSupported}
             value={remindersSupported && settings.sleepReminders}
             onValueChange={toggleReminders}
-            trackColor={{ true: theme.tint, false: theme.backgroundSelected }}
-            thumbColor={theme.background}
+            trackColor={{ true: theme.accent, false: theme.backgroundSelected }}
+            thumbColor="#FFFFFF"
           />
         </View>
         {remindersSupported && settings.sleepReminders && (
@@ -100,25 +108,22 @@ export default function SettingsScreen() {
             onChange={(lead) => setSetting(db, 'sleepReminderLeadMin', Number(lead))}
           />
         )}
-      </View>
+      </Card>
 
-      <View style={styles.section}>
+      <Card>
         <ThemedText type="smallBold">Bottle units</ThemedText>
         <SegmentedControl
           options={VOLUME_OPTIONS}
           value={settings.volumeUnit}
           onChange={(unit) => setSetting(db, 'volumeUnit', unit)}
         />
-      </View>
-
-      <View style={styles.section}>
         <ThemedText type="smallBold">Growth units</ThemedText>
         <SegmentedControl
           options={GROWTH_UNIT_OPTIONS}
           value={settings.growthUnits}
           onChange={(units) => setSetting(db, 'growthUnits', units)}
         />
-      </View>
+      </Card>
 
       <SyncSection child={child} />
 
@@ -133,7 +138,6 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  section: { gap: Spacing.three },
   saved: { textAlign: 'center' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   switchLabel: { flex: 1, gap: Spacing.half },

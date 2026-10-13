@@ -6,8 +6,6 @@
   <img src="assets/images/widget-preview.png" alt="The LibreBaby home-screen widget over a night sky, showing the last feed, the next sleep window and the last diaper" width="480">
 </p>
 
-> LibreBaby started as one family's replacement for a commercial baby-tracking app. It's built to be used one-handed at 3 AM. Android only for now.
-
 ## Features
 
 **Logging**

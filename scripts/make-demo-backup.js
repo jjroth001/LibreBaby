@@ -100,15 +100,33 @@ const isNight = (ms) => {
 // Two weeks of days: awake (feed, maybe a diaper), then sleep; long stretches at night.
 const lastWake = now - between(55, 65) * MIN;
 let t = new Date(now - 14 * DAY).setHours(6, 10, 0, 0);
-while (t < lastWake - 40 * MIN) {
-  const fed = feed(t + between(2, 8) * MIN);
-  if (random() < 0.85) diaper(t + fed + between(5, 15) * MIN);
-  const awake = isNight(t) ? between(30, 50) * MIN : between(70, 100) * MIN;
+for (;;) {
+  const fedAt = t + between(2, 8) * MIN;
+  const fed = feed(fedAt);
+  // Awake long enough for the feed and a diaper change; she goes back down after both.
+  const awake = Math.max(
+    isNight(t) ? between(30, 50) * MIN : between(70, 100) * MIN,
+    fedAt - t + fed + 12 * MIN,
+  );
   const sleepStart = t + awake;
+  let lastAwakeEvent = fedAt + fed;
+  if (random() < 0.85) {
+    lastAwakeEvent = Math.min(fedAt + fed + between(3, 15) * MIN, sleepStart - 2 * MIN);
+    diaper(lastAwakeEvent);
+  }
   const sleepMs = isNight(sleepStart) ? between(150, 230) * MIN : between(35, 100) * MIN;
-  const sleepEnd = Math.min(sleepStart + sleepMs, lastWake);
-  add('sleep', sleepStart, sleepEnd, {});
-  t = sleepEnd;
+  if (sleepStart + sleepMs >= lastWake) {
+    // The last sleep: a full nap ending when she woke, about an hour ago — about 40 to 80
+    // minutes, but never starting before this awake stretch's feed and diaper.
+    const napStart = Math.max(
+      Math.min(Math.max(sleepStart, lastWake - 80 * MIN), lastWake - 40 * MIN),
+      lastAwakeEvent + MIN,
+    );
+    add('sleep', napStart, lastWake, {});
+    break;
+  }
+  add('sleep', sleepStart, sleepStart + sleepMs, {});
+  t = sleepStart + sleepMs;
 }
 // Now: awake for about an hour, just fed, fresh diaper.
 feed(now - 48 * MIN);

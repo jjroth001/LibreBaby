@@ -3,7 +3,11 @@
 **A free, private baby tracker for Android.** Log sleep, feeds, diapers, pumping, medication and growth in a tap or two, see what's typical for your baby's age, and share it all with the other parent's phone over your home Wi-Fi. No account, no cloud, no ads, no tracking. Your data stays on your phones.
 
 <p align="center">
-  <img src="assets/images/widget-preview.png" alt="The LibreBaby home-screen widget over a night sky, showing the last feed, the next sleep window and the last diaper" width="480">
+  <img src="docs/screenshots/home.jpg" alt="Home: next sleep window gauge, time since last sleep, feed and diaper, and quick-log buttons" width="19%">
+  <img src="docs/screenshots/timeline.jpg" alt="Timeline: the day’s totals and every entry" width="19%">
+  <img src="docs/screenshots/trends.jpg" alt="Insights, trends: sleep per day over the last week" width="19%">
+  <img src="docs/screenshots/growth.jpg" alt="Insights, growth: weight against the WHO percentile bands" width="19%">
+  <img src="docs/screenshots/development.jpg" alt="Insights, development: the CDC milestone checklist for 2 months" width="19%">
 </p>
 
 ## Features
@@ -21,6 +25,11 @@
 
 **Everyday**
 - **Home-screen widget:** time since the last feed and diaper, and the next sleep window.
+
+<p align="center">
+  <img src="assets/images/widget-preview.png" alt="The LibreBaby home-screen widget over a night sky, showing the last feed, the next sleep window and the last diaper" width="420">
+</p>
+
 - **Optional reminders** shortly before the sleep window opens.
 - **Time-of-day design:** "liquid glass" panels over a sky that follows the real sunrise and sunset. There's also an always-night option for 3 AM.
 

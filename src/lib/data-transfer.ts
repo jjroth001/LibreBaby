@@ -89,6 +89,21 @@ export async function shareSpreadsheet(
   );
 }
 
+/**
+ * Reads a file the user just picked. Expo Go's file access is sandboxed per project and
+ * refuses the picker's cached copy ("Missing 'READ' permission"); fetch reads it fine, so
+ * fall back to that. Installed builds take the first path.
+ */
+async function readPickedFile(uri: string): Promise<string> {
+  try {
+    return await new File(uri).text();
+  } catch (error) {
+    const response = await fetch(uri).catch(() => null);
+    if (!response) throw error;
+    return response.text();
+  }
+}
+
 /** Lets the user pick a Huckleberry CSV export. Returns null if they cancel; throws if it isn't one. */
 export async function pickHuckleberryExport(): Promise<HuckleberryParse | null> {
   const result = await DocumentPicker.getDocumentAsync({
@@ -97,7 +112,7 @@ export async function pickHuckleberryExport(): Promise<HuckleberryParse | null> 
     copyToCacheDirectory: true,
   });
   if (result.canceled) return null;
-  const text = await new File(result.assets[0].uri).text();
+  const text = await readPickedFile(result.assets[0].uri);
   return parseHuckleberryCsv(text);
 }
 
@@ -109,6 +124,6 @@ export async function pickBackup(): Promise<Backup | null> {
     copyToCacheDirectory: true,
   });
   if (result.canceled) return null;
-  const text = await new File(result.assets[0].uri).text();
+  const text = await readPickedFile(result.assets[0].uri);
   return parseBackup(text);
 }

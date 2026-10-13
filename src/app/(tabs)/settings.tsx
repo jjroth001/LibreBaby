@@ -7,6 +7,7 @@ import { CardTitle } from '@/components/card-title';
 import { ChildForm } from '@/components/child-form';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
+import { AccessibilitySection } from '@/components/settings/accessibility-section';
 import { AppearanceSection } from '@/components/settings/appearance-section';
 import { DataSection } from '@/components/settings/data-section';
 import { SyncSection } from '@/components/settings/sync-section';
@@ -83,6 +84,8 @@ export default function SettingsScreen() {
       </Card>
 
       <AppearanceSection settings={settings} />
+
+      <AccessibilitySection settings={settings} />
 
       <Card>
         <CardTitle icon="bell">Notifications</CardTitle>

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet } from 'react-native';
 
 import { Glass } from '@/components/glass';
 import { ThemedText } from '@/components/themed-text';
-import { InkOnWhite, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 
@@ -33,8 +33,8 @@ export function SegmentedControl<T extends string>({
               if (!selected) tapFeedback();
               onChange(option.value);
             }}
-            style={[styles.segment, selected && styles.selected]}>
-            <ThemedText style={[styles.label, { color: selected ? InkOnWhite : theme.text }]}>
+            style={[styles.segment, selected && { backgroundColor: theme.selected }]}>
+            <ThemedText style={[styles.label, { color: selected ? theme.onSelected : theme.text }]}>
               {option.label}
             </ThemedText>
           </Pressable>
@@ -57,6 +57,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selected: { backgroundColor: '#FFFFFF' },
   label: { fontWeight: 600 },
 });

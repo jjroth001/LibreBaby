@@ -236,7 +236,8 @@ export const isLightScene = (scene: Scene) => scene.text !== '#FFFFFF';
  */
 export function sceneFor(
   now: number,
-  appearance: 'sky' | 'night',
+  /** The Simple look has no sky in the app, but the widget still draws one by time of day. */
+  appearance: 'sky' | 'night' | 'simple',
   location: { lat: number; lon: number } | null,
 ): Scene {
   if (appearance === 'night') return SCENES.night;

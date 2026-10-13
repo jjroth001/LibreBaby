@@ -17,8 +17,18 @@ export type Settings = {
   timerNotifications: boolean;
   /** When a backup was last shared from this phone (unix ms). */
   lastBackupAt: number | null;
-  /** Background follows the time of day, or stays night (easier on the eyes at 3 AM). */
-  appearance: 'sky' | 'night';
+  /**
+   * The look: glass over a sky that follows the time of day, the same always at night
+   * (easier on the eyes at 3 AM), or Simple — solid colors following the phone's light or
+   * dark mode.
+   */
+  appearance: 'sky' | 'night' | 'simple';
+  /** Accessibility: more opaque panels and full-strength secondary text. */
+  highContrast: boolean;
+  /** Accessibility: no animations, even if Android's own setting is off. */
+  reduceMotion: boolean;
+  /** Small vibrations when logging. */
+  haptics: boolean;
   /**
    * Rounded (~10 km) location for local sunrise/sunset; only set after the user opts in,
    * never leaves the phone (not synced, not in backups).
@@ -40,6 +50,9 @@ function defaultSettings(): Settings {
     backgroundSync: true,
     lastBackupAt: null,
     appearance: 'sky',
+    highContrast: false,
+    reduceMotion: false,
+    haptics: true,
     skyLocation: null,
   };
 }

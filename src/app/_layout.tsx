@@ -53,7 +53,7 @@ function RootNavigator() {
   }, [ready]);
 
   // The native window shows at the very edges during transitions; match the horizon.
-  const windowColor = scene.hills[2];
+  const windowColor = theme.simple ? theme.background : scene.hills[2];
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(windowColor).catch(() => {});
   }, [windowColor]);

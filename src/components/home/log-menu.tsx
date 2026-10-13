@@ -6,7 +6,7 @@ import { ActionGrid, type Action } from '@/components/home/action-grid';
 import { Icon, type IconName } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Motion } from '@/constants/motion';
-import { InkOnWhite, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type Category = 'sleep' | 'feed' | 'diaper' | 'meds';
@@ -46,8 +46,8 @@ export function LogMenu({ open, onToggle, onClose, actions }: LogMenuProps) {
               onPress={() => onToggle(category.key)}
               style={({ pressed }) => [styles.slot, pressed && styles.pressed]}>
               {selected ? (
-                <View style={[styles.circle, styles.selected]}>
-                  <Icon name={category.icon} size={30} color={InkOnWhite} />
+                <View style={[styles.circle, styles.selected, { backgroundColor: theme.selected }]}>
+                  <Icon name={category.icon} size={30} color={theme.onSelected} />
                 </View>
               ) : (
                 <Glass radius={SIZE / 2} style={styles.circle}>
@@ -94,7 +94,6 @@ const styles = StyleSheet.create({
   },
   selected: {
     borderRadius: SIZE / 2,
-    backgroundColor: '#FFFFFF',
     boxShadow: '0px 6px 18px rgba(0,0,0,0.18)',
   },
   label: { fontSize: 14, lineHeight: 18, fontWeight: 600 },

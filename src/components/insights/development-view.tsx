@@ -163,7 +163,7 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
           const progress = checklistProgress(c, noticed);
           const complete = progress.done === progress.total;
           const label = c.months < 24 ? `${c.months} mo` : `${c.months / 12} yr`;
-          const ink = selected ? InkOnWhite : theme.text;
+          const ink = selected ? theme.onSelected : theme.text;
           const content = (
             <>
               <ThemedText style={[styles.ageText, { color: ink }]} numberOfLines={1}>
@@ -183,7 +183,9 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
                 setMonths(c.months);
               }}>
               {selected ? (
-                <View style={[styles.age, styles.ageSelected]}>{content}</View>
+                <View style={[styles.age, styles.ageSelected, { backgroundColor: theme.selected }]}>
+                  {content}
+                </View>
               ) : (
                 <Glass radius={20} blur={false} flat style={styles.age}>
                   {content}
@@ -325,7 +327,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  ageSelected: { borderRadius: 20, backgroundColor: '#FFFFFF' },
+  ageSelected: { borderRadius: 20 },
   ageText: { fontSize: 14, lineHeight: 18, fontWeight: 600 },
   sections: { gap: Spacing.four },
   area: { gap: Spacing.one },

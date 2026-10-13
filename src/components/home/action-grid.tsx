@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Glass } from '@/components/glass';
 import { Icon, type IconName } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
-import { InkOnWhite, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type Action = {
@@ -19,7 +19,6 @@ export type Action = {
 };
 
 const ROUND = 56;
-const INK_MUTED = 'rgba(27,30,61,0.7)';
 
 function accessibilityLabel(action: Action) {
   return action.detail ? `${action.label}, ${action.detail}` : action.label;
@@ -39,7 +38,7 @@ export function ActionGrid({ actions }: { actions: Action[] }) {
       {wide.length > 0 && (
         <View style={styles.pills}>
           {wide.map((action) => {
-            const ink = action.primary ? InkOnWhite : theme.text;
+            const ink = action.primary ? theme.onSelected : theme.text;
             const content = (
               <>
                 <Icon name={action.icon} size={22} color={ink} />
@@ -53,7 +52,7 @@ export function ActionGrid({ actions }: { actions: Action[] }) {
                       style={[
                         styles.pillDetail,
                         {
-                          color: action.primary ? INK_MUTED : theme.textSecondary,
+                          color: action.primary ? theme.onSelectedMuted : theme.textSecondary,
                         },
                       ]}>
                       {action.detail}
@@ -70,7 +69,7 @@ export function ActionGrid({ actions }: { actions: Action[] }) {
                 onPress={action.onPress}
                 style={({ pressed }) => [styles.pillSlot, pressed && styles.pressed]}>
                 {action.primary ? (
-                  <View style={[styles.pill, styles.primary]}>{content}</View>
+                  <View style={[styles.pill, { backgroundColor: theme.selected }]}>{content}</View>
                 ) : (
                   <Glass radius={28} flat style={styles.pill}>
                     {content}
@@ -91,8 +90,9 @@ export function ActionGrid({ actions }: { actions: Action[] }) {
               onPress={action.onPress}
               style={({ pressed }) => [styles.roundSlot, pressed && styles.pressed]}>
               {action.primary ? (
-                <View style={[styles.round, styles.primary, styles.roundShape]}>
-                  <Icon name={action.icon} size={26} color={InkOnWhite} />
+                <View
+                  style={[styles.round, styles.roundShape, { backgroundColor: theme.selected }]}>
+                  <Icon name={action.icon} size={26} color={theme.onSelected} />
                 </View>
               ) : (
                 <Glass radius={ROUND / 2} flat style={styles.round}>
@@ -123,7 +123,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
   },
-  primary: { backgroundColor: '#FFFFFF' },
   pillText: { flexShrink: 1 },
   pillLabel: { fontSize: 15, lineHeight: 20, fontWeight: 600 },
   pillDetail: { fontSize: 12, lineHeight: 16, fontWeight: 500 },

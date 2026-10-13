@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Glass } from '@/components/glass';
 import { Icon, type IconName } from '@/components/icons/icon';
-import { InkOnWhite, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 const TABS: { name: string; title: string; icon: IconName }[] = [
@@ -61,14 +61,21 @@ function GlassTabBar({ state, navigation, position }: TabBarProps) {
         {width > 0 && (
           <Animated.View
             pointerEvents="none"
-            style={[styles.bubble, { width: slot - BUBBLE_INSET * 2, transform: [{ translateX }] }]}
+            style={[
+              styles.bubble,
+              {
+                width: slot - BUBBLE_INSET * 2,
+                backgroundColor: theme.selected,
+                transform: [{ translateX }],
+              },
+            ]}
           />
         )}
         {state.routes.map((route, index) => {
           const tab = TABS.find((t) => t.name === route.name);
           if (!tab) return null;
           const focused = state.index === index;
-          const color = focused ? InkOnWhite : theme.text;
+          const color = focused ? theme.onSelected : theme.text;
           return (
             <Pressable
               key={route.key}
@@ -85,7 +92,8 @@ function GlassTabBar({ state, navigation, position }: TabBarProps) {
                 if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
               }}>
               <Icon name={tab.icon} size={22} color={color} />
-              <Text style={[styles.label, { color: focused ? InkOnWhite : theme.textSecondary }]}>
+              <Text
+                style={[styles.label, { color: focused ? theme.onSelected : theme.textSecondary }]}>
                 {tab.title}
               </Text>
             </Pressable>
@@ -133,7 +141,6 @@ const styles = StyleSheet.create({
     top: BUBBLE_INSET,
     bottom: BUBBLE_INSET,
     borderRadius: (BAR_HEIGHT - BUBBLE_INSET * 2) / 2,
-    backgroundColor: 'rgba(255,255,255,0.92)',
   },
   item: {
     flex: 1,

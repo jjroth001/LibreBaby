@@ -15,8 +15,15 @@ import { sunTimes } from '@/lib/sun';
 
 const APPEARANCE_OPTIONS = [
   { value: 'sky', label: 'Time of day' },
-  { value: 'night', label: 'Always night' },
+  { value: 'night', label: 'Night' },
+  { value: 'simple', label: 'Simple' },
 ] as const;
+
+const APPEARANCE_HINTS = {
+  sky: 'Glass panels over a sky that follows the time of day.',
+  night: 'The night sky, all day — easy on the eyes at 3 AM.',
+  simple: 'Plain, solid colors that follow your phone’s light or dark mode.',
+} as const;
 
 function todaysSun(location: NonNullable<Settings['skyLocation']>) {
   const d = new Date();
@@ -68,6 +75,9 @@ export function AppearanceSection({ settings }: { settings: Settings }) {
         value={settings.appearance}
         onChange={(appearance) => setSetting(db, 'appearance', appearance)}
       />
+      <ThemedText type="small" themeColor="textSecondary">
+        {APPEARANCE_HINTS[settings.appearance]}
+      </ThemedText>
       {settings.appearance === 'sky' && (
         <View style={styles.switchRow}>
           <View style={styles.switchLabel}>

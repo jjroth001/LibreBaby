@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 
 import { Card } from '@/components/card';
 import { Screen } from '@/components/screen';
@@ -16,6 +16,7 @@ import type { BabyEvent, Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
+import { useLiveLayout } from '@/hooks/use-live-layout';
 import { useNow } from '@/hooks/use-now';
 import { addLocalDays, startOfLocalDay } from '@/lib/dates';
 import { summarizeDay } from '@/lib/day-summary';
@@ -33,6 +34,7 @@ export default function TimelineScreen() {
 function Timeline({ child }: { child: Child }) {
   const settings = useSettings();
   const now = useNow(60_000);
+  const { layout, resetKey } = useLiveLayout();
   const today = startOfLocalDay(now);
   const [day, setDay] = useState(today);
   const dayEnd = addLocalDays(day, 1);
@@ -63,27 +65,29 @@ function Timeline({ child }: { child: Child }) {
         // One glass panel for the whole day (one blur, not one per row). Keyed by day so
         // changing days cross-fades the list; rows glide when one is removed.
         <Card style={styles.card}>
-          <Animated.View key={day} entering={Motion.fadeIn} style={styles.list}>
-            {newestFirst.map((event) => {
-              const running = isRunning(event);
-              return (
-                <Animated.View key={event.id} exiting={Motion.exit} layout={Motion.layout}>
-                  <EventRow
-                    event={event}
-                    unit={unit}
-                    growthUnits={settings.data.growthUnits}
-                    dayStart={day}
-                    running={running}
-                    onPress={() =>
-                      running
-                        ? router.navigate('/')
-                        : router.push({ pathname: '/event/[id]', params: { id: event.id } })
-                    }
-                  />
-                </Animated.View>
-              );
-            })}
-          </Animated.View>
+          <LayoutAnimationConfig key={resetKey} skipEntering skipExiting>
+            <Animated.View key={day} entering={Motion.fadeIn} style={styles.list}>
+              {newestFirst.map((event) => {
+                const running = isRunning(event);
+                return (
+                  <Animated.View key={event.id} exiting={Motion.exit} layout={layout}>
+                    <EventRow
+                      event={event}
+                      unit={unit}
+                      growthUnits={settings.data.growthUnits}
+                      dayStart={day}
+                      running={running}
+                      onPress={() =>
+                        running
+                          ? router.navigate('/')
+                          : router.push({ pathname: '/event/[id]', params: { id: event.id } })
+                      }
+                    />
+                  </Animated.View>
+                );
+              })}
+            </Animated.View>
+          </LayoutAnimationConfig>
         </Card>
       )}
     </Screen>

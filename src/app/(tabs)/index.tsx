@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 
 import type { Action } from '@/components/home/action-grid';
 import { LastEvents } from '@/components/home/last-events';
@@ -28,6 +28,7 @@ import type { BabyEvent, BreastSide, Child, EventDataMap } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
+import { useLiveLayout } from '@/hooks/use-live-layout';
 import { useNow } from '@/hooks/use-now';
 import { useSleepPrediction } from '@/hooks/use-sleep-prediction';
 import { startBreast } from '@/lib/breast';
@@ -65,6 +66,7 @@ function Home({ child }: { child: Child }) {
     child.id,
   ]);
   const sleepState = useSleepPrediction(child);
+  const { layout, resetKey } = useLiveLayout();
   const [openMenu, setOpenMenu] = useState<Category | null>(null);
   // The log menu is the last thing on Home, so when a submenu opens we scroll to the
   // bottom to bring its options into view — once they've been laid out.
@@ -274,52 +276,55 @@ function Home({ child }: { child: Child }) {
         </View>
 
         {/* Cards fade in and out; everything below glides to its new place. */}
-        {runningSleep && (
-          <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={Motion.layout}>
-            <RunningSleepCard event={runningSleep} now={now} />
-          </Animated.View>
-        )}
-        {runningBreast && (
-          <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={Motion.layout}>
-            <RunningBreastCard event={runningBreast} now={now} />
-          </Animated.View>
-        )}
+        <LayoutAnimationConfig key={resetKey} skipEntering skipExiting>
+          {runningSleep && (
+            <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={layout}>
+              <RunningSleepCard event={runningSleep} now={now} />
+            </Animated.View>
+          )}
+          {runningBreast && (
+            <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={layout}>
+              <RunningBreastCard event={runningBreast} now={now} />
+            </Animated.View>
+          )}
 
-        {(sleepState.status === 'awake' || sleepState.status === 'no-data') && (
-          <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={Motion.layout}>
-            <SleepWindowCard state={sleepState} now={now} childName={child.name} />
+          {(sleepState.status === 'awake' || sleepState.status === 'no-data') && (
+            <Animated.View entering={Motion.enter} exiting={Motion.exit} layout={layout}>
+              <SleepWindowCard state={sleepState} now={now} childName={child.name} />
+            </Animated.View>
+          )}
+
+          <Animated.View layout={layout}>
+            <LastEvents
+              now={now}
+              unit={unit}
+              sleeping={!!runningSleep}
+              lastSleep={latest.data.sleep}
+              lastFeed={latest.data.feed}
+              lastDiaper={latest.data.diaper}
+            />
           </Animated.View>
-        )}
 
-        <Animated.View layout={Motion.layout}>
-          <LastEvents
-            now={now}
-            unit={unit}
-            sleeping={!!runningSleep}
-            lastSleep={latest.data.sleep}
-            lastFeed={latest.data.feed}
-            lastDiaper={latest.data.diaper}
-          />
-        </Animated.View>
-
-        <Animated.View layout={Motion.layout}>
-          <LogMenu
-            open={openMenu}
-            onToggle={(category) => {
-              const opening = openMenu !== category;
-              revealMenu.current = opening;
-              // Switching between two open submenus of equal height won't change the
-              // content size, so also scroll right away in that case.
-              if (opening && openMenu !== null) scrollRef.current?.scrollToEnd({ animated: true });
-              setOpenMenu(opening ? category : null);
-            }}
-            onClose={() => {
-              revealMenu.current = false;
-              setOpenMenu(null);
-            }}
-            actions={actions}
-          />
-        </Animated.View>
+          <Animated.View layout={layout}>
+            <LogMenu
+              open={openMenu}
+              onToggle={(category) => {
+                const opening = openMenu !== category;
+                revealMenu.current = opening;
+                // Switching between two open submenus of equal height won't change the
+                // content size, so also scroll right away in that case.
+                if (opening && openMenu !== null)
+                  scrollRef.current?.scrollToEnd({ animated: true });
+                setOpenMenu(opening ? category : null);
+              }}
+              onClose={() => {
+                revealMenu.current = false;
+                setOpenMenu(null);
+              }}
+              actions={actions}
+            />
+          </Animated.View>
+        </LayoutAnimationConfig>
       </Screen>
 
       {undo && (

@@ -10,6 +10,7 @@ import { SegmentedControl } from '@/components/segmented-control';
 import { AccessibilitySection } from '@/components/settings/accessibility-section';
 import { AppearanceSection } from '@/components/settings/appearance-section';
 import { DataSection } from '@/components/settings/data-section';
+import { MedRemindersSection } from '@/components/settings/med-reminders-section';
 import { SyncSection } from '@/components/settings/sync-section';
 import { ThemedText } from '@/components/themed-text';
 import { Fonts, Spacing } from '@/constants/theme';
@@ -129,6 +130,8 @@ export default function SettingsScreen() {
           />
         </View>
       </Card>
+
+      <MedRemindersSection child={child} settings={settings} />
 
       <Card>
         <ThemedText type="smallBold">Bottle units</ThemedText>

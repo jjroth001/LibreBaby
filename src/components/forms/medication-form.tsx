@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { DateTimeField } from '@/components/date-time-field';
 import { SubmitButton } from '@/components/forms/submit-button';
 import type { FormProps } from '@/components/forms/types';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
+import { Motion } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import type { RecentMedication } from '@/db/events';
 import { useNow } from '@/hooks/use-now';
@@ -19,12 +21,15 @@ type MedicationFormProps = FormProps<MedicationValues> & {
   recent: RecentMedication[];
   /** Show when the typed medication was last given (off when editing that very entry). */
   showLastGiven?: boolean;
+  /** Extra controls above the save button, given the medication and time as typed so far. */
+  renderExtra?: (current: { name: string; time: number }) => ReactNode;
 };
 
 export function MedicationForm({
   initial,
   recent,
   showLastGiven = true,
+  renderExtra,
   submitLabel = 'Save',
   onSubmit,
 }: MedicationFormProps) {
@@ -93,11 +98,15 @@ export function MedicationForm({
         placeholder="Optional"
         multiline
       />
-      <SubmitButton
-        title={submitLabel}
-        onPress={() => onSubmit({ name: trimmedName, dose: dose.trim(), time, notes })}
-        disabled={trimmedName.length === 0}
-      />
+      {renderExtra?.({ name: trimmedName, time })}
+      {/* Glides down when the extra controls above it open. */}
+      <Animated.View layout={Motion.layout}>
+        <SubmitButton
+          title={submitLabel}
+          onPress={() => onSubmit({ name: trimmedName, dose: dose.trim(), time, notes })}
+          disabled={trimmedName.length === 0}
+        />
+      </Animated.View>
     </>
   );
 }

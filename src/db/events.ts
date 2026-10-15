@@ -1,6 +1,8 @@
 import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { medKey } from '@/lib/med-reminders';
+
 import type { BabyEvent, EventType, NewEvent } from './types';
 
 type EventRow = {
@@ -213,6 +215,28 @@ export async function listRecentMedications(
     childId,
     limit,
   );
+}
+
+/** When each medication was last given, keyed by medKey(name) (any dose). */
+export async function lastMedicationTimes(
+  db: SQLiteDatabase,
+  childId: string,
+): Promise<Map<string, number>> {
+  const rows = await db.getAllAsync<{ name: string | null; lastGivenAt: number }>(
+    `SELECT json_extract(data, '$.name') AS name, MAX(start_at) AS lastGivenAt
+     FROM event
+     WHERE child_id = ? AND type = 'medication' AND deleted_at IS NULL
+     GROUP BY json_extract(data, '$.name')`,
+    childId,
+  );
+  // Folded here rather than in SQL: SQLite's lower() only handles ASCII.
+  const latest = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.name) continue;
+    const key = medKey(row.name);
+    latest.set(key, Math.max(latest.get(key) ?? 0, row.lastGivenAt));
+  }
+  return latest;
 }
 
 export async function getEvent(db: SQLiteDatabase, id: string): Promise<BabyEvent | null> {

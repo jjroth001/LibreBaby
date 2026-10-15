@@ -30,7 +30,7 @@
   <img src="assets/images/widget-preview.png" alt="The LibreBaby home-screen widget over a night sky, showing the last feed, the next sleep window and the last diaper" width="420">
 </p>
 
-- **Optional reminders** shortly before the sleep window opens.
+- **Optional reminders** shortly before the sleep window opens, and **medicine reminders**: a set number of hours after each dose, or at set times every day. Tapping one opens the log with the medicine filled in.
 - **Time-of-day design:** "liquid glass" panels over a sky that follows the real sunrise and sunset. There's also an always-night option for 3 AM.
 
 **Your data**
@@ -51,7 +51,7 @@ LibreBaby has no accounts, no analytics, no ads and no servers. Everything you l
 |---|---|
 | Camera | Scanning the family code (QR) when pairing a phone. Only used on that screen. |
 | Approximate location | Optional: sunrise and sunset times for the sky. Rounded to about 10 km, stored only on the phone, and never synced or included in backups. Precise and background location are not requested. |
-| Notifications | Sleep-window reminders, the running-timer notification, and the notification Android requires while background sync is on. |
+| Notifications | Sleep-window and medicine reminders, the running-timer notification, and the notification Android requires while background sync is on. |
 | Internet, Wi-Fi and network state, Wi-Fi multicast | Family sync on the local network: finding the other phone and connecting to it. Android requires the "Internet" permission even for local connections. |
 | Foreground service (connected device), run at startup, wake lock, ignore battery optimizations | Keeping family sync running while the app is closed. LibreBaby asks Android for the battery exemption only if you tap the button in Settings. |
 | Vibrate | Gentle haptic feedback when you log something. |

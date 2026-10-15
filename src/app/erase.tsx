@@ -12,7 +12,7 @@ import { setSetting } from '@/db/settings';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { shareBackup } from '@/lib/data-transfer';
-import { syncSleepReminder } from '@/lib/notifications';
+import { syncMedReminders, syncSleepReminder } from '@/lib/notifications';
 import { useSync } from '@/sync/sync-provider';
 
 const CONFIRM_WORD = 'DELETE';
@@ -42,8 +42,9 @@ export default function EraseScreen() {
   };
 
   const erase = async () => {
-    // Cancel a pending sleep reminder; nothing will be left to remind about.
+    // Cancel pending reminders; nothing will be left to remind about.
     await syncSleepReminder(null).catch(() => {});
+    await syncMedReminders([]).catch(() => {});
     // Starting over also leaves family sync (the other phones keep their copy).
     await sync.leave();
     // Once the profile is gone the app returns to the welcome screen on its own.

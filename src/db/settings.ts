@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { GrowthUnits } from '@/lib/growth-units';
+import type { MedReminder } from '@/lib/med-reminders';
 import type { VolumeUnit } from '@/lib/units';
 
 export type Settings = {
@@ -11,6 +12,8 @@ export type Settings = {
   sleepReminders: boolean;
   /** How many minutes before the window opens to notify. */
   sleepReminderLeadMin: number;
+  /** Medicine reminders on this phone (see lib/med-reminders.ts). */
+  medReminders: MedReminder[];
   /** Keep family sync running while the app is closed (a quiet ongoing notification). */
   backgroundSync: boolean;
   /** Ongoing notification with a live clock while a sleep or feed timer runs. */
@@ -46,6 +49,7 @@ function defaultSettings(): Settings {
     growthUnits: imperial ? 'imperial' : 'metric',
     sleepReminders: false,
     sleepReminderLeadMin: 15,
+    medReminders: [],
     timerNotifications: true,
     backgroundSync: true,
     lastBackupAt: null,

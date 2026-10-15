@@ -1,3 +1,4 @@
+import { MED_PREFIX, type PlannedReminder } from './med-reminders';
 import { isInstalledBuild } from './platform';
 
 type NotificationsModule = typeof import('expo-notifications');
@@ -75,3 +76,96 @@ export function syncSleepReminder(reminder: Reminder | null): Promise<void> {
   queue = next.catch(() => {});
   return next;
 }
+
+const MED_CHANNEL_ID = 'medicine';
+/** Android allows an app ~500 pending alarms; stay far below that. */
+const MAX_MED_REMINDERS = 100;
+
+/** What a medicine reminder carries, so a tap can open the log with it filled in. */
+export type MedReminderData = { kind: 'medication'; name: string; dose: string };
+
+let scheduledMed = '';
+
+/** Replaces every pending medicine reminder with `planned` (an empty list cancels them all). */
+export function syncMedReminders(planned: PlannedReminder[]): Promise<void> {
+  if (!remindersSupported) return Promise.resolve();
+  const next = queue.then(async () => {
+    const wanted = planned.slice(0, MAX_MED_REMINDERS);
+    // Most changes (any new entry, any setting) don't touch these; skip the churn.
+    const signature = JSON.stringify(wanted);
+    if (signature === scheduledMed) return;
+    const Notifications = await notifications();
+    const pending = await Notifications.getAllScheduledNotificationsAsync();
+    for (const request of pending) {
+      if (request.identifier.startsWith(MED_PREFIX))
+        await Notifications.cancelScheduledNotificationAsync(request.identifier).catch(() => {});
+    }
+    scheduledMed = '';
+    if (wanted.length > 0) {
+      await Notifications.setNotificationChannelAsync(MED_CHANNEL_ID, {
+        name: 'Medicine reminders',
+        importance: Notifications.AndroidImportance.HIGH,
+      });
+    }
+    for (const reminder of wanted) {
+      if (reminder.at <= Date.now()) continue;
+      const data: MedReminderData = {
+        kind: 'medication',
+        name: reminder.name,
+        dose: reminder.dose,
+      };
+      await Notifications.scheduleNotificationAsync({
+        identifier: reminder.id,
+        content: { title: reminder.title, body: reminder.body, data },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: reminder.at,
+          channelId: MED_CHANNEL_ID,
+        },
+      });
+    }
+    scheduledMed = signature;
+  });
+  queue = next.catch(() => {});
+  return next;
+}
+
+/**
+ * Calls `onOpen` when a medicine reminder is tapped, including the one that launched the
+ * app. Each tap is handled once. Returns an unsubscribe function.
+ */
+export function onMedReminderTapped(onOpen: (data: MedReminderData) => void): () => void {
+  if (!remindersSupported) return () => {};
+  let removed = false;
+  let remove = () => {};
+  const handle = (response: import('expo-notifications').NotificationResponse | null) => {
+    if (!response || removed) return;
+    const id = response.notification.request.identifier;
+    if (handledTaps.has(id + response.notification.date)) return;
+    handledTaps.add(id + response.notification.date);
+    const data = response.notification.request.content.data;
+    if (data?.kind === 'medication' && typeof data.name === 'string') {
+      onOpen({
+        kind: 'medication',
+        name: data.name,
+        dose: typeof data.dose === 'string' ? data.dose : '',
+      });
+    }
+  };
+  notifications()
+    .then(async (Notifications) => {
+      if (removed) return;
+      const subscription = Notifications.addNotificationResponseReceivedListener(handle);
+      remove = () => subscription.remove();
+      handle(await Notifications.getLastNotificationResponseAsync());
+      // So a later app start doesn't replay the tap that launched this one.
+      await Notifications.clearLastNotificationResponseAsync();
+    })
+    .catch(() => {});
+  return () => {
+    removed = true;
+    remove();
+  };
+}
+
+const handledTaps = new Set<string>();

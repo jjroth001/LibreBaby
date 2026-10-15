@@ -103,6 +103,10 @@ function RootNavigator() {
             />
             <Stack.Screen name="log/growth" options={{ ...logSheet, title: 'Log measurement' }} />
             <Stack.Screen name="event/[id]" options={{ ...logSheet, title: 'Edit' }} />
+            <Stack.Screen
+              name="med-reminder"
+              options={{ ...logSheet, title: 'Medicine reminder' }}
+            />
             <Stack.Screen name="erase" options={{ ...logSheet, title: 'Erase all data' }} />
             <Stack.Screen name="sync/pair" options={{ ...logSheet, title: 'Family code' }} />
           </Stack.Protected>

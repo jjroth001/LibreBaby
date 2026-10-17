@@ -8,10 +8,12 @@ import { getSettings } from '@/db/settings';
 import { SCENES } from '@/lib/sky';
 import { timerNotification } from '@/lib/timer-notification';
 
+import { FedWidget, SleepTileWidget, UpNextWidget } from './extra-widgets';
 import { FallbackWidget, LibreBabyWidget } from './librebaby-widget';
+import { loadModelFor, loadRefreshMinutes, type AnyWidgetModel } from './load-widget-model';
+import { loadAllModels, redrawAllWidgets } from './redraw';
 import { applyWidgetAction } from './widget-actions';
-import { loadWidgetModel } from './load-widget-model';
-import { widgetRefreshMinutes, type WidgetModel } from './widget-model';
+import { WIDGET_NAMES } from './widget-model';
 
 /**
  * The widget's own connection to the app's database; works even when the app isn't open.
@@ -33,12 +35,17 @@ async function withDb<R>(work: (db: SQLiteDatabase) => Promise<R>): Promise<R> {
   }
 }
 
-async function loadModel(db: SQLiteDatabase): Promise<WidgetModel> {
-  try {
-    return await loadWidgetModel(db, Date.now());
-  } catch {
-    // e.g. the app was updated but not opened yet, so the database isn't migrated.
-    return { kind: 'empty', scene: SCENES.night };
+/** The widget's picture for its current data. */
+function draw(loaded: AnyWidgetModel, width: number, height: number) {
+  switch (loaded.name) {
+    case WIDGET_NAMES.upNext:
+      return <UpNextWidget model={loaded.model} width={width} height={height} />;
+    case WIDGET_NAMES.fed:
+      return <FedWidget model={loaded.model} width={width} height={height} />;
+    case WIDGET_NAMES.sleep:
+      return <SleepTileWidget model={loaded.model} width={width} height={height} />;
+    default:
+      return <LibreBabyWidget model={loaded.model} width={width} height={height} />;
   }
 }
 
@@ -63,10 +70,10 @@ async function syncTimerNotifications(db: SQLiteDatabase) {
 }
 
 /** How often to redraw: every minute while a timer runs, so its minutes keep up. */
-function keepRefreshing(model: WidgetModel | null) {
+function keepRefreshing(minutes: number) {
   try {
     // Re-arms (or, after the last widget is removed, cancels) the refresh alarm.
-    LiveTimer?.scheduleWidgetRefresh(model ? widgetRefreshMinutes(model) : 10);
+    LiveTimer?.scheduleWidgetRefresh(minutes);
   } catch {
     // Best effort: Android's own 30-minute updates still apply.
   }
@@ -86,10 +93,12 @@ export const widgetTaskHandler: WidgetTaskHandler = async ({
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
       try {
-        const model = await withDb(async (db) => {
-          // Taps on the timer's buttons; the rest of the widget uses OPEN_APP, handled natively.
+        const { loaded, minutes, others } = await withDb(async (db) => {
+          // Taps on the timer's buttons; the rest of each widget opens the app or the
+          // Oracle, which Android handles without us.
+          let changed = false;
           if (widgetAction === 'WIDGET_CLICK' && clickAction) {
-            const changed = await applyWidgetAction(
+            changed = await applyWidgetAction(
               db,
               clickAction,
               clickActionData ?? {},
@@ -97,20 +106,31 @@ export const widgetTaskHandler: WidgetTaskHandler = async ({
             ).catch(() => false);
             if (changed) await syncTimerNotifications(db).catch(() => {});
           }
-          return loadModel(db);
+          const now = Date.now();
+          return {
+            loaded: await loadModelFor(db, widgetInfo.widgetName, now).catch(
+              // e.g. the app was updated but not opened yet, so the database isn't migrated.
+              (): AnyWidgetModel => ({
+                name: WIDGET_NAMES.main,
+                model: { kind: 'empty', scene: SCENES.night },
+              }),
+            ),
+            minutes: await loadRefreshMinutes(db).catch(() => 10),
+            // A tap changes what the other widgets show too (e.g. the sleep tile).
+            others: changed ? await loadAllModels(db).catch(() => null) : null,
+          };
         });
-        keepRefreshing(model);
-        renderWidget(
-          <LibreBabyWidget model={model} width={widgetInfo.width} height={widgetInfo.height} />,
-        );
+        keepRefreshing(minutes);
+        renderWidget(draw(loaded, widgetInfo.width, widgetInfo.height));
+        if (others) await redrawAllWidgets(others).catch(() => {});
       } catch (error) {
         console.error('LibreBaby widget failed to draw', error);
-        keepRefreshing(null);
+        keepRefreshing(10);
         renderWidget(<FallbackWidget />);
       }
       break;
     case 'WIDGET_DELETED':
-      keepRefreshing(null);
+      keepRefreshing(10);
       break;
   }
 };

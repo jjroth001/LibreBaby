@@ -3,46 +3,27 @@
 // "Invalid hook call" and the widget is never drawn.
 'use no memo';
 
-import { FlexWidget, OverlapWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 
 import { iconSvg, type IconName } from '@/components/icons/icon-paths';
 import { SCENES, type Scene } from '@/lib/sky';
-import { skySvg } from '@/lib/sky-svg';
 
 import { switchTarget, WIDGET_ACTIONS } from './widget-actions';
 import type { WidgetModel, WidgetRow, WidgetTimer } from './widget-model';
+import {
+  glassColor,
+  Header,
+  onAccent,
+  RADIUS,
+  sizer,
+  WidgetFrame,
+  withAlpha,
+  type Color,
+  type Sizer,
+} from './widget-parts';
 
 /** The default 4×2 widget on a typical phone, in dp; text sizes are tuned for this. */
-const BASE_WIDTH = 360;
-const BASE_HEIGHT = 190;
-const RADIUS = 24;
-
-/** Scale text with the widget's size, so a bigger widget gets bigger text (within reason). */
-function textScale(width?: number, height?: number): number {
-  if (!width || !height) return 1;
-  const scale = Math.min(width / BASE_WIDTH, height / BASE_HEIGHT);
-  return Math.min(1.6, Math.max(0.85, scale));
-}
-
-type Color = `#${string}` | `rgba(${number}, ${number}, ${number}, ${number})`;
-
-/** "#RRGGBB" at the given opacity, in the rgba() form widgets accept. */
-function withAlpha(hex: string, alpha: number): Color {
-  const n = Number.parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-}
-
-/** Text on an accent-colored button: the sky's darkest blue on light accents, else white. */
-function onAccent(scene: Scene): Color {
-  return (scene.text === '#FFFFFF' ? scene.sky[0] : '#FFFFFF') as Color;
-}
-
-/** Glass rows without blur (widgets can't blur), so slightly more opaque than in the app. */
-function glassColor(scene: Scene): Color {
-  const n = Number.parseInt(scene.glass.color.slice(1), 16);
-  const alpha = Math.min(0.85, scene.glass.alpha + 0.08);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-}
+const BASE = { width: 360, height: 190 };
 
 type WidgetProps = {
   model: WidgetModel;
@@ -58,11 +39,8 @@ type WidgetProps = {
  * to stop it (or switch sides). Only imported in installed builds (not Expo Go).
  */
 export function LibreBabyWidget({ model, width, height }: WidgetProps) {
-  const s = textScale(width, height);
-  const size = (base: number) => Math.round(base * s);
+  const size = sizer(BASE, width, height);
   const { scene } = model;
-  const w = Math.round(width ?? BASE_WIDTH);
-  const h = Math.round(height ?? BASE_HEIGHT);
   const text = scene.text as Color;
   const muted = scene.textMuted as Color;
   const timer = model.kind === 'ready' ? model.timer : null;
@@ -80,63 +58,36 @@ export function LibreBabyWidget({ model, width, height }: WidgetProps) {
     timer?.kind === 'sleep' ? 'moon' : timer?.kind === 'breast' ? 'breast' : 'moon-stars';
 
   return (
-    <OverlapWidget
-      clickAction="OPEN_APP"
-      accessibilityLabel="Open LibreBaby"
-      style={{
-        height: 'match_parent',
-        width: 'match_parent',
-        borderRadius: RADIUS,
-        // Behind the sky picture, in case it's letterboxed by a few dp.
-        backgroundColor: scene.sky[1] as `#${string}`,
-      }}>
-      <SvgWidget
-        svg={skySvg(scene, w, h, RADIUS)}
-        style={{ height: 'match_parent', width: 'match_parent' }}
-      />
+    <WidgetFrame
+      scene={scene}
+      base={BASE}
+      width={width}
+      height={height}
+      size={size}
+      accessibilityLabel="Open LibreBaby">
+      <Header icon={titleIcon} title={title} scene={scene} size={size} />
+      {/* Rows share the remaining height evenly instead of bunching at one end. */}
       <FlexWidget
         style={{
-          height: 'match_parent',
+          flex: 1,
           width: 'match_parent',
-          paddingHorizontal: size(14),
-          paddingVertical: size(12),
           flexDirection: 'column',
+          justifyContent: 'space-evenly',
         }}>
-        <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <SvgWidget
-            svg={iconSvg(titleIcon, scene.accent, size(20))}
-            style={{ width: size(20), height: size(20) }}
-          />
+        {timer ? (
+          <TimerBody timer={timer} scene={scene} size={size} text={text} muted={muted} />
+        ) : model.kind === 'ready' ? (
+          model.rows.map((row) => (
+            <Row key={row.label} row={row} scene={scene} size={size} text={text} muted={muted} />
+          ))
+        ) : (
           <TextWidget
-            text={`  ${title}`}
-            style={{ fontSize: size(18), fontFamily: 'serif', color: text }}
-            maxLines={1}
-            truncate="END"
+            text="Open LibreBaby to get started"
+            style={{ fontSize: size(16), color: muted }}
           />
-        </FlexWidget>
-        {/* Rows share the remaining height evenly instead of bunching at one end. */}
-        <FlexWidget
-          style={{
-            flex: 1,
-            width: 'match_parent',
-            flexDirection: 'column',
-            justifyContent: 'space-evenly',
-          }}>
-          {timer ? (
-            <TimerBody timer={timer} scene={scene} size={size} text={text} muted={muted} />
-          ) : model.kind === 'ready' ? (
-            model.rows.map((row) => (
-              <Row key={row.label} row={row} scene={scene} size={size} text={text} muted={muted} />
-            ))
-          ) : (
-            <TextWidget
-              text="Open LibreBaby to get started"
-              style={{ fontSize: size(16), color: muted }}
-            />
-          )}
-        </FlexWidget>
+        )}
       </FlexWidget>
-    </OverlapWidget>
+    </WidgetFrame>
   );
 }
 
@@ -165,7 +116,7 @@ export function FallbackWidget() {
 type RowProps = {
   row: WidgetRow;
   scene: Scene;
-  size: (base: number) => number;
+  size: Sizer;
   text: Color;
   muted: Color;
 };
@@ -212,7 +163,7 @@ function Row({ row, scene, size, text, muted }: RowProps) {
 type TimerProps = {
   timer: WidgetTimer;
   scene: Scene;
-  size: (base: number) => number;
+  size: Sizer;
   text: Color;
   muted: Color;
 };
@@ -284,7 +235,7 @@ type SideTileProps = {
   side: 'L' | 'R';
   timer: Extract<WidgetTimer, { kind: 'breast' }>;
   scene: Scene;
-  size: (base: number) => number;
+  size: Sizer;
   text: Color;
   muted: Color;
 };
@@ -336,7 +287,7 @@ type ActionButtonProps = {
   clickAction: string;
   clickActionData: Record<string, string>;
   scene: Scene;
-  size: (base: number) => number;
+  size: Sizer;
   /** Fixed width; otherwise it shares the row with its neighbour. */
   width?: number;
 };

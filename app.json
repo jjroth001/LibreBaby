@@ -82,6 +82,42 @@
               "resizeMode": "horizontal|vertical",
               "previewImage": "./assets/images/widget-preview.png",
               "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "LibreBabyUpNext",
+              "label": "LibreBaby: Up next",
+              "description": "What the Oracle expects next: naps, feeds, diapers and bedtime",
+              "minWidth": "250dp",
+              "minHeight": "180dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 3,
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/images/widget-preview-up-next.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "LibreBabyFed",
+              "label": "LibreBaby: Last feed",
+              "description": "Time since the last feed, and which side is next",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/images/widget-preview-fed.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "LibreBabySleep",
+              "label": "LibreBaby: Next sleep",
+              "description": "How close the next sleep window is, or how long the baby has slept",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/images/widget-preview-sleep.png",
+              "updatePeriodMillis": 1800000
             }
           ]
         }

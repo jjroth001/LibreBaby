@@ -10,8 +10,14 @@ import type { GrowthUnits } from '@/lib/growth-units';
 import type { Scene } from '@/lib/sky';
 import type { VolumeUnit } from '@/lib/units';
 
-/** Must match the widget `name` in app.json's react-native-android-widget plugin config. */
-export const WIDGET_NAME = 'LibreBaby';
+/** Must match the widget `name`s in app.json's react-native-android-widget plugin config. */
+export const WIDGET_NAMES = {
+  /** The original 4×2: last feed, next sleep, last diaper, or the running timer. */
+  main: 'LibreBaby',
+  upNext: 'LibreBabyUpNext',
+  fed: 'LibreBabyFed',
+  sleep: 'LibreBabySleep',
+} as const;
 
 /** What the home-screen widget shows; built from data, rendered by `LibreBabyWidget`. */
 export type WidgetModel =

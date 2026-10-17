@@ -19,6 +19,7 @@
 
 **Understanding**
 - **Next sleep window:** an estimate of when your baby will be ready to sleep again. It starts from typical awake times for their age and adapts to your baby's own pattern.
+- **The Oracle:** the rest of your day laid out like a calendar agenda, with when to expect naps, feeds, diaper changes, bedtime, night feeds and the morning wake-up. It learns from the last two weeks of entries, marks each estimate "likely" or "maybe", and tells you why when you tap one.
 - **Timeline** of each day with totals, and **Insights** with daily trends over 7, 14 or 30 days.
 - **Growth charts** against the WHO Child Growth Standards (birth to 2 years), with the percentile for each measurement.
 - **Development:** a short note for every week of the first year and every month to age three, plus the CDC's developmental milestone checklists (2 months to 3 years). Tick milestones off as they happen.
@@ -77,7 +78,7 @@ a6e03857597a26051ad2eddee8e69fc4a367f245241303ddde39d5e976245646
 ## Not medical advice
 
 LibreBaby is a logging tool, not a medical device:
-- Sleep windows, growth percentiles, weekly notes and milestones describe what's typical. Every baby develops at their own pace.
+- Sleep windows, the Oracle's estimates, growth percentiles, weekly notes and milestones describe what's typical. Every baby develops at their own pace.
 - Talk to your pediatrician about any concern, and don't wait if your baby seems unwell or has lost skills they once had.
 - In an emergency, call your local emergency number.
 
@@ -86,7 +87,7 @@ LibreBaby is a logging tool, not a medical device:
 - **Developmental milestones:** U.S. Centers for Disease Control and Prevention, ["Learn the Signs. Act Early."](https://www.cdc.gov/act-early/milestones/index.html) milestone checklists, developed with the American Academy of Pediatrics. U.S. government work, public domain. The wording is kept, with gendered pronouns made neutral.
 - **Growth standards:** [WHO Child Growth Standards](https://www.who.int/tools/child-growth-standards), from the LMS data files [published by the CDC](https://www.cdc.gov/growthcharts/who-data-files.htm).
 - **Weekly notes:** original text written for LibreBaby from widely published guidance (AAP, CDC, WHO).
-- **Icons:** [Phosphor Icons](https://phosphoricons.com) (MIT), plus a few drawn for LibreBaby in the same style (bottle, diaper, pump, breast).
+- **Icons:** [Phosphor Icons](https://phosphoricons.com) (MIT), plus a few drawn for LibreBaby in the same style (bottle, diaper, pump, breast, crystal ball).
 - **Sunrise and sunset:** the "Almanac for Computers" sunrise equation (U.S. Naval Observatory), computed on the phone.
 - Built with [Expo](https://expo.dev) and React Native.
 

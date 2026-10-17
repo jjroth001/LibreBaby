@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { getChild } from '@/db/children';
-import { getLatestEvent } from '@/db/events';
+import { getLatestEvent, listRunningTimers } from '@/db/events';
 import { getSettings } from '@/db/settings';
 import { loadRecentSleeps, sleepStateFrom } from '@/db/sleep-state';
 import { sceneFor } from '@/lib/sky';
@@ -16,10 +16,11 @@ export async function loadWidgetModel(db: SQLiteDatabase, now: number): Promise<
   const scene = sceneFor(now, settings.appearance, settings.skyLocation);
   if (!child) return { kind: 'empty', scene };
 
-  const [lastFeed, lastDiaper, sleeps] = await Promise.all([
+  const [lastFeed, lastDiaper, sleeps, timers] = await Promise.all([
     getLatestEvent(db, child.id, FEED_TYPES),
     getLatestEvent(db, child.id, ['diaper']),
     loadRecentSleeps(db, child.id, now),
+    listRunningTimers(db, child.id),
   ]);
 
   return buildWidgetModel({
@@ -27,6 +28,7 @@ export async function loadWidgetModel(db: SQLiteDatabase, now: number): Promise<
     lastFeed,
     lastDiaper,
     sleep: sleepStateFrom(child, sleeps),
+    timers,
     unit: settings.volumeUnit,
     growthUnits: settings.growthUnits,
     now,

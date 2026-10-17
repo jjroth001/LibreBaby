@@ -74,7 +74,7 @@
             {
               "name": "LibreBaby",
               "label": "LibreBaby",
-              "description": "Last feed, next sleep window and last diaper",
+              "description": "Last feed, next sleep window and last diaper, or the running timer",
               "minWidth": "250dp",
               "minHeight": "110dp",
               "targetCellWidth": 4,

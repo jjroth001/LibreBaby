@@ -25,7 +25,7 @@
 - **Development:** a short note for every week of the first year and every month to age three, plus the CDC's developmental milestone checklists (2 months to 3 years). Tick milestones off as they happen.
 
 **Everyday**
-- **Home-screen widget:** time since the last feed and diaper, and the next sleep window.
+- **Home-screen widget:** time since the last feed and diaper, and the next sleep window. While a sleep or breastfeeding timer runs, the widget shows it, with buttons to stop it or switch sides without opening the app.
 
 <p align="center">
   <img src="assets/images/widget-preview.png" alt="The LibreBaby home-screen widget over a night sky, showing the last feed, the next sleep window and the last diaper" width="420">

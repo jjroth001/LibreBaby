@@ -5,7 +5,7 @@ import { useDbQuery } from '@/db/use-db-query';
 import { widgetsSupported } from '@/lib/platform';
 
 import { loadWidgetModel } from './load-widget-model';
-import { WIDGET_NAME, type WidgetModel } from './widget-model';
+import { WIDGET_NAME, widgetRefreshMinutes, type WidgetModel } from './widget-model';
 
 async function redraw(model: WidgetModel) {
   // Loaded lazily: these modules touch native code that doesn't exist in Expo Go.
@@ -39,22 +39,20 @@ export function WidgetSync() {
 }
 
 function WidgetSyncInner() {
-  // Keeps the widget's "time since" fresh (also re-armed after the phone restarts, which
-  // clears alarms, the next time the app or widget runs).
-  useEffect(() => {
-    import('./task-handler')
-      .then(({ WIDGET_REFRESH_MINUTES }) =>
-        LiveTimer?.scheduleWidgetRefresh(WIDGET_REFRESH_MINUTES),
-      )
-      .catch(() => {});
-  }, []);
-
   const model = useDbQuery(['event', 'child', 'setting'], (db) => loadWidgetModel(db, Date.now()));
   const key = model.status === 'success' ? JSON.stringify(model.data) : null;
 
   useEffect(() => {
     if (key === null) return;
-    redraw(JSON.parse(key) as WidgetModel).catch(() => {
+    const next = JSON.parse(key) as WidgetModel;
+    // Keeps the widget's times fresh: every minute while a timer runs, else every 10
+    // (also re-armed after the phone restarts, which clears alarms).
+    try {
+      LiveTimer?.scheduleWidgetRefresh(widgetRefreshMinutes(next));
+    } catch {
+      // Best effort: Android's own 30-minute updates still apply.
+    }
+    redraw(next).catch(() => {
       // Best-effort: the widget will still refresh on its own schedule.
     });
   }, [key]);

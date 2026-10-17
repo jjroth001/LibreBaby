@@ -2,7 +2,7 @@ import type { BabyEvent, Child } from '@/db/types';
 
 import { SCENES } from '@/lib/sky';
 
-import { buildWidgetModel, widgetAgo, widgetTime } from './widget-model';
+import { buildWidgetModel, widgetAgo, widgetRefreshMinutes, widgetTime } from './widget-model';
 
 const child: Child = {
   id: 'c',
@@ -33,6 +33,7 @@ const base = {
   lastFeed: null,
   lastDiaper: null,
   sleep: { status: 'no-data' } as const,
+  timers: [],
   unit: 'oz' as const,
   growthUnits: 'imperial' as const,
   now,
@@ -81,6 +82,56 @@ describe('widget model', () => {
     if (model.kind !== 'ready') throw new Error('expected ready');
     expect(model.rows[1].label).toBe('Asleep since');
     expect(model.rows[1].value).toMatch(/1:05/);
+  });
+
+  it('shows a running sleep as a timer, and redraws every minute while it runs', () => {
+    const sleep = {
+      ...bottle,
+      id: 's',
+      type: 'sleep',
+      startAt: at(12, 13, 48),
+      data: {},
+    } as BabyEvent<'sleep'>;
+    const model = buildWidgetModel({ ...base, timers: [sleep] });
+    if (model.kind !== 'ready') throw new Error('expected ready');
+    expect(model.timer).toMatchObject({ kind: 'sleep', eventId: 's', elapsed: '1h 12m' });
+    expect(model.timer?.kind === 'sleep' && model.timer.since).toMatch(/1:48/);
+    expect(widgetRefreshMinutes(model)).toBe(1);
+    expect(widgetRefreshMinutes(buildWidgetModel(base))).toBe(10);
+  });
+
+  it('shows a breastfeed per side, preferring the most recently started timer', () => {
+    const sleep = {
+      ...bottle,
+      id: 's',
+      type: 'sleep',
+      startAt: at(12, 13),
+      data: {},
+    } as BabyEvent<'sleep'>;
+    const feed = {
+      ...bottle,
+      id: 'b',
+      type: 'feed_breast',
+      startAt: at(12, 14, 48),
+      data: {
+        side: 'L',
+        lastSide: 'L',
+        leftMs: 0,
+        rightMs: 4 * 60_000,
+        activeSide: 'L',
+        activeSince: at(12, 14, 52),
+      },
+    } as BabyEvent<'feed_breast'>;
+    const model = buildWidgetModel({ ...base, timers: [sleep, feed] });
+    if (model.kind !== 'ready') throw new Error('expected ready');
+    expect(model.timer).toEqual({
+      kind: 'breast',
+      eventId: 'b',
+      left: '8m',
+      right: '4m',
+      activeSide: 'L',
+      lastSide: 'L',
+    });
   });
 
   it('says "Just now" for the first minute', () => {

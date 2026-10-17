@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 const TABS: { name: string; title: string; icon: IconName }[] = [
   { name: 'index', title: 'Home', icon: 'house' },
   { name: 'timeline', title: 'Timeline', icon: 'clock' },
+  { name: 'oracle', title: 'Oracle', icon: 'crystal-ball' },
   { name: 'insights', title: 'Insights', icon: 'chart-bar' },
   { name: 'settings', title: 'Settings', icon: 'gear' },
 ];
@@ -105,7 +106,7 @@ function GlassTabBar({ state, navigation, position }: TabBarProps) {
 }
 
 /**
- * Tabs built on a pager, so Home / Timeline / Insights / Settings slide left and right when
+ * Tabs built on a pager, so Home / Timeline / Oracle / Insights / Settings slide left and right when
  * tapped and can be swiped between. (Android's native tab bar can't swipe.)
  */
 export default function AppTabs() {

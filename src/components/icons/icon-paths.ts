@@ -46,6 +46,15 @@ export const CUSTOM = {
       'M88,145H168',
     ],
   },
+  /** The Oracle. */
+  'crystal-ball': {
+    duo: ['M52,108a76,76,0,1,0,152,0a76,76,0,1,0-152,0Z'],
+    stroke: [
+      'M52,108a76,76,0,1,0,152,0a76,76,0,1,0-152,0Z',
+      'M80,224H176l-14-34H94Z',
+      'M104,68a44,44,0,0,0-26,36',
+    ],
+  },
 } as const;
 
 type CustomName = keyof typeof CUSTOM;

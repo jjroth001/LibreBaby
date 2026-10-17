@@ -10,14 +10,12 @@ import { useChild } from '@/db/use-child';
 import { useSettings } from '@/db/use-settings';
 import { successFeedback } from '@/lib/haptics';
 
-const MINUTE = 60_000;
-
 export default function LogPumpScreen() {
   const db = useSQLiteContext();
   const { data: child } = useChild();
   const { data: settings } = useSettings();
   const [initial] = useState(() => ({
-    startAt: Date.now() - 15 * MINUTE,
+    startAt: Date.now(),
     minutes: 15,
     leftAmount: 0,
     rightAmount: 0,

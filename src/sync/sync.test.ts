@@ -6,6 +6,7 @@ import { randomUUID as mockRandomUUID } from 'crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { createChild } from '@/db/children';
+import { onDbChanged } from '@/db/db-changes';
 import { deleteEvent, insertEvent, listEvents, startTimer, updateEvent } from '@/db/events';
 import type { Child } from '@/db/types';
 import { openTestDatabase, runMigrations } from '@/test-utils/node-sqlite';
@@ -123,6 +124,33 @@ describe('family sync', () => {
     await sync(a, b);
     const [quiet, quietB] = await sync(a, b);
     expect(quiet.received + quietB.received).toBe(0);
+  });
+
+  it('has open screens re-read once a sync saved something, and only then', async () => {
+    const { a, b, child } = await family();
+    const nudges = jest.fn();
+    const subscription = onDbChanged(nudges);
+    try {
+      const sleep = await startTimer(a.db, {
+        childId: child.id,
+        type: 'sleep',
+        startAt: clock - 60 * MIN,
+        data: {},
+      });
+      await sync(a, b);
+      // Ended on one phone (as from the widget); the other learns of it on the next sync.
+      await updateEvent(a.db, sleep.id, { endAt: clock });
+      nudges.mockClear();
+      await sync(a, b);
+      expect(nudges).toHaveBeenCalledWith(['event', 'child']);
+
+      await sync(a, b); // B re-offers what it merged; settles after this
+      nudges.mockClear();
+      await sync(a, b);
+      expect(nudges).not.toHaveBeenCalled();
+    } finally {
+      subscription.remove();
+    }
   });
 
   it('relays changes through a phone to a third one', async () => {

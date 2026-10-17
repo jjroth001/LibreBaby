@@ -3,6 +3,7 @@ import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import type { WidgetTaskHandler } from 'react-native-android-widget';
 
 import { getChild } from '@/db/children';
+import { notifyDbChanged } from '@/db/db-changes';
 import { listRunningTimers, TIMER_TYPES } from '@/db/events';
 import { getSettings } from '@/db/settings';
 import { SCENES } from '@/lib/sky';
@@ -93,7 +94,7 @@ export const widgetTaskHandler: WidgetTaskHandler = async ({
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
       try {
-        const { loaded, minutes, others } = await withDb(async (db) => {
+        const { loaded, minutes, others, changed } = await withDb(async (db) => {
           // Taps on the timer's buttons; the rest of each widget opens the app or the
           // Oracle, which Android handles without us.
           let changed = false;
@@ -118,8 +119,12 @@ export const widgetTaskHandler: WidgetTaskHandler = async ({
             minutes: await loadRefreshMinutes(db).catch(() => 10),
             // A tap changes what the other widgets show too (e.g. the sleep tile).
             others: changed ? await loadAllModels(db).catch(() => null) : null,
+            changed,
           };
         });
+        // If the app is open, its screens heard about the tap before it was committed and
+        // may have re-read the old data; now that it's saved, have them read again.
+        if (changed) notifyDbChanged(['event']);
         keepRefreshing(minutes);
         renderWidget(draw(loaded, widgetInfo.width, widgetInfo.height));
         if (others) await redrawAllWidgets(others).catch(() => {});

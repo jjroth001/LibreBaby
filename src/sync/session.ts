@@ -1,5 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { notifyDbChanged } from '@/db/db-changes';
+
 import { applyChanges, collectChanges, currentChangeSeq, reconcileRunningTimers } from './changes';
 import type { Message } from './frames';
 
@@ -103,7 +105,7 @@ export async function runSyncSession(options: {
   // Everything from the other phone is saved: say so, and wait to hear the same back.
   await channel.send({ t: 'ack' });
   await expect(channel, 'ack');
-  await reconcileRunningTimers(db, now());
+  const reconciled = await reconcileRunningTimers(db, now());
 
   await db.runAsync(
     `INSERT INTO sync_peer (device_id, name, last_sent_seq, last_synced_at) VALUES (?, ?, ?, ?)
@@ -114,6 +116,9 @@ export async function runSyncSession(options: {
     sentUpTo,
     now(),
   );
+  // Screens heard about these writes before they were committed (this is its own
+  // connection); now that they're saved, have them read again.
+  if (received + reconciled > 0) notifyDbChanged(['event', 'child']);
 
   return {
     peer: { deviceId: hello.deviceId, name: hello.name, port: hello.port },

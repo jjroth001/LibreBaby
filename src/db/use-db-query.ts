@@ -1,6 +1,8 @@
 import { addDatabaseChangeListener, useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 import { useEffect, useState, type DependencyList } from 'react';
 
+import { onDbChanged } from './db-changes';
+
 type Table = 'child' | 'event' | 'setting' | 'sync_peer';
 
 const RERUN_DELAY_MS = 30;
@@ -49,15 +51,19 @@ export function useDbQuery<T>(
     // The listener fires once per changed row; a restore can write thousands. Coalesce a
     // burst into a single re-query shortly after it ends.
     let pending: ReturnType<typeof setTimeout> | undefined;
-    const subscription = addDatabaseChangeListener(({ tableName }) => {
+    const rerunFor = (tableName: string) => {
       if (!(tables as readonly string[]).includes(tableName)) return;
       clearTimeout(pending);
       pending = setTimeout(run, RERUN_DELAY_MS);
-    });
+    };
+    const subscription = addDatabaseChangeListener(({ tableName }) => rerunFor(tableName));
+    // Writes from another connection (the widget) say so once they've committed.
+    const nudges = onDbChanged((changed) => changed.forEach(rerunFor));
     return () => {
       disposed = true;
       clearTimeout(pending);
       subscription.remove();
+      nudges.remove();
     };
     // `query` and `tables` are expected to be inline; callers list real inputs in `deps`.
     // eslint-disable-next-line react-hooks/exhaustive-deps

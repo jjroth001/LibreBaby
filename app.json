@@ -125,6 +125,7 @@
         }
       ],
       "expo-secure-store",
+      "./plugins/with-no-cloud-backup",
       [
         "expo-camera",
         {

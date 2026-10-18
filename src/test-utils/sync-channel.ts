@@ -5,51 +5,58 @@
  */
 import { randomBytes } from 'crypto';
 
-import { encodeFrame, FrameReader, type Message } from '@/sync/frames';
+import { FrameCodec, type Message } from '@/sync/frames';
 import type { Channel } from '@/sync/session';
 
 const random = (n: number) => new Uint8Array(randomBytes(n));
 
 function endpoint(key: Uint8Array, familyId: string) {
-  const reader = new FrameReader(key, familyId);
-  const inbox: Message[] = [];
+  const codec = new FrameCodec(key, familyId, random);
   const waiting: { resolve: (m: Message) => void; reject: (e: Error) => void }[] = [];
   let failure: Error | null = null;
 
+  const fail = (error: Error) => {
+    if (failure) return;
+    failure = error;
+    waiting.splice(0).forEach((w) => w.reject(error));
+  };
+  /** Hands waiting readers whatever has arrived (opened now, as the socket channel does). */
+  const flush = () => {
+    try {
+      while (waiting.length > 0) {
+        const m = codec.take();
+        if (!m) return;
+        waiting.shift()!.resolve(m);
+      }
+    } catch (error) {
+      fail(error as Error);
+    }
+  };
+
   return {
+    codec,
     deliver(bytes: Uint8Array) {
       // Split into random chunks to exercise frame reassembly.
       let offset = 0;
       while (offset < bytes.length) {
         const size = 1 + Math.floor(Math.random() * 97);
-        let messages: Message[];
         try {
-          messages = reader.push(bytes.subarray(offset, offset + size));
+          codec.push(bytes.subarray(offset, offset + size));
         } catch (error) {
-          failure = error as Error;
-          waiting.splice(0).forEach((w) => w.reject(failure!));
-          return;
+          return fail(error as Error);
         }
         offset += size;
-        for (const m of messages) {
-          const w = waiting.shift();
-          if (w) w.resolve(m);
-          else inbox.push(m);
-        }
       }
+      flush();
     },
     next(): Promise<Message> {
       if (failure) return Promise.reject(failure);
-      const m = inbox.shift();
-      if (m) return Promise.resolve(m);
-      return new Promise((resolve, reject) => waiting.push({ resolve, reject }));
+      return new Promise((resolve, reject) => {
+        waiting.push({ resolve, reject });
+        flush();
+      });
     },
-    encode: (message: Message) => encodeFrame(key, familyId, message, random),
-    fail(error: Error) {
-      if (failure) return;
-      failure = error;
-      waiting.splice(0).forEach((w) => w.reject(error));
-    },
+    fail,
   };
 }
 
@@ -67,14 +74,19 @@ export function channelPair(
   familyIdA = 'family',
   familyIdB = familyIdA,
   dropAfter?: number,
+  /** Sees every message's bytes as sent (to record a sync for replaying). */
+  sent?: (byA: boolean, bytes: Uint8Array) => void,
 ): [Channel, Channel] {
   const a = endpoint(keyA, familyIdA);
   const b = endpoint(keyB, familyIdB);
   let sentByA = 0;
   let stall: ReturnType<typeof setTimeout> | undefined;
   const make = (self: typeof a, other: typeof b, isA: boolean): Channel => ({
+    nonce: self.codec.nonce,
+    secure: (peerNonce) => self.codec.secure(peerNonce),
     async send(message) {
-      const bytes = self.encode(message);
+      const bytes = self.codec.encode(message);
+      sent?.(isA, bytes);
       // Deliver asynchronously, like a network.
       await Promise.resolve();
       if (isA && dropAfter !== undefined && ++sentByA > dropAfter) {
@@ -98,3 +110,28 @@ export function channelPair(
 }
 
 export const newKey = () => random(32);
+
+/**
+ * A channel that plays back bytes recorded from an earlier sync, as someone on the network
+ * could, and ignores what it's sent.
+ */
+export function replayChannel(
+  key: Uint8Array,
+  recorded: Uint8Array[],
+  familyId = 'family',
+): Channel {
+  const self = endpoint(key, familyId);
+  let played = false;
+  return {
+    nonce: self.codec.nonce,
+    secure: (peerNonce) => self.codec.secure(peerNonce),
+    async send() {
+      await Promise.resolve();
+      if (played) return;
+      played = true;
+      for (const bytes of recorded) self.deliver(bytes);
+    },
+    next: () => self.next(),
+    close: () => self.fail(new Error('Connection closed.')),
+  };
+}

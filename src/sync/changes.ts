@@ -1,6 +1,14 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { planEventMerge, type ChildRow, type EventRow } from '@/db/backup';
+import {
+  clampChildTimes,
+  clampEventTimes,
+  isChildRow,
+  isEventRow,
+  planEventMerge,
+  type ChildRow,
+  type EventRow,
+} from '@/db/backup';
 import { TIMER_TYPES } from '@/db/events';
 
 /** What one phone sends another: rows changed (on the sender) since a point in time. */
@@ -34,12 +42,18 @@ export async function collectChanges(db: SQLiteDatabase, since: number): Promise
 /**
  * Merges another phone's rows: each is written if it's new here or its `updated_at` is
  * newer (so the latest edit wins, and soft deletes travel as ordinary rows). Returns how
- * many rows changed here.
+ * many rows changed here. Malformed rows are dropped, and no edit counts as newer than now.
  */
-export async function applyChanges(db: SQLiteDatabase, changes: Changeset): Promise<number> {
+export async function applyChanges(
+  db: SQLiteDatabase,
+  changes: Changeset,
+  now = Date.now(),
+): Promise<number> {
+  const children = changes.children.filter(isChildRow).map((c) => clampChildTimes(c, now));
+  const events = changes.events.filter(isEventRow).map((e) => clampEventTimes(e, now));
   let written = 0;
   await db.withTransactionAsync(async () => {
-    for (const c of changes.children) {
+    for (const c of children) {
       const r = await db.runAsync(
         `INSERT INTO child (${CHILD_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET name = excluded.name, birth_date = excluded.birth_date,
@@ -55,12 +69,12 @@ export async function applyChanges(db: SQLiteDatabase, changes: Changeset): Prom
       written += r.changes;
     }
 
-    if (changes.events.length === 0) return;
+    if (events.length === 0) return;
     // Only events for a profile we have (avoids a foreign-key failure aborting the merge).
     const childIds = new Set(
       (await db.getAllAsync<{ id: string }>('SELECT id FROM child')).map((c) => c.id),
     );
-    const incoming = changes.events.filter((e) => childIds.has(e.child_id));
+    const incoming = events.filter((e) => childIds.has(e.child_id));
     const existing = await db.getAllAsync<{ id: string; updated_at: number }>(
       `SELECT id, updated_at FROM event WHERE id IN (${incoming.map(() => '?').join(', ')})`,
       ...incoming.map((e) => e.id),

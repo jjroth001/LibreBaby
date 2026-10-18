@@ -1,6 +1,9 @@
 import { csvField, toCsv } from '@/lib/csv';
 
-import { parseBackup, planEventMerge, type EventRow } from './backup';
+import { openTestDatabase } from '@/test-utils/node-sqlite';
+
+import { importBackup, parseBackup, planEventMerge, type EventRow } from './backup';
+import { getSettings } from './settings';
 
 function row(id: string, updatedAt: number): EventRow {
   return {
@@ -36,6 +39,18 @@ describe('parseBackup', () => {
     [JSON.stringify({ hello: 'world' }), /isn’t a LibreBaby backup/],
     [JSON.stringify({ ...validBackup, format: 99 }), /newer version/],
     [JSON.stringify({ ...validBackup, events: [{ id: 'e1' }] }), /damaged/],
+    [JSON.stringify({ ...validBackup, events: [{ ...row('e1', 5), data: 'oops' }] }), /damaged/],
+    [
+      JSON.stringify({ ...validBackup, events: [{ ...row('e1', 5), type: 'teleport' }] }),
+      /damaged/,
+    ],
+    [
+      JSON.stringify({
+        ...validBackup,
+        children: [{ ...validBackup.children[0], birth_date: 'soon' }],
+      }),
+      /damaged/,
+    ],
   ])('rejects %s', (text, message) => {
     expect(() => parseBackup(text)).toThrow(message);
   });
@@ -80,5 +95,39 @@ describe('csv', () => {
         ['b', null],
       ]),
     ).toBe(`${String.fromCharCode(0xfeff)}a,1\r\nb,\r\n`);
+  });
+});
+
+describe('importBackup', () => {
+  it('dates nothing after now, and imports only settings it knows and can read', async () => {
+    const db = openTestDatabase();
+    const now = Date.UTC(2026, 9, 1);
+    const future = Date.UTC(2100, 0, 1);
+    await importBackup(
+      db,
+      {
+        ...(validBackup as any),
+        children: [{ ...validBackup.children[0], updated_at: future }],
+        events: [row('e1', future)],
+        settings: [
+          { key: 'volumeUnit', value: '"oz"' },
+          { key: 'haptics', value: 'not json' },
+          { key: 'madeUp', value: '1' },
+        ],
+      },
+      undefined,
+      now,
+    );
+    expect(await db.getFirstAsync('SELECT updated_at FROM child')).toEqual({ updated_at: now });
+    expect(await db.getFirstAsync('SELECT updated_at FROM event')).toEqual({ updated_at: now });
+    expect(await db.getAllAsync('SELECT key FROM setting ORDER BY key')).toEqual([
+      { key: 'volumeUnit' },
+    ]);
+  });
+
+  it('falls back to the default for a stored setting it can’t read', async () => {
+    const db = openTestDatabase();
+    await db.runAsync("INSERT INTO setting (key, value) VALUES ('haptics', 'not json')");
+    expect((await getSettings(db)).haptics).toBe(true);
   });
 });

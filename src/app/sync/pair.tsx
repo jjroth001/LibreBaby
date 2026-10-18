@@ -1,3 +1,4 @@
+import { usePreventScreenCapture } from 'expo-screen-capture';
 import { StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -11,6 +12,8 @@ import { useSync } from '@/sync/sync-provider';
 
 /** Shows the family code (QR) for another phone to scan. */
 export default function PairScreen() {
+  // The code is the family's key: keep it out of screenshots and the recent-apps preview.
+  usePreventScreenCapture('family-code');
   const { data: child } = useChild();
   const { family, lastEvent } = useSync();
   if (!child || !family) return null;
@@ -35,7 +38,8 @@ export default function PairScreen() {
 
       <ThemedText type="small" themeColor="textSecondary">
         Both phones need to be on the same Wi-Fi with LibreBaby open. Anyone who scans this code can
-        see and change {child.name}&apos;s log, so only show it to family.
+        see and change {child.name}&apos;s log, so only show it to family. If someone should no
+        longer have it, use Reset family code in Settings.
       </ThemedText>
 
       {lastEvent?.type === 'synced' && (

@@ -66,8 +66,19 @@ export async function getSettings(db: SQLiteDatabase): Promise<Settings> {
   const rows = await db.getAllAsync<{ key: string; value: string }>(
     'SELECT key, value FROM setting',
   );
-  const stored = Object.fromEntries(rows.map((row) => [row.key, JSON.parse(row.value)]));
+  const stored: Partial<Settings> = {};
+  for (const row of rows) {
+    // A value that can't be read falls back to the default instead of breaking every screen.
+    try {
+      (stored as Record<string, unknown>)[row.key] = JSON.parse(row.value);
+    } catch {}
+  }
   return { ...defaultSettings(), ...stored };
+}
+
+/** Whether `key` is a setting this version of the app has. */
+export function isKnownSetting(key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(defaultSettings(), key);
 }
 
 export async function setSetting<K extends keyof Settings>(

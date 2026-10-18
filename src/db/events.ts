@@ -31,6 +31,19 @@ function fromRow(row: EventRow): BabyEvent {
   } as BabyEvent;
 }
 
+/** A row whose details can't be read is left out, rather than failing the whole screen. */
+function tryFromRow(row: EventRow): BabyEvent | null {
+  try {
+    return fromRow(row);
+  } catch {
+    return null;
+  }
+}
+
+function fromRows(rows: EventRow[]): BabyEvent[] {
+  return rows.map(tryFromRow).filter((event) => event !== null);
+}
+
 export async function insertEvent<T extends EventType>(
   db: SQLiteDatabase,
   input: NewEvent<T>,
@@ -141,7 +154,7 @@ export async function listRunningTimers(
      ORDER BY start_at`,
     childId,
   );
-  return rows.map(fromRow) as BabyEvent<TimerType>[];
+  return fromRows(rows) as BabyEvent<TimerType>[];
 }
 
 /**
@@ -178,7 +191,7 @@ export async function getLatestEvent<T extends EventType>(
     childId,
     ...types,
   );
-  return row ? (fromRow(row) as BabyEvent<T>) : null;
+  return row ? (tryFromRow(row) as BabyEvent<T> | null) : null;
 }
 
 /** Every (non-deleted) event of one type, oldest first. */
@@ -192,7 +205,7 @@ export async function listEventsOfType<T extends EventType>(
     childId,
     type,
   );
-  return rows.map(fromRow) as BabyEvent<T>[];
+  return fromRows(rows) as BabyEvent<T>[];
 }
 
 export type RecentMedication = { name: string; dose: string; lastGivenAt: number };
@@ -244,7 +257,7 @@ export async function getEvent(db: SQLiteDatabase, id: string): Promise<BabyEven
     'SELECT * FROM event WHERE id = ? AND deleted_at IS NULL',
     id,
   );
-  return row ? fromRow(row) : null;
+  return row ? tryFromRow(row) : null;
 }
 
 /**
@@ -267,5 +280,5 @@ export async function listEvents(
     toMs,
     fromMs,
   );
-  return rows.map(fromRow);
+  return fromRows(rows);
 }

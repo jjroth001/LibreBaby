@@ -1,5 +1,8 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { isKnownSetting } from './settings';
+import type { EventType } from './types';
+
 /**
  * Backups are the raw database rows as JSON. Soft-deleted events are included so a
  * deletion on one phone carries over when the backup is restored on another.
@@ -61,38 +64,102 @@ export async function createBackup(db: SQLiteDatabase): Promise<Backup> {
 }
 
 // --- Validation -------------------------------------------------------------
+// Rows from a file or another phone are checked before they're saved: one malformed row
+// would otherwise stop lists loading (and sync would pass it on to every phone).
+
+const KNOWN_TYPES: Record<EventType, true> = {
+  sleep: true,
+  feed_breast: true,
+  feed_bottle: true,
+  feed_solids: true,
+  diaper: true,
+  medication: true,
+  pump: true,
+  growth: true,
+  milestone: true,
+};
+const MAX_ID = 200;
+const MAX_NAME = 200;
+const MAX_TEXT = 20_000;
 
 const isString = (v: unknown): v is string => typeof v === 'string';
 const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isNullableNumber = (v: unknown) => v === null || isNumber(v);
 const isNullableString = (v: unknown) => v === null || isString(v);
+const isId = (v: unknown) => isString(v) && v.length > 0 && v.length <= MAX_ID;
 
-function isChildRow(v: any): v is ChildRow {
+/** An entry's details: a JSON object, as the app writes them. */
+function isEventData(v: unknown): boolean {
+  if (!isString(v) || v.length > MAX_TEXT) return false;
+  try {
+    const data = JSON.parse(v);
+    return typeof data === 'object' && data !== null && !Array.isArray(data);
+  } catch {
+    return false;
+  }
+}
+
+export function isChildRow(v: any): v is ChildRow {
   return (
     v &&
-    isString(v.id) &&
+    isId(v.id) &&
     isString(v.name) &&
+    v.name.length <= MAX_NAME &&
     isString(v.birth_date) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(v.birth_date) &&
     (v.sex === undefined || v.sex === null || v.sex === 'male' || v.sex === 'female') &&
     isNumber(v.created_at) &&
     isNumber(v.updated_at)
   );
 }
 
-function isEventRow(v: any): v is EventRow {
+export function isEventRow(v: any): v is EventRow {
   return (
     v &&
-    isString(v.id) &&
-    isString(v.child_id) &&
+    isId(v.id) &&
+    isId(v.child_id) &&
     isString(v.type) &&
+    Object.prototype.hasOwnProperty.call(KNOWN_TYPES, v.type) &&
     isNumber(v.start_at) &&
     isNullableNumber(v.end_at) &&
-    isString(v.data) &&
+    isEventData(v.data) &&
     isNullableString(v.notes) &&
+    (v.notes === null || v.notes.length <= MAX_TEXT) &&
     isNumber(v.created_at) &&
     isNumber(v.updated_at) &&
     isNullableNumber(v.deleted_at)
   );
+}
+
+/**
+ * No incoming edit can be dated after now. Merges keep the newest edit, so a phone with a
+ * wrong clock (or a crafted file) could otherwise pin a row so that no later edit or delete
+ * ever wins.
+ */
+export function clampChildTimes(row: ChildRow, now: number): ChildRow {
+  return {
+    ...row,
+    created_at: Math.min(row.created_at, now),
+    updated_at: Math.min(row.updated_at, now),
+  };
+}
+
+export function clampEventTimes(row: EventRow, now: number): EventRow {
+  return {
+    ...row,
+    created_at: Math.min(row.created_at, now),
+    updated_at: Math.min(row.updated_at, now),
+    deleted_at: row.deleted_at === null ? null : Math.min(row.deleted_at, now),
+  };
+}
+
+function isJson(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isSettingRow(v: any): v is SettingRow {
@@ -169,10 +236,11 @@ export async function importBackup(
   db: SQLiteDatabase,
   backup: Backup,
   intoChildId?: string,
+  now = Date.now(),
 ): Promise<ImportResult> {
-  const incoming = intoChildId
-    ? backup.events.map((event) => ({ ...event, child_id: intoChildId }))
-    : backup.events;
+  const incoming = backup.events.map((event) =>
+    clampEventTimes(intoChildId ? { ...event, child_id: intoChildId } : event, now),
+  );
 
   const existingRows = await db.getAllAsync<{ id: string; updated_at: number }>(
     'SELECT id, updated_at FROM event',
@@ -181,7 +249,7 @@ export async function importBackup(
 
   await db.withTransactionAsync(async () => {
     if (!intoChildId) {
-      for (const child of backup.children) {
+      for (const child of backup.children.map((c) => clampChildTimes(c, now))) {
         await db.runAsync(
           `INSERT INTO child (id, name, birth_date, sex, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT (id) DO UPDATE SET name = excluded.name, birth_date = excluded.birth_date,
@@ -214,7 +282,8 @@ export async function importBackup(
       );
     }
     for (const s of backup.settings) {
-      if (s.key === 'skyLocation') continue;
+      // Only settings this version knows, with values it can read; the location never.
+      if (s.key === 'skyLocation' || !isKnownSetting(s.key) || !isJson(s.value)) continue;
       await db.runAsync('INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', s.key, s.value);
     }
   });

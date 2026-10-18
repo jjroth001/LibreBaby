@@ -59,7 +59,15 @@ export async function shareSpreadsheet(
     'SELECT * FROM event WHERE deleted_at IS NULL ORDER BY start_at',
   );
   const header = ['Date', 'Start', 'End', 'Minutes', 'Type', 'Details', 'Notes'];
-  const lines = rows.map((row) => {
+  // An entry that can't be read is left out rather than failing the whole export.
+  const lines = rows.flatMap((row) => {
+    try {
+      return [toLine(row)];
+    } catch {
+      return [];
+    }
+  });
+  function toLine(row: EventRow) {
     const event = {
       id: row.id,
       childId: row.child_id,
@@ -80,7 +88,7 @@ export async function shareSpreadsheet(
       describeEvent(event, unit, growthUnits),
       event.notes,
     ];
-  });
+  }
   await shareFile(
     `librebaby-entries-${today()}.csv`,
     toCsv([header, ...lines]),

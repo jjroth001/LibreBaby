@@ -54,6 +54,23 @@ export function SyncSection({ child }: { child: Child }) {
       ],
     );
 
+  const resetCode = () =>
+    Alert.alert(
+      'Reset the family code?',
+      `Phones with the old code will stop syncing with this one. Do this if a phone was lost or sold, or someone shouldn't see ${child.name}'s log anymore. Then scan the new code on each phone you want to keep.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset code',
+          style: 'destructive',
+          onPress: async () => {
+            await sync.resetCode();
+            router.push('/sync/pair');
+          },
+        },
+      ],
+    );
+
   const status = sync.syncing
     ? 'Syncing…'
     : sync.lastEvent?.type === 'error'
@@ -147,6 +164,7 @@ export function SyncSection({ child }: { child: Child }) {
             variant="secondary"
             onPress={() => router.push('/sync/pair')}
           />
+          <Button title="Reset family code" variant="secondary" onPress={resetCode} />
           <Button title="Stop syncing on this phone" variant="secondary" onPress={leave} />
         </>
       )}

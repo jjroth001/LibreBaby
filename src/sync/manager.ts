@@ -31,6 +31,11 @@ const PERIODIC_SYNC_MS = 60_000;
 const BACKGROUND_EVERY_N_TICKS = 5;
 /** Upper bound on keeping the CPU awake for one sync; released as soon as it finishes. */
 const SYNC_AWAKE_MS = 45_000;
+/**
+ * Connections from other devices handled at once. A family has a few phones; anything on
+ * the Wi-Fi can connect, so cap it rather than let a stranger open hundreds.
+ */
+const MAX_INCOMING = 4;
 
 /** An IPv4 peer can show up as "::ffff:192.168.1.5" on a dual-stack socket. */
 const plainAddress = (address: string) => address.replace(/^::ffff:/, '');
@@ -57,6 +62,7 @@ export class SyncManager {
   private timer: ReturnType<typeof setInterval> | null = null;
   private ticks = 0;
   private activeRuns = 0;
+  private incoming = 0;
 
   constructor(
     private readonly db: SQLiteDatabase,
@@ -78,7 +84,12 @@ export class SyncManager {
     this.tcp = TcpSocket;
 
     const server = TcpSocket.createServer((socket) => {
-      void this.run(socket, null);
+      if (this.incoming >= MAX_INCOMING) {
+        socket.destroy();
+        return;
+      }
+      this.incoming += 1;
+      void this.run(socket, null).finally(() => (this.incoming -= 1));
     });
     this.server = server;
     await new Promise<void>((resolve, reject) => {
@@ -165,19 +176,22 @@ export class SyncManager {
   }
 
   private async run(socket: Socket, deviceId: string | null) {
-    // With the app closed the phone may be dozing; stay awake just long enough to finish.
-    this.activeRuns += 1;
-    BackgroundSync?.holdAwake(SYNC_AWAKE_MS);
     const channel = socketChannel(socket, this.key, this.family.familyId, getRandomBytes);
-    this.onEvent({
-      type: 'syncing',
-      peerName: deviceId ? (this.peers.get(deviceId)?.name ?? null) : null,
-    });
+    // Until the other side proves it's family, it gets no wake lock, no "Syncing…" and no
+    // error message: anything on the Wi-Fi can connect.
+    let isFamily = false;
     try {
       const result = await runSyncSession({
         db: this.db,
         channel,
         me: { ...this.me, port: this.port },
+        onPeer: (peer) => {
+          isFamily = true;
+          // With the app closed the phone may be dozing; stay awake just long enough to finish.
+          this.activeRuns += 1;
+          BackgroundSync?.holdAwake(SYNC_AWAKE_MS);
+          this.onEvent({ type: 'syncing', peerName: peer.name });
+        },
       });
       // A phone that called us may be one network discovery never showed us (it's often
       // one-sided on Android); remember how to reach it so we can sync back too.
@@ -196,12 +210,15 @@ export class SyncManager {
         sent: result.sent,
       });
     } catch (error) {
-      this.onEvent({ type: 'error', message: (error as Error).message });
+      // A phone we called is one we found as family, so its failures are worth showing.
+      if (isFamily || deviceId) this.onEvent({ type: 'error', message: (error as Error).message });
     } finally {
       channel.close();
       if (deviceId) this.busy.delete(deviceId);
-      this.activeRuns -= 1;
-      if (this.activeRuns === 0) BackgroundSync?.release();
+      if (isFamily) {
+        this.activeRuns -= 1;
+        if (this.activeRuns === 0) BackgroundSync?.release();
+      }
     }
   }
 }

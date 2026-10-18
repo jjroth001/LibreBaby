@@ -10,7 +10,9 @@ import { onDbChanged } from '@/db/db-changes';
 import { deleteEvent, insertEvent, listEvents, startTimer, updateEvent } from '@/db/events';
 import type { Child } from '@/db/types';
 import { openTestDatabase, runMigrations } from '@/test-utils/node-sqlite';
-import { channelPair, newKey } from '@/test-utils/sync-channel';
+import { channelPair, newKey, replayChannel } from '@/test-utils/sync-channel';
+
+import { applyChanges } from './changes';
 
 import { runSyncSession } from './session';
 
@@ -271,5 +273,99 @@ describe('family sync', () => {
     await sync(b, a);
     expect(await all(a, child.id)).toHaveLength(2);
     expect(await all(b, child.id)).toHaveLength(2);
+  });
+  it('refuses a replayed recording of another phone’s sync, and still resends later', async () => {
+    const { a, b, child } = await family();
+    // Someone on the Wi-Fi records everything B sends during a sync.
+    const recorded: Uint8Array[] = [];
+    const key = newKey();
+    const [ca, cb] = channelPair(key, key, 'family', 'family', undefined, (byA, bytes) => {
+      if (!byA) recorded.push(bytes);
+    });
+    await Promise.all([
+      runSyncSession({ db: a.db, channel: ca, me: a }),
+      runSyncSession({ db: b.db, channel: cb, me: b }),
+    ]);
+    await insertEvent(a.db, diaper(child.id, clock - 5 * MIN));
+    const before = await a.db.getFirstAsync('SELECT last_sent_seq FROM sync_peer');
+
+    // Played back to A later, it must not pass for B (nor mark A's new entry delivered).
+    await expect(
+      runSyncSession({ db: a.db, channel: replayChannel(key, recorded), me: a }),
+    ).rejects.toThrow(/different family/);
+    expect(await a.db.getFirstAsync('SELECT last_sent_seq FROM sync_peer')).toEqual(before);
+
+    await sync(a, b);
+    expect(await all(b, child.id)).toHaveLength(1);
+  });
+
+  it('drops malformed rows from another phone and keeps the rest', async () => {
+    const { a, child } = await family();
+    const good = {
+      id: 'good',
+      child_id: child.id,
+      type: 'diaper',
+      start_at: clock,
+      end_at: null,
+      data: '{"wet":true,"dirty":false}',
+      notes: null,
+      created_at: clock,
+      updated_at: clock,
+      deleted_at: null,
+    };
+    const written = await applyChanges(a.db, {
+      children: [{ id: 'x' } as any],
+      events: [
+        good,
+        { ...good, id: 'bad-json', data: 'oops' },
+        { ...good, id: 'bad-type', type: 'teleport' },
+        { ...good, id: 'bad-array', data: '[1]' },
+        { ...good, id: 'bad-time', start_at: 'noon' as any },
+      ],
+    });
+    expect(written).toBe(1);
+    expect((await all(a, child.id)).map((e) => e.id)).toEqual(['good']);
+  });
+
+  it('treats edits dated in the future as made now, so later edits still win', async () => {
+    const { a, b, child } = await family();
+    await sync(a, b);
+    const event = await insertEvent(a.db, diaper(child.id, clock - 30 * MIN));
+    // A's clock is years ahead when it edits the entry.
+    await a.db.runAsync(
+      "UPDATE event SET notes = 'from the future', updated_at = ? WHERE id = ?",
+      Date.UTC(2100, 0, 1),
+      event.id,
+    );
+    await sync(a, b);
+    const synced = await b.db.getFirstAsync<{ updated_at: number }>(
+      'SELECT updated_at FROM event WHERE id = ?',
+      event.id,
+    );
+    expect(synced!.updated_at).toBeLessThan(Date.UTC(2100, 0, 1));
+
+    // B's later edit isn't overwritten by A's future-dated one.
+    await updateEvent(b.db, event.id, { notes: 'fixed on B' });
+    await insertEvent(a.db, diaper(child.id, clock)); // something new to sync
+    await sync(a, b);
+    expect((await all(b, child.id)).find((e) => e.id === event.id)?.notes).toBe('fixed on B');
+  });
+  it('asks to update a family phone on an older version, and ignores strangers', async () => {
+    const { a } = await family();
+    const key = newKey();
+    const [ca, cOld] = channelPair(key, key);
+    await cOld.send({ t: 'hello', v: 3, deviceId: 'device-old', name: 'Old phone' });
+    const peers: string[] = [];
+    await expect(
+      runSyncSession({ db: a.db, channel: ca, me: a, onPeer: (p) => peers.push(p.name) }),
+    ).rejects.toThrow('Update LibreBaby on Old phone to sync with it.');
+    expect(peers).toEqual(['Old phone']);
+
+    const [cMine, cStranger] = channelPair(key, newKey());
+    await cStranger.send({ t: 'hello', v: 4, deviceId: 'x', name: 'X', nonce: cStranger.nonce });
+    await expect(
+      runSyncSession({ db: a.db, channel: cMine, me: a, onPeer: (p) => peers.push(p.name) }),
+    ).rejects.toThrow(/different family/);
+    expect(peers).toEqual(['Old phone']);
   });
 });

@@ -23,6 +23,8 @@ type SyncContextValue = {
   setUp(): Promise<void>;
   join(invite: Invite): Promise<void>;
   leave(): Promise<void>;
+  /** A new family code; phones with the old one can no longer sync with this one. */
+  resetCode(): Promise<void>;
 };
 
 const SyncContext = createContext<SyncContextValue | null>(null);
@@ -138,6 +140,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     setFamily(null);
   }, [db]);
 
+  const resetCode = useCallback(async () => {
+    const created = newFamily(getRandomBytes, randomUUID);
+    await saveFamily(created);
+    // The phones listed belonged to the old code; they reappear once they scan the new one.
+    await db.runAsync('DELETE FROM sync_peer');
+    setFamily(created);
+    // Already running for the old family: restart with the new key.
+    if (isInstalledBuild) await syncService.ensureRunning();
+  }, [db]);
+
   return (
     <SyncContext.Provider
       value={{
@@ -149,6 +161,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         setUp,
         join,
         leave,
+        resetCode,
       }}>
       {children}
     </SyncContext.Provider>

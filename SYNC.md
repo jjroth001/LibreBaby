@@ -25,17 +25,24 @@ per peer device, the counter value up to which we've sent it our changes
 
 ## Protocol
 
-Over one TCP connection, every frame is `u32 length + XChaCha20-Poly1305(family key)`
-with a random nonce and the family id as associated data. A frame that doesn't decrypt
-is a stranger: the connection is dropped.
+Over one TCP connection, every frame is `u32 length + random nonce + XChaCha20-Poly1305`
+ciphertext. A frame that doesn't decrypt is a stranger: the connection is dropped.
 
-1. `hello` — protocol version (3 since milestone entries; 2 added `ack`), device id, name, and the port this phone listens on.
-   (Successful decryption is the authentication.) A different version is refused with
-   a message asking to update.
+1. `hello` — protocol version (4 since per-connection keys; 3 added milestone entries; 2
+   added `ack`), device id, name, the port this phone listens on, and a fresh random
+   32-byte `nonce`. Hellos are sealed with the family key and the family id as associated
+   data. Successful decryption is the authentication, and an older phone can still read
+   ours and is asked to update. Until the other side's hello has opened, at most 16 KB is
+   accepted from it, and it gets no wake lock or status message; at most 4 incoming
+   connections are handled at once. After the hellos, each direction uses its own key,
+   `HKDF-SHA256(family key, salt = sender's nonce ‖ receiver's nonce)`, and each message's
+   associated data is the family id plus its 64-bit position. So messages recorded from an
+   earlier sync, or replayed, reordered or dropped on the way, don't open.
 2. `changes` — rows whose `change_seq` is above what this peer was last sent,
    in batches; then `done`.
 3. Each side merges: a row is written if it's new or its `updated_at` is newer than
-   ours (soft deletes are just rows with `deleted_at`).
+   ours (soft deletes are just rows with `deleted_at`). Malformed rows are dropped, and
+   timestamps later than this phone's clock count as now, so no row can be pinned.
 4. `ack` — each side sends it once everything it received is saved, and waits for the
    other's. Running timers are then reconciled: two running sleeps (or breastfeeds) →
    keep the earlier, delete the other.
@@ -51,6 +58,13 @@ When two phones first discover each other, the one with the smaller device id co
 After that either side may connect (after a local change, "Sync now", or every minute
 while the app is open). Discovery is often one-sided on Android, so a phone that is
 connected *to* remembers the caller's address and advertised port, and can call back.
+
+## Removing a phone
+
+Anyone who ever scanned the family code has the key. **Reset family code** (Settings →
+Family sync) makes a new family id and key on this phone; the phones to keep scan the new
+code, and phones with the old one can't sync with it anymore. The code's screen blocks
+screenshots.
 
 ## Discovery
 

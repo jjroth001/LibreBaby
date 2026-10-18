@@ -1,6 +1,6 @@
 import type TcpSocket from 'react-native-tcp-socket';
 
-import { encodeFrame, FrameReader, type Message, type RandomBytes } from './frames';
+import { FrameCodec, type Message, type RandomBytes } from './frames';
 import type { Channel } from './session';
 
 type Socket = InstanceType<typeof TcpSocket.Socket>;
@@ -16,8 +16,7 @@ export function socketChannel(
   familyId: string,
   random: RandomBytes,
 ): Channel {
-  const reader = new FrameReader(key, familyId);
-  const inbox: Message[] = [];
+  const codec = new FrameCodec(key, familyId, random);
   let waiter: { resolve: (m: Message) => void; reject: (e: Error) => void } | null = null;
   let failure: Error | null = null;
 
@@ -29,37 +28,44 @@ export function socketChannel(
     socket.destroy();
   };
 
-  socket.on('data', (data: string | Uint8Array) => {
-    if (typeof data === 'string') return fail(new Error('Unexpected text on the sync connection.'));
+  /** Hands the waiting reader the next message, if one has arrived. */
+  const deliver = () => {
+    if (!waiter) return;
     try {
-      for (const message of reader.push(new Uint8Array(data))) {
-        if (waiter) {
-          waiter.resolve(message);
-          waiter = null;
-        } else {
-          inbox.push(message);
-        }
-      }
+      const message = codec.take();
+      if (!message) return;
+      waiter.resolve(message);
+      waiter = null;
     } catch (error) {
       fail(error as Error);
     }
+  };
+
+  socket.on('data', (data: string | Uint8Array) => {
+    if (typeof data === 'string') return fail(new Error('Unexpected text on the sync connection.'));
+    try {
+      codec.push(new Uint8Array(data));
+    } catch (error) {
+      return fail(error as Error);
+    }
+    deliver();
   });
   socket.on('error', (error: Error) => fail(error));
   socket.on('close', () => fail(new Error('The other phone disconnected.')));
 
   return {
+    nonce: codec.nonce,
+    secure: (peerNonce) => codec.secure(peerNonce),
     async send(message) {
       if (failure) throw failure;
-      socket.write(encodeFrame(key, familyId, message, random));
+      socket.write(codec.encode(message));
     },
-    next() {
+    next(timeoutMs = IDLE_TIMEOUT_MS) {
       if (failure) return Promise.reject(failure);
-      const queued = inbox.shift();
-      if (queued) return Promise.resolve(queued);
       return new Promise<Message>((resolve, reject) => {
         const timer = setTimeout(
           () => fail(new Error('The other phone stopped responding.')),
-          IDLE_TIMEOUT_MS,
+          timeoutMs,
         );
         waiter = {
           resolve: (m) => {
@@ -71,6 +77,7 @@ export function socketChannel(
             reject(e);
           },
         };
+        deliver();
       });
     },
     close() {

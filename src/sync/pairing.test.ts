@@ -7,7 +7,17 @@ import { insertEvent, listEvents } from '@/db/events';
 import { openTestDatabase } from '@/test-utils/node-sqlite';
 import { channelPair } from '@/test-utils/sync-channel';
 
-import { adoptFamilyChild, familyTag, inviteText, newFamily, parseInvite } from './pairing';
+import {
+  acceptedTags,
+  adoptFamilyChild,
+  discoveredPeer,
+  discoveryTag,
+  familyTag,
+  inviteText,
+  newFamily,
+  parseInvite,
+  TAG_PERIOD_MS,
+} from './pairing';
 import { runSyncSession } from './session';
 
 jest.mock('expo-crypto', () => ({ randomUUID: () => mockRandomUUID() }));
@@ -40,6 +50,60 @@ describe('invites', () => {
     expect(familyTag('abc')).toBe(familyTag('abc'));
     expect(familyTag('abc')).toHaveLength(12);
     expect(familyTag('abc')).not.toBe(familyTag('abd'));
+  });
+});
+
+describe('discovery', () => {
+  const DAY = TAG_PERIOD_MS;
+  // A made-up moment in the middle of a tag period.
+  const NOW = 20_000 * DAY + DAY / 2;
+
+  it('announces a tag that changes daily and differs between families', () => {
+    expect(discoveryTag('abc', NOW)).toBe(discoveryTag('abc', NOW + DAY / 4));
+    expect(discoveryTag('abc', NOW)).not.toBe(discoveryTag('abc', NOW + DAY));
+    expect(discoveryTag('abc', NOW)).not.toBe(discoveryTag('abd', NOW));
+    expect(discoveryTag('abc', NOW)).not.toBe(familyTag('abc'));
+  });
+
+  it('accepts a family phone whose clock is up to a day off, or an older version', () => {
+    const tags = acceptedTags('abc', NOW);
+    expect(tags.has(discoveryTag('abc', NOW - DAY))).toBe(true);
+    expect(tags.has(discoveryTag('abc', NOW + DAY))).toBe(true);
+    expect(tags.has(familyTag('abc'))).toBe(true);
+    expect(tags.has(discoveryTag('abc', NOW + 2 * DAY))).toBe(false);
+    expect(tags.has(discoveryTag('abd', NOW))).toBe(false);
+  });
+
+  it('finds family phones without their device id, and exactly one side dials', () => {
+    const tags = acceptedTags('abc', NOW);
+    const f = discoveryTag('abc', NOW);
+    const a = { name: 'LibreBaby-aaaa', txt: { f, i: 'aaaa1111' } };
+    const b = { name: 'LibreBaby-bbbb', txt: { f, i: 'bbbb2222' } };
+    expect(discoveredPeer(b, tags, 'aaaa1111')).toEqual({
+      key: 'svc:LibreBaby-bbbb',
+      dialFirst: true,
+    });
+    expect(discoveredPeer(a, tags, 'bbbb2222')).toEqual({
+      key: 'svc:LibreBaby-aaaa',
+      dialFirst: false,
+    });
+  });
+
+  it('ignores itself and other families', () => {
+    const tags = acceptedTags('abc', NOW);
+    const f = discoveryTag('abc', NOW);
+    expect(discoveredPeer({ name: 'me', txt: { f, i: 'aaaa1111' } }, tags, 'aaaa1111')).toBeNull();
+    const other = { name: 'x', txt: { f: discoveryTag('abd', NOW), i: 'b' } };
+    expect(discoveredPeer(other, tags, 'aaaa1111')).toBeNull();
+    expect(discoveredPeer({ name: 'x' }, tags, 'aaaa1111')).toBeNull();
+  });
+
+  it('calls a phone on an older version so it is told to update', () => {
+    const old = { name: 'LibreBaby-0123abcd', txt: { f: familyTag('abc'), d: 'device-id' } };
+    expect(discoveredPeer(old, acceptedTags('abc', NOW), 'ffffffff')).toEqual({
+      key: 'svc:LibreBaby-0123abcd',
+      dialFirst: true,
+    });
   });
 });
 

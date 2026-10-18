@@ -49,9 +49,57 @@ export function parseInvite(text: string): Invite {
   return { familyId: f, keyHex: k, childId: c, childName: n };
 }
 
-/** Short public tag for discovery: phones can tell "same family" without revealing the id. */
+/**
+ * The fixed discovery tag announced by versions before 1.14. Still recognised, so a phone
+ * that hasn't been updated is found and told to update; never announced any more.
+ */
 export function familyTag(familyId: string): string {
   return bytesToHex(sha256(utf8ToBytes(familyId))).slice(0, 12);
+}
+
+/** How long one discovery tag lasts. */
+export const TAG_PERIOD_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Short public tag announced on the Wi-Fi, so family phones can find each other without
+ * revealing the family id. It changes every day, so it can't be used to recognise the
+ * same family on another network (a café, a hospital) later.
+ */
+export function discoveryTag(familyId: string, at: number): string {
+  const period = Math.floor(at / TAG_PERIOD_MS);
+  return bytesToHex(sha256(utf8ToBytes(`librebaby-discovery:${familyId}:${period}`))).slice(0, 16);
+}
+
+/**
+ * Tags a family phone may be announcing at `at`: today's, yesterday's and tomorrow's (in
+ * case its clock is a little off or it hasn't switched yet), and the old fixed one.
+ */
+export function acceptedTags(familyId: string, at: number): Set<string> {
+  return new Set([
+    discoveryTag(familyId, at - TAG_PERIOD_MS),
+    discoveryTag(familyId, at),
+    discoveryTag(familyId, at + TAG_PERIOD_MS),
+    familyTag(familyId),
+  ]);
+}
+
+/**
+ * Decides what to do with a phone found by network discovery: null to ignore it, else
+ * the key to list it under and whether we call it first. Phones announce only a family
+ * tag (`f`) and a random per-launch token (`i`), never their device id; comparing tokens
+ * lets each pair agree which side dials.
+ */
+export function discoveredPeer(
+  service: { name: string; txt?: Record<string, string> },
+  tags: Set<string>,
+  myInstance: string,
+): { key: string; dialFirst: boolean } | null {
+  const tag = service.txt?.f;
+  if (!tag || !tags.has(tag)) return null;
+  const instance = service.txt?.i;
+  if (instance === myInstance) return null;
+  // Phones from before 1.14 announce no token; call them, so they're told to update.
+  return { key: `svc:${service.name}`, dialFirst: !instance || myInstance < instance };
 }
 
 /**

@@ -1,4 +1,4 @@
-import { hexToBytes } from '@noble/ciphers/utils.js';
+import { bytesToHex, hexToBytes } from '@noble/ciphers/utils.js';
 import { getRandomBytes } from 'expo-crypto';
 import { BackgroundSync } from '@modules/background-sync/src';
 import type { SQLiteDatabase } from 'expo-sqlite';
@@ -8,7 +8,7 @@ import type ZeroconfClass from 'react-native-zeroconf';
 import type { Service } from 'react-native-zeroconf';
 
 import type { Family } from './identity';
-import { familyTag } from './pairing';
+import { acceptedTags, discoveredPeer, discoveryTag } from './pairing';
 import { runSyncSession } from './session';
 import { socketChannel } from './socket-channel';
 
@@ -40,6 +40,9 @@ const MAX_INCOMING = 4;
 /** An IPv4 peer can show up as "::ffff:192.168.1.5" on a dual-stack socket. */
 const plainAddress = (address: string) => address.replace(/^::ffff:/, '');
 
+/** A family phone we can reach. Its device id is known once a sync with it has started. */
+type Peer = { host: string; port: number; name: string; deviceId?: string };
+
 /**
  * Runs family sync on the local network while the app is open:
  * - listens for other family phones (TCP server on a random port),
@@ -52,11 +55,14 @@ export class SyncManager {
   private server: Server | null = null;
   private zeroconf: ZeroconfClass | null = null;
   private tcp: typeof TcpSocketModule | null = null;
-  private readonly peers = new Map<string, { host: string; port: number; name: string }>();
+  /** Keyed by "svc:<service name>" when found on the network, "dev:<id>" when it called us. */
+  private readonly peers = new Map<string, Peer>();
   private readonly busy = new Set<string>();
   private readonly key: Uint8Array;
-  private readonly tag: string;
-  private readonly serviceName: string;
+  /** Random for each start, so the announcement can't be tied to this phone over time. */
+  private readonly instance = bytesToHex(getRandomBytes(8));
+  private readonly serviceName = `LibreBaby-${this.instance.slice(0, 8)}`;
+  private publishedTag = '';
   private stopped = false;
   private port = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -71,8 +77,6 @@ export class SyncManager {
     private readonly onEvent: (event: SyncEvent) => void,
   ) {
     this.key = hexToBytes(family.keyHex);
-    this.tag = familyTag(family.familyId);
-    this.serviceName = `LibreBaby-${me.deviceId.slice(0, 8)}`;
   }
 
   async start(): Promise<void> {
@@ -109,18 +113,35 @@ export class SyncManager {
     zeroconf.on('error', (error) =>
       this.onEvent({ type: 'error', message: `Network discovery: ${error.message}` }),
     );
-    await zeroconf.publishService({
-      ...SERVICE,
-      name: this.serviceName,
-      port: address.port,
-      txt: { f: this.tag, d: this.me.deviceId },
-    });
+    await this.publish();
     zeroconf.scan(SERVICE);
     this.timer = setInterval(() => {
       this.ticks += 1;
+      // A new day's tag: announce it instead.
+      if (discoveryTag(this.family.familyId, Date.now()) !== this.publishedTag) {
+        zeroconf
+          .unpublishService(this.serviceName)
+          .catch(() => {})
+          .then(() => this.publish())
+          .catch(() => {});
+      }
       const open = AppState.currentState === 'active';
       if (open || this.ticks % BACKGROUND_EVERY_N_TICKS === 0) this.syncNow();
     }, PERIODIC_SYNC_MS);
+  }
+
+  /** Announces this phone: only today's family tag and a random token, never its id. */
+  private async publish(): Promise<void> {
+    const zeroconf = this.zeroconf;
+    if (!zeroconf || this.stopped) return;
+    const tag = discoveryTag(this.family.familyId, Date.now());
+    this.publishedTag = tag;
+    await zeroconf.publishService({
+      ...SERVICE,
+      name: this.serviceName,
+      port: this.port,
+      txt: { f: tag, i: this.instance },
+    });
   }
 
   stop(): void {
@@ -146,36 +167,58 @@ export class SyncManager {
 
   /** Sync with every family phone we can see. */
   syncNow(): void {
-    for (const deviceId of this.peers.keys()) this.connect(deviceId);
+    for (const key of this.peers.keys()) this.connect(key);
   }
 
   private found(service: Service) {
-    const deviceId = service.txt?.d;
-    if (service.txt?.f !== this.tag || !deviceId || deviceId === this.me.deviceId) return;
+    const found = discoveredPeer(
+      service,
+      acceptedTags(this.family.familyId, Date.now()),
+      this.instance,
+    );
+    if (!found) return;
     const host = service.ipv4?.[0] ?? service.addresses?.[0] ?? service.host;
     if (!host || !service.port) return;
-    const isNew = !this.peers.has(deviceId);
-    this.peers.set(deviceId, { host, port: service.port, name: service.name });
-    // When two phones find each other, only one (the smaller id) dials, so a newly found
-    // pair syncs once. Later explicit syncs may come from either side.
-    if (isNew && this.me.deviceId < deviceId) this.connect(deviceId);
+    // A phone that called us before we saw it is already listed under its device id.
+    for (const [key, peer] of this.peers) {
+      if (key.startsWith('dev:') && peer.host === host && peer.port === service.port) return;
+    }
+    const previous = this.peers.get(found.key);
+    this.peers.set(found.key, { ...previous, host, port: service.port, name: service.name });
+    // When two phones find each other, only one dials, so a newly found pair syncs once.
+    // Later explicit syncs may come from either side.
+    if (!previous && found.dialFirst) this.connect(found.key);
   }
 
-  private connect(deviceId: string) {
-    const peer = this.peers.get(deviceId);
+  private connect(key: string) {
+    const peer = this.peers.get(key);
     const tcp = this.tcp;
-    if (!peer || !tcp || this.busy.has(deviceId) || this.stopped) return;
-    this.busy.add(deviceId);
+    if (!peer || !tcp || this.busy.has(key) || this.stopped) return;
+    this.busy.add(key);
     const socket = tcp.createConnection({ host: peer.host, port: peer.port }, () => {
       socket.setTimeout(0);
-      void this.run(socket, deviceId);
+      void this.run(socket, key);
     });
     socket.setTimeout(CONNECT_TIMEOUT_MS, () => socket.destroy());
-    socket.once('error', () => this.busy.delete(deviceId));
-    socket.once('close', () => this.busy.delete(deviceId));
+    socket.once('error', () => this.busy.delete(key));
+    socket.once('close', () => this.busy.delete(key));
   }
 
-  private async run(socket: Socket, deviceId: string | null) {
+  /**
+   * The phone we called under `key` turned out (from its encrypted hello) to be `deviceId`.
+   * Note that, and drop any other entry for the same phone so it isn't synced twice.
+   */
+  private identified(key: string, deviceId: string) {
+    const peer = this.peers.get(key);
+    if (!peer) return;
+    peer.deviceId = deviceId;
+    for (const [other, entry] of this.peers) {
+      if (other !== key && entry.deviceId === deviceId) this.peers.delete(other);
+    }
+  }
+
+  /** `key` is the peers entry we called; null when the other phone called us. */
+  private async run(socket: Socket, key: string | null) {
     const channel = socketChannel(socket, this.key, this.family.familyId, getRandomBytes);
     // Until the other side proves it's family, it gets no wake lock, no "Syncing…" and no
     // error message: anything on the Wi-Fi can connect.
@@ -191,16 +234,20 @@ export class SyncManager {
           this.activeRuns += 1;
           BackgroundSync?.holdAwake(SYNC_AWAKE_MS);
           this.onEvent({ type: 'syncing', peerName: peer.name });
+          if (key) this.identified(key, peer.deviceId);
         },
       });
       // A phone that called us may be one network discovery never showed us (it's often
       // one-sided on Android); remember how to reach it so we can sync back too.
+      const { deviceId } = result.peer;
+      const known = [...this.peers.values()].some((peer) => peer.deviceId === deviceId);
       const host = socket.remoteAddress;
-      if (!this.peers.has(result.peer.deviceId) && host && result.peer.port) {
-        this.peers.set(result.peer.deviceId, {
+      if (!key && !known && host && result.peer.port) {
+        this.peers.set(`dev:${deviceId}`, {
           host: plainAddress(host),
           port: result.peer.port,
           name: result.peer.name,
+          deviceId,
         });
       }
       this.onEvent({
@@ -211,10 +258,10 @@ export class SyncManager {
       });
     } catch (error) {
       // A phone we called is one we found as family, so its failures are worth showing.
-      if (isFamily || deviceId) this.onEvent({ type: 'error', message: (error as Error).message });
+      if (isFamily || key) this.onEvent({ type: 'error', message: (error as Error).message });
     } finally {
       channel.close();
-      if (deviceId) this.busy.delete(deviceId);
+      if (key) this.busy.delete(key);
       if (isFamily) {
         this.activeRuns -= 1;
         if (this.activeRuns === 0) BackgroundSync?.release();

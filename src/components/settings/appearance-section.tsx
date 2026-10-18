@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Switch, View } from 'react-native';
 
 import { Card } from '@/components/card';
-import { CardTitle } from '@/components/card-title';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -69,7 +68,6 @@ export function AppearanceSection({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <CardTitle icon="sun-horizon">Appearance</CardTitle>
       <SegmentedControl
         options={APPEARANCE_OPTIONS}
         value={settings.appearance}

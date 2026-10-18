@@ -38,3 +38,14 @@ export function formatDayTime(ms: number, now: number = Date.now()): string {
   const date = new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   return `${date}, ${time}`;
 }
+
+/** How long ago, in words for a summary line: "just now", "5 min ago", "3 hr ago", "2 days ago". */
+export function formatAgo(ms: number, now: number = Date.now()): string {
+  const minutes = Math.floor(Math.max(0, now - ms) / MINUTE);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}

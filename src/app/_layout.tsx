@@ -108,6 +108,30 @@ function RootNavigator() {
               options={{ ...logSheet, title: 'Medicine reminder' }}
             />
             <Stack.Screen name="erase" options={{ ...logSheet, title: 'Erase all data' }} />
+            {/* Settings pages, opened from the Settings menu. */}
+            <Stack.Screen
+              name="settings/profile"
+              options={{ ...logSheet, title: 'Baby profile' }}
+            />
+            <Stack.Screen
+              name="settings/appearance"
+              options={{ ...logSheet, title: 'Appearance' }}
+            />
+            <Stack.Screen
+              name="settings/accessibility"
+              options={{ ...logSheet, title: 'Accessibility' }}
+            />
+            <Stack.Screen name="settings/units" options={{ ...logSheet, title: 'Units' }} />
+            <Stack.Screen
+              name="settings/notifications"
+              options={{ ...logSheet, title: 'Notifications' }}
+            />
+            <Stack.Screen
+              name="settings/medicine"
+              options={{ ...logSheet, title: 'Medicine reminders' }}
+            />
+            <Stack.Screen name="settings/sync" options={{ ...logSheet, title: 'Family sync' }} />
+            <Stack.Screen name="settings/data" options={{ ...logSheet, title: 'Your data' }} />
             <Stack.Screen name="sync/pair" options={{ ...logSheet, title: 'Family code' }} />
           </Stack.Protected>
           <Stack.Protected guard={!hasChild}>

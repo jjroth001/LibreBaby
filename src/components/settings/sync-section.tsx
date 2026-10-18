@@ -7,7 +7,6 @@ import { Alert, AppState, StyleSheet, Switch, View } from 'react-native';
 import { Button } from '@/components/button';
 import { SubmitButton } from '@/components/forms/submit-button';
 import { Card } from '@/components/card';
-import { CardTitle } from '@/components/card-title';
 import { Icon } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -65,8 +64,6 @@ export function SyncSection({ child }: { child: Child }) {
 
   return (
     <Card>
-      <CardTitle icon="users-three">Family sync</CardTitle>
-
       {!sync.supported ? (
         <ThemedText type="small" themeColor="textSecondary">
           Available in the installed app. Expo Go (the development preview) can&apos;t use the local

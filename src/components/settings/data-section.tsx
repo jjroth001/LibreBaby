@@ -6,7 +6,6 @@ import { Button } from '@/components/button';
 
 import { SubmitButton } from '@/components/forms/submit-button';
 import { Card } from '@/components/card';
-import { CardTitle } from '@/components/card-title';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { importBackup, type Backup } from '@/db/backup';
@@ -21,7 +20,7 @@ import {
   shareSpreadsheet,
 } from '@/lib/data-transfer';
 import type { HuckleberryParse } from '@/lib/huckleberry';
-import { formatDuration } from '@/lib/format';
+import { formatAgo } from '@/lib/format';
 import type { GrowthUnits } from '@/lib/growth-units';
 import type { VolumeUnit } from '@/lib/units';
 
@@ -159,11 +158,10 @@ export function DataSection({ child, unit, growthUnits, lastBackupAt }: DataSect
 
   return (
     <Card>
-      <CardTitle icon="download-simple">Your data</CardTitle>
       <ThemedText type="small" themeColor="textSecondary">
         Everything is stored only on this phone. Back up regularly and save the file somewhere safe,
         like Google Drive.{' '}
-        {lastBackupAt ? `Last backup ${formatDuration(now - lastBackupAt)} ago.` : 'No backup yet.'}
+        {lastBackupAt ? `Last backup ${formatAgo(lastBackupAt, now)}.` : 'No backup yet.'}
       </ThemedText>
       <SubmitButton title="Back up now" busyTitle="Preparing…" onPress={backUp} />
       <SubmitButton

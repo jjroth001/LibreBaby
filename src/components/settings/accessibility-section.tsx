@@ -2,7 +2,6 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { StyleSheet, Switch, View } from 'react-native';
 
 import { Card } from '@/components/card';
-import { CardTitle } from '@/components/card-title';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { setSetting, type Settings } from '@/db/settings';
@@ -38,7 +37,6 @@ export function AccessibilitySection({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <CardTitle icon="sparkle">Accessibility</CardTitle>
       {TOGGLES.map((toggle) => (
         <View key={toggle.key} style={styles.switchRow}>
           <View style={styles.switchLabel}>

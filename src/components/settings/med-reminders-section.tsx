@@ -5,7 +5,6 @@ import Animated from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
-import { CardTitle } from '@/components/card-title';
 import { Icon } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Motion } from '@/constants/motion';
@@ -55,7 +54,6 @@ export function MedRemindersSection({ child, settings }: { child: Child; setting
 
   return (
     <Card>
-      <CardTitle icon="pill">Medicine reminders</CardTitle>
       {!remindersSupported && (
         <ThemedText type="small" themeColor="textSecondary">
           Available in the installed app. Expo Go (the development preview) can’t show these

@@ -14,13 +14,46 @@ import { parseHuckleberryCsv, type HuckleberryParse } from './huckleberry';
 import type { GrowthUnits } from './growth-units';
 import type { VolumeUnit } from './units';
 
-/** Writes `contents` to a cache file and opens Android's share sheet (Drive, email, Files…). */
+/** Every file we share starts with this, so leftovers can be found and removed. */
+const SHARE_PREFIX = 'librebaby-';
+
+/**
+ * How long a shared copy stays after the share sheet closes. Most apps read it before then,
+ * but some (Drive, for one) finish reading it just after.
+ */
+const SHARED_COPY_LIFETIME_MS = 60_000;
+
+/** Deletes shared copies left in the cache (the app was closed before they were removed). */
+function removeSharedCopies() {
+  try {
+    for (const entry of Paths.cache.list()) {
+      if (entry instanceof File && entry.name.startsWith(SHARE_PREFIX)) entry.delete();
+    }
+  } catch {
+    // Best effort: the cache is cleared by Android when space runs low anyway.
+  }
+}
+
+/**
+ * Writes `contents` to a cache file and opens Android's share sheet (Drive, email, Files…).
+ * The copy holds the whole baby log, so it's deleted again soon after the sheet closes.
+ */
 async function shareFile(name: string, contents: string, mimeType: string, dialogTitle: string) {
+  removeSharedCopies();
   const file = new File(Paths.cache, name);
-  if (file.exists) file.delete();
   file.create();
   file.write(contents);
-  await Sharing.shareAsync(file.uri, { mimeType, dialogTitle });
+  try {
+    await Sharing.shareAsync(file.uri, { mimeType, dialogTitle });
+  } finally {
+    setTimeout(() => {
+      try {
+        if (file.exists) file.delete();
+      } catch {
+        // Picked up by removeSharedCopies next time.
+      }
+    }, SHARED_COPY_LIFETIME_MS);
+  }
 }
 
 function today() {
@@ -112,6 +145,43 @@ async function readPickedFile(uri: string): Promise<string> {
   }
 }
 
+/** Real backups and exports are a few MB at most; anything far bigger isn't one. */
+export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+
+/** Throws a readable error for a file too big to be a backup or export (unknown size passes). */
+export function checkImportSize(bytes: number | null | undefined): void {
+  if (typeof bytes === 'number' && bytes > MAX_IMPORT_BYTES) {
+    throw new Error(
+      `This file is ${Math.round(bytes / (1024 * 1024))} MB, too big to be a LibreBaby backup or a Huckleberry export.`,
+    );
+  }
+}
+
+/** The picked file's size in bytes, if the picker or the file system can tell. */
+function pickedSize(asset: DocumentPicker.DocumentPickerAsset): number | null {
+  if (typeof asset.size === 'number') return asset.size;
+  try {
+    return new File(asset.uri).size;
+  } catch {
+    return null;
+  }
+}
+
+/** Checks the size, reads the file, then removes the picker's cache copy of it. */
+async function readPicked(asset: DocumentPicker.DocumentPickerAsset): Promise<string> {
+  checkImportSize(pickedSize(asset));
+  try {
+    return await readPickedFile(asset.uri);
+  } finally {
+    try {
+      const copy = new File(asset.uri);
+      if (copy.exists) copy.delete();
+    } catch {
+      // Expo Go can't touch it; Android clears the cache eventually.
+    }
+  }
+}
+
 /** Lets the user pick a Huckleberry CSV export. Returns null if they cancel; throws if it isn't one. */
 export async function pickHuckleberryExport(): Promise<HuckleberryParse | null> {
   const result = await DocumentPicker.getDocumentAsync({
@@ -120,7 +190,7 @@ export async function pickHuckleberryExport(): Promise<HuckleberryParse | null> 
     copyToCacheDirectory: true,
   });
   if (result.canceled) return null;
-  const text = await readPickedFile(result.assets[0].uri);
+  const text = await readPicked(result.assets[0]);
   return parseHuckleberryCsv(text);
 }
 
@@ -132,6 +202,6 @@ export async function pickBackup(): Promise<Backup | null> {
     copyToCacheDirectory: true,
   });
   if (result.canceled) return null;
-  const text = await readPickedFile(result.assets[0].uri);
+  const text = await readPicked(result.assets[0]);
   return parseBackup(text);
 }

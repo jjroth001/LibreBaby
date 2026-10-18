@@ -23,6 +23,8 @@ export type MedReminder = {
 export type PlannedReminder = {
   /** Notification identifier; all start with MED_PREFIX so they can be found and replaced. */
   id: string;
+  /** The MedReminder this comes from; a tapped notification opens the log by this id. */
+  reminderId: string;
   at: number;
   title: string;
   body: string;
@@ -82,6 +84,7 @@ export function planMedReminders(
     const last = lastGiven.get(medKey(reminder.name));
     const make = (at: number, n: number): PlannedReminder => ({
       id: `${MED_PREFIX}${reminder.id}-${n}`,
+      reminderId: reminder.id,
       at,
       title: `Time for ${reminder.name.trim()}`,
       body: reminderBody(reminder.dose, last, at),
@@ -122,6 +125,18 @@ function reminderBody(dose: string, last: number | undefined, at: number): strin
       ? null
       : `last given ${formatDuration(at - last)} ago (${formatDayTime(last, at)})`;
   return [dose.trim(), lastPart].filter(Boolean).join(' · ') || 'Tap to log a dose';
+}
+
+/**
+ * The medicine and dose to fill in when a reminder is tapped, looked up from this phone's
+ * own settings so a link into the app can't pre-fill something the family never set up.
+ */
+export function prefillFromReminder(
+  reminders: MedReminder[],
+  reminderId: string | undefined,
+): { name: string; dose: string } {
+  const reminder = reminderId ? reminders.find((r) => r.id === reminderId) : undefined;
+  return reminder ? { name: reminder.name.trim(), dose: reminder.dose } : { name: '', dose: '' };
 }
 
 /** The "after each dose" reminder for this medicine, if one is set up. */

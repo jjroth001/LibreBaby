@@ -82,7 +82,7 @@ const MED_CHANNEL_ID = 'medicine';
 const MAX_MED_REMINDERS = 100;
 
 /** What a medicine reminder carries, so a tap can open the log with it filled in. */
-export type MedReminderData = { kind: 'medication'; name: string; dose: string };
+export type MedReminderData = { kind: 'medication'; reminderId: string };
 
 let scheduledMed = '';
 
@@ -111,8 +111,7 @@ export function syncMedReminders(planned: PlannedReminder[]): Promise<void> {
       if (reminder.at <= Date.now()) continue;
       const data: MedReminderData = {
         kind: 'medication',
-        name: reminder.name,
-        dose: reminder.dose,
+        reminderId: reminder.reminderId,
       };
       await Notifications.scheduleNotificationAsync({
         identifier: reminder.id,
@@ -144,11 +143,11 @@ export function onMedReminderTapped(onOpen: (data: MedReminderData) => void): ()
     if (handledTaps.has(id + response.notification.date)) return;
     handledTaps.add(id + response.notification.date);
     const data = response.notification.request.content.data;
-    if (data?.kind === 'medication' && typeof data.name === 'string') {
+    if (data?.kind === 'medication') {
+      // Reminders scheduled by older versions carry no id; they open an empty log.
       onOpen({
         kind: 'medication',
-        name: data.name,
-        dose: typeof data.dose === 'string' ? data.dose : '',
+        reminderId: typeof data.reminderId === 'string' ? data.reminderId : '',
       });
     }
   };

@@ -18,6 +18,7 @@ import {
   afterDoseReminder,
   dailyReminder,
   describeSchedule,
+  prefillFromReminder,
   withAfterDoseChoice,
   type MedReminder,
 } from '@/lib/med-reminders';
@@ -33,7 +34,8 @@ function defaultChoice(reminders: MedReminder[], name: string): RemindChoice {
 
 export default function LogMedicationScreen() {
   const db = useSQLiteContext();
-  const params = useLocalSearchParams<{ name?: string; dose?: string }>();
+  // Only a reminder id comes in from outside; the medicine and dose are looked up here.
+  const params = useLocalSearchParams<{ reminder?: string }>();
   const { data: child } = useChild();
   const settings = useSettings();
   const childId = child?.id;
@@ -42,17 +44,18 @@ export default function LogMedicationScreen() {
     async (db) => (childId ? listRecentMedications(db, childId, 6) : []),
     [childId],
   );
-  // Filled in when opened from a reminder notification.
-  const [initial] = useState(() => ({
-    name: params.name ?? '',
-    dose: params.dose ?? '',
-    time: Date.now(),
-    notes: '',
-  }));
+  const [openedAt] = useState(Date.now);
   // Null until the switch or hours are touched; until then it follows the typed medicine.
   const [choice, setChoice] = useState<RemindChoice | null>(null);
   if (!childId || recent.status !== 'success' || settings.status !== 'success') return null;
   const reminders = settings.data.medReminders;
+  // Filled in when opened from a reminder notification. The form reads this only when it
+  // first appears, so later settings changes don't overwrite what's been typed.
+  const initial = {
+    ...prefillFromReminder(reminders, params.reminder),
+    time: openedAt,
+    notes: '',
+  };
 
   return (
     <Screen withTabBar={false} belowHeader panel>

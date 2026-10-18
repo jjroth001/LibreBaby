@@ -2,6 +2,7 @@ import {
   DAILY_HORIZON_DAYS,
   describeSchedule,
   planMedReminders,
+  prefillFromReminder,
   withAfterDoseChoice,
   type MedReminder,
 } from './med-reminders';
@@ -124,5 +125,24 @@ describe('withAfterDoseChoice', () => {
     const daily = reminder({ id: 'd', kind: 'times', times: [480] });
     const next = withAfterDoseChoice([daily], dose, { on: true, hours: 6 }, newId);
     expect(next).toEqual([daily, reminder({ id: 'new', dose: '2 drops' })]);
+  });
+});
+
+describe('prefillFromReminder', () => {
+  const reminders = [reminder({ id: 'r1', name: ' Sunny Drops ', dose: '1 drop' })];
+
+  it('fills in the medicine from this phone’s own reminder', () => {
+    expect(prefillFromReminder(reminders, 'r1')).toEqual({ name: 'Sunny Drops', dose: '1 drop' });
+  });
+
+  it('leaves the form empty for an unknown or missing id', () => {
+    expect(prefillFromReminder(reminders, 'nope')).toEqual({ name: '', dose: '' });
+    expect(prefillFromReminder(reminders, undefined)).toEqual({ name: '', dose: '' });
+    expect(prefillFromReminder(reminders, '')).toEqual({ name: '', dose: '' });
+  });
+
+  it('is what a planned notification points at', () => {
+    const [planned] = planMedReminders(reminders, new Map([['sunny drops', NOW - HOUR]]), NOW);
+    expect(planned.reminderId).toBe('r1');
   });
 });

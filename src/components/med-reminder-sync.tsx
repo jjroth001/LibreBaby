@@ -31,8 +31,8 @@ export function MedReminderSync({ child }: { child: Child }) {
 
   useEffect(
     () =>
-      onMedReminderTapped(({ name, dose }) =>
-        router.push({ pathname: '/log/medication', params: { name, dose } }),
+      onMedReminderTapped(({ reminderId }) =>
+        router.push({ pathname: '/log/medication', params: { reminder: reminderId } }),
       ),
     [],
   );

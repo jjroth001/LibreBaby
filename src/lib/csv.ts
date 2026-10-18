@@ -1,7 +1,15 @@
-/** Quotes a CSV field when needed (commas, quotes, line breaks), per RFC 4180. */
+/**
+ * Quotes a CSV field when needed (commas, quotes, line breaks), per RFC 4180.
+ *
+ * Text that starts with = + - @ tab or carriage return gets a leading ' so spreadsheet
+ * apps show it as text instead of running it as a formula (a note like "=HYPERLINK(…)"
+ * synced from another phone could otherwise do something when the export is opened).
+ * Numbers are left alone, so negative values stay numbers.
+ */
 export function csvField(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return '';
-  const text = String(value);
+  const text =
+    typeof value === 'string' && /^[=+\-@\t\r]/.test(value) ? `'${value}` : String(value);
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 

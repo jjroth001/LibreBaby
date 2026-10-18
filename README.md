@@ -49,6 +49,8 @@ LibreBaby has no accounts, no analytics, no ads and no servers. Everything you l
 - **Family sync** sends entries directly to the phones you paired, over your local Wi-Fi. They're encrypted with a key only your family's phones have. Phones find each other on the local network and never connect over the internet. See [SYNC.md](SYNC.md) for how it works.
 - **A backup or spreadsheet export** goes wherever you choose to share it.
 
+LibreBaby opts out of Android's automatic cloud backup, so your log isn't copied to your Google account. Keep your own backups with Settings → Back up.
+
 **Why each permission:**
 
 | Permission | Why |

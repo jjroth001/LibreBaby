@@ -54,10 +54,13 @@ ciphertext. A frame that doesn't decrypt is a stranger: the connection is droppe
 Protocol 1 (1.3.x) had no `ack` and closed with `destroy()`: a phone could drop its
 own last, still-unflushed frames, yet record them as sent — so they never arrived.
 
-When two phones first discover each other, the one with the smaller device id connects.
+When two phones first discover each other, the one with the smaller discovery token
+(see Discovery) connects.
 After that either side may connect (after a local change, "Sync now", or every minute
 while the app is open). Discovery is often one-sided on Android, so a phone that is
 connected *to* remembers the caller's address and advertised port, and can call back.
+Phones are told apart by the device id in the encrypted hello, so a phone found both ways
+is still synced once.
 
 ## Removing a phone
 
@@ -68,8 +71,19 @@ screenshots.
 
 ## Discovery
 
-Zeroconf/mDNS service `_librebaby._tcp` with TXT `f` = first 12 hex chars of
-SHA-256(family id) (so strangers' phones are ignored without revealing the id).
+Zeroconf/mDNS service `_librebaby._tcp`, named `LibreBaby-<token>`, with TXT:
+
+- `f`: the day's family tag, the first 16 hex chars of
+  SHA-256("librebaby-discovery:" + family id + ":" + days since 1970 UTC). Strangers'
+  phones are ignored without revealing the id, and since the tag changes daily it can't be
+  used to recognise the same family on another network later. Yesterday's and tomorrow's
+  tags are accepted too, in case a clock is off.
+- `i`: a random token, new each time sync starts, used only to agree who connects first.
+
+The device id is never announced; phones learn it from the encrypted hello. Versions
+before 1.14 announced a fixed tag (first 12 hex chars of SHA-256(family id)) and the device
+id; newer phones still recognise that tag and call such a phone, so it shows "Update
+LibreBaby".
 
 ## What syncs
 

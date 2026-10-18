@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import type { Child } from '@/db/types';
+import { BACKGROUND_RERUN_DELAY_MS } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
 import { useSleepPrediction } from '@/hooks/use-sleep-prediction';
 import { formatTime } from '@/lib/format';
@@ -14,7 +15,7 @@ const MINUTE = 60_000;
  */
 export function SleepReminderSync({ child }: { child: Child }) {
   const settings = useSettings();
-  const sleep = useSleepPrediction(child);
+  const sleep = useSleepPrediction(child, { rerunDelayMs: BACKGROUND_RERUN_DELAY_MS });
 
   const ready = settings.status === 'success' && sleep.status !== 'loading';
   const enabled = settings.data?.sleepReminders ?? false;

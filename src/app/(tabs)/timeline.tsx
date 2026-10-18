@@ -15,6 +15,7 @@ import { listEvents, TIMER_TYPES } from '@/db/events';
 import type { BabyEvent, Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
+import { useTabQueryOptions } from '@/hooks/use-tab-query-options';
 import { useSettings } from '@/db/use-settings';
 import { useLiveLayout } from '@/hooks/use-live-layout';
 import { useNow } from '@/hooks/use-now';
@@ -38,11 +39,13 @@ function Timeline({ child }: { child: Child }) {
   const today = startOfLocalDay(now);
   const [day, setDay] = useState(today);
   const dayEnd = addLocalDays(day, 1);
-  const events = useDbQuery(['event'], (db) => listEvents(db, child.id, day, dayEnd), [
-    child.id,
-    day,
-    dayEnd,
-  ]);
+  const queryOptions = useTabQueryOptions();
+  const events = useDbQuery(
+    ['event'],
+    (db) => listEvents(db, child.id, day, dayEnd),
+    [child.id, day, dayEnd],
+    queryOptions,
+  );
 
   if (settings.status !== 'success' || events.status !== 'success') return null;
   const unit = settings.data.volumeUnit;

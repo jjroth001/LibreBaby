@@ -129,6 +129,16 @@ const MIGRATIONS: string[] = [
   `
   UPDATE sync_peer SET last_sent_seq = 0;
   `,
+
+  // 7: speed. Date-range reads ("what overlaps these days?") ask for entries that end
+  // after the start of the range; indexing that end lets them skip older history instead
+  // of reading everything up to now. Running timers and per-type lists get their own
+  // small indexes for the same reason. Indexes only: no rows change.
+  `
+  CREATE INDEX IF NOT EXISTS event_child_end ON event (child_id, COALESCE(end_at, start_at));
+  CREATE INDEX IF NOT EXISTS event_child_type ON event (child_id, type, start_at);
+  CREATE INDEX IF NOT EXISTS event_running ON event (child_id, start_at) WHERE end_at IS NULL;
+  `,
 ];
 
 /** The migration SQL in order (for tests that build a database from scratch). */

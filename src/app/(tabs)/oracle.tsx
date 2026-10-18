@@ -20,7 +20,9 @@ import { Fonts, Spacing } from '@/constants/theme';
 import { listEvents, TIMER_TYPES } from '@/db/events';
 import type { BabyEvent, Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
+import { useDeferredMount } from '@/hooks/use-deferred-mount';
 import { useDbQuery } from '@/db/use-db-query';
+import { useTabQueryOptions } from '@/hooks/use-tab-query-options';
 import { useSettings } from '@/db/use-settings';
 import { useLiveLayout } from '@/hooks/use-live-layout';
 import { useNow } from '@/hooks/use-now';
@@ -40,7 +42,9 @@ const BADGE_W = 44;
 
 export default function OracleScreen() {
   const { data: child } = useChild();
-  if (!child) return null;
+  // Built just after Home, so the app opens quicker (see useDeferredMount).
+  const ready = useDeferredMount(500);
+  if (!child || !ready) return null;
   return <Oracle child={child} />;
 }
 
@@ -60,10 +64,12 @@ function Oracle({ child }: { child: Child }) {
   const [showEarlier, setShowEarlier] = useState(false);
   const [selected, setSelected] = useState<OracleItem | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const queryOptions = useTabQueryOptions();
   const events = useDbQuery(
     ['event'],
     (db) => listEvents(db, child.id, oracleLookbackStart(Date.now()), Date.now() + 1),
     [child.id],
+    queryOptions,
   );
 
   if (settings.status !== 'success' || events.status !== 'success') return null;

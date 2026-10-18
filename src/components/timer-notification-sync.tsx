@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 import { listRunningTimers, TIMER_TYPES } from '@/db/events';
 import { useChild } from '@/db/use-child';
-import { useDbQuery } from '@/db/use-db-query';
+import { BACKGROUND_RERUN_DELAY_MS, useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
 import { requestNotificationPermission } from '@/lib/notifications';
 import { timerNotification } from '@/lib/timer-notification';
@@ -26,6 +26,8 @@ function TimerNotificationSyncInner() {
     ['event'],
     async (db) => (childId ? listRunningTimers(db, childId) : []),
     [childId],
+    // In the notification shade, not on screen: let the app's own screens go first.
+    { rerunDelayMs: BACKGROUND_RERUN_DELAY_MS },
   );
   const enabled = settings.data?.timerNotifications ?? true;
 

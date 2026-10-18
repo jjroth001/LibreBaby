@@ -17,6 +17,7 @@ import { updateChild } from '@/db/children';
 import { listEventsOfType } from '@/db/events';
 import type { BabyEvent, Child, Sex } from '@/db/types';
 import { useDbQuery } from '@/db/use-db-query';
+import { useTabQueryOptions } from '@/hooks/use-tab-query-options';
 import { useTheme } from '@/hooks/use-theme';
 import { ageInDays, formatAge } from '@/lib/dates';
 import {
@@ -52,9 +53,13 @@ type GrowthViewProps = { child: Child; units: GrowthUnits; now: number };
 export function GrowthView({ child, units, now }: GrowthViewProps) {
   const db = useSQLiteContext();
   const [measure, setMeasure] = useState<Measure>('weight');
-  const measurements = useDbQuery(['event'], (db) => listEventsOfType(db, child.id, 'growth'), [
-    child.id,
-  ]);
+  const queryOptions = useTabQueryOptions();
+  const measurements = useDbQuery(
+    ['event'],
+    (db) => listEventsOfType(db, child.id, 'growth'),
+    [child.id],
+    queryOptions,
+  );
   if (measurements.status !== 'success') return null;
 
   const ageMonthsAt = (ms: number) => ageInDays(child.birthDate, new Date(ms)) / DAYS_PER_MONTH;

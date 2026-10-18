@@ -16,7 +16,9 @@ import { Fonts, Spacing } from '@/constants/theme';
 import { listEvents } from '@/db/events';
 import type { Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
+import { useDeferredMount } from '@/hooks/use-deferred-mount';
 import { useDbQuery } from '@/db/use-db-query';
+import { useTabQueryOptions } from '@/hooks/use-tab-query-options';
 import { useSettings } from '@/db/use-settings';
 import { useNow } from '@/hooks/use-now';
 import { addLocalDays, startOfLocalDay } from '@/lib/dates';
@@ -40,7 +42,9 @@ type Range = (typeof RANGE_OPTIONS)[number]['value'];
 
 export default function InsightsScreen() {
   const { data: child } = useChild();
-  if (!child) return null;
+  // Built just after Home, so the app opens quicker (see useDeferredMount).
+  const ready = useDeferredMount(900);
+  if (!child || !ready) return null;
   return <Insights child={child} />;
 }
 
@@ -79,10 +83,12 @@ function Insights({ child }: { child: Child }) {
   const dayCount = Number(range);
   // One extra day back so sleeps that began the night before the range are included.
   const from = addLocalDays(todayStart, -dayCount);
+  const queryOptions = useTabQueryOptions();
   const events = useDbQuery(
     ['event'],
     (db) => listEvents(db, child.id, from, addLocalDays(todayStart, 1)),
     [child.id, from, todayStart],
+    queryOptions,
   );
 
   if (settings.status !== 'success' || events.status !== 'success') return null;

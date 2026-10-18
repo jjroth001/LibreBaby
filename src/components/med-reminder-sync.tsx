@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 import { lastMedicationTimes } from '@/db/events';
 import type { Child } from '@/db/types';
-import { useDbQuery } from '@/db/use-db-query';
+import { BACKGROUND_RERUN_DELAY_MS, useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
 import { planMedReminders } from '@/lib/med-reminders';
 import { onMedReminderTapped, syncMedReminders } from '@/lib/notifications';
@@ -15,7 +15,9 @@ import { onMedReminderTapped, syncMedReminders } from '@/lib/notifications';
  */
 export function MedReminderSync({ child }: { child: Child }) {
   const settings = useSettings();
-  const lastGiven = useDbQuery(['event'], (db) => lastMedicationTimes(db, child.id), [child.id]);
+  const lastGiven = useDbQuery(['event'], (db) => lastMedicationTimes(db, child.id), [child.id], {
+    rerunDelayMs: BACKGROUND_RERUN_DELAY_MS,
+  });
 
   const reminders = settings.data?.medReminders;
   const last = lastGiven.data;

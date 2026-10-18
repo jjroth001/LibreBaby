@@ -16,6 +16,7 @@ import { ageNote, ageNoteKey } from '@/data/weekly';
 import { deleteEvent, insertEventNow, listEventsOfType } from '@/db/events';
 import type { BabyEvent, Child } from '@/db/types';
 import { useDbQuery } from '@/db/use-db-query';
+import { useTabQueryOptions } from '@/hooks/use-tab-query-options';
 import { useTheme } from '@/hooks/use-theme';
 import { ageInDays, formatAge, formatLongDate, toLocalDateString } from '@/lib/dates';
 import { checklistProgress, noticedMilestones, upcomingChecklist } from '@/lib/development';
@@ -54,9 +55,13 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
   const [months, setMonths] = useState(current.months);
   const checklist = CHECKLISTS.find((c) => c.months === months) ?? current;
 
-  const events = useDbQuery(['event'], (db) => listEventsOfType(db, child.id, 'milestone'), [
-    child.id,
-  ]);
+  const queryOptions = useTabQueryOptions();
+  const events = useDbQuery(
+    ['event'],
+    (db) => listEventsOfType(db, child.id, 'milestone'),
+    [child.id],
+    queryOptions,
+  );
   if (events.status !== 'success') return null;
   const noticed = noticedMilestones(events.data);
   const note = ageNote(noteKey);

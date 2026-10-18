@@ -18,6 +18,7 @@ import { updateChild } from '@/db/children';
 import { setSetting } from '@/db/settings';
 import { useChild } from '@/db/use-child';
 import { useSettings } from '@/db/use-settings';
+import { useDeferredMount } from '@/hooks/use-deferred-mount';
 import { useTheme } from '@/hooks/use-theme';
 import { remindersSupported, requestNotificationPermission } from '@/lib/notifications';
 
@@ -45,7 +46,9 @@ export default function SettingsScreen() {
   const { data: settings } = useSettings();
   const theme = useTheme();
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  if (!child || !settings) return null;
+  // Built just after Home, so the app opens quicker (see useDeferredMount).
+  const ready = useDeferredMount(1300);
+  if (!child || !settings || !ready) return null;
 
   const toggleReminders = async (on: boolean) => {
     if (on && !(await requestNotificationPermission())) {

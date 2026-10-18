@@ -1,7 +1,7 @@
 import { LiveTimer } from '@modules/live-timer/src';
 import { useEffect } from 'react';
 
-import { useDbQuery } from '@/db/use-db-query';
+import { BACKGROUND_RERUN_DELAY_MS, useDbQuery } from '@/db/use-db-query';
 import { widgetsSupported } from '@/lib/platform';
 
 import { loadAllModels, redrawAllWidgets, type Models } from './redraw';
@@ -18,7 +18,10 @@ export function WidgetSync() {
 }
 
 function WidgetSyncInner() {
-  const models = useDbQuery(['event', 'child', 'setting'], loadAllModels);
+  // Off screen, so it waits until a just-saved entry's screen has closed.
+  const models = useDbQuery(['event', 'child', 'setting'], loadAllModels, [], {
+    rerunDelayMs: BACKGROUND_RERUN_DELAY_MS,
+  });
   const key = models.status === 'success' ? JSON.stringify(models.data) : null;
 
   useEffect(() => {

@@ -247,7 +247,11 @@ export async function getEvent(db: SQLiteDatabase, id: string): Promise<BabyEven
   return row ? fromRow(row) : null;
 }
 
-/** Events overlapping [fromMs, toMs), oldest first. */
+/**
+ * Events overlapping [fromMs, toMs), oldest first. Searched by where entries end (the
+ * `event_child_end` index), which skips everything before the range; the `+` keeps SQLite
+ * from searching by start instead, which would read all history up to `toMs`.
+ */
 export async function listEvents(
   db: SQLiteDatabase,
   childId: string,
@@ -257,7 +261,7 @@ export async function listEvents(
   const rows = await db.getAllAsync<EventRow>(
     `SELECT * FROM event
      WHERE child_id = ? AND deleted_at IS NULL
-       AND start_at < ? AND COALESCE(end_at, start_at) >= ?
+       AND +start_at < ? AND COALESCE(end_at, start_at) >= ?
      ORDER BY start_at`,
     childId,
     toMs,

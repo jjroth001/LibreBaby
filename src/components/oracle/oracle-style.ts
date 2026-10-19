@@ -1,6 +1,6 @@
 import type { IconName } from '@/components/icons/icon';
 import type { Palette } from '@/constants/theme';
-import { formatDuration, formatTime } from '@/lib/format';
+import { formatDuration, formatTime, formatTimeRange } from '@/lib/format';
 import type { OracleItem, OracleKind } from '@/lib/oracle';
 
 export type Category = 'sleep' | 'feed' | 'diaper';
@@ -83,7 +83,7 @@ export function itemTitle(item: OracleItem): string {
 }
 
 export function windowText(item: OracleItem): string {
-  return `${formatTime(item.from)} – ${formatTime(item.to)}`;
+  return formatTimeRange(item.from, item.to);
 }
 
 /** The second line of an agenda item; diapers stay a single line. */

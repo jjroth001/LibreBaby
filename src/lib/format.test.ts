@@ -1,5 +1,5 @@
 import { formatAge } from './dates';
-import { formatClock, formatDuration } from './format';
+import { formatClock, formatDuration, formatTime, formatTimeRange } from './format';
 import { fromMl, toMl } from './units';
 
 const MIN = 60_000;
@@ -24,6 +24,22 @@ describe('formatClock', () => {
     [62 * MIN + 9_000, '1:02:09'],
   ])('%i ms → %s', (ms, expected) => {
     expect(formatClock(ms)).toBe(expected);
+  });
+});
+
+describe('formatTimeRange', () => {
+  const at = (h: number, m: number) => new Date(2026, 9, 19, h, m).getTime();
+
+  it('says a shared AM/PM once', () => {
+    const range = formatTimeRange(at(7, 56), at(8, 17));
+    expect(range.endsWith(formatTime(at(8, 17)))).toBe(true);
+    expect(range.match(/AM/g)?.length ?? 0).toBeLessThanOrEqual(1);
+  });
+
+  it('keeps both when the range crosses noon', () => {
+    expect(formatTimeRange(at(11, 40), at(12, 10))).toBe(
+      `${formatTime(at(11, 40))} – ${formatTime(at(12, 10))}`,
+    );
   });
 });
 

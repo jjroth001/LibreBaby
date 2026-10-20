@@ -54,11 +54,11 @@ export function AgendaItem({ item, onPress }: { item: OracleItem; onPress: () =>
       <View style={[styles.bar, { backgroundColor: bar }]} />
       <Icon name={itemIcon(item)} size={22} color={bar} />
       <View style={styles.body}>
-        <ThemedText style={styles.title} numberOfLines={1}>
+        <ThemedText style={styles.title} numberOfLines={2}>
           {itemTitle(item)}
         </ThemedText>
         {subtitle && (
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
             {subtitle}
           </ThemedText>
         )}

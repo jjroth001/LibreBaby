@@ -29,6 +29,21 @@ export function formatTime(ms: number): string {
   return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
+/**
+ * "7:56 – 8:17 AM": a span of clock times, with a shared AM/PM said once so it fits a
+ * narrow row. Falls back to "11:40 AM – 12:10 PM" when the halves of the day differ.
+ */
+export function formatTimeRange(from: number, to: number): string {
+  const a = formatTime(from);
+  const b = formatTime(to);
+  const period = /\s*[^\d\s:.]+\.?$/u;
+  const pa = a.match(period)?.[0];
+  if (pa && pa.trim() === b.match(period)?.[0].trim()) {
+    return `${a.slice(0, -pa.length)} – ${b}`;
+  }
+  return `${a} – ${b}`;
+}
+
 /** "Today, 3:42 PM", "Yesterday, 11:05 PM", "Oct 3, 9:15 AM". */
 export function formatDayTime(ms: number, now: number = Date.now()): string {
   const dayDiff = Math.round((startOfLocalDay(now) - startOfLocalDay(ms)) / (24 * HOUR));

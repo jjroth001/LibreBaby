@@ -17,6 +17,8 @@ type ScreenProps = {
   panel?: boolean;
   ref?: Ref<ScrollView>;
   onContentSizeChange?: ScrollViewProps['onContentSizeChange'];
+  /** Pull to refresh. */
+  refreshControl?: ScrollViewProps['refreshControl'];
 };
 
 /** Scrollable page container that respects the status bar and (optionally) the tab bar. */
@@ -27,6 +29,7 @@ export function Screen({
   panel = false,
   ref,
   onContentSizeChange,
+  refreshControl,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -36,6 +39,7 @@ export function Screen({
       <ScrollView
         ref={ref}
         onContentSizeChange={onContentSizeChange}
+        refreshControl={refreshControl}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,

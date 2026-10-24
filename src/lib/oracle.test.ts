@@ -24,8 +24,8 @@ const bottle = (startAt: number) =>
     ...base('feed_bottle', startAt, null),
     data: { amountMl: 120, content: 'formula' },
   }) as BabyEvent;
-const diaper = (startAt: number) =>
-  ({ ...base('diaper', startAt, null), data: { wet: true, dirty: false } }) as BabyEvent;
+const diaper = (startAt: number, dirty = false) =>
+  ({ ...base('diaper', startAt, null), data: { wet: true, dirty } }) as BabyEvent;
 
 /** Local time on day `d` of October 2026 (made-up dates). */
 function at(d: number, hour: number, minute = 0): number {
@@ -111,7 +111,7 @@ describe('buildForecast on a steady routine', () => {
     expect(nightFeeds.length).toBe(2);
     near(nightFeeds[0].at, at(15, 23, 35), 10);
     near(nightFeeds[1].at, at(16, 3, 35), 10);
-    expect(of('diaper', true).length).toBe(1);
+    expect(of('wet-diaper', true).length).toBe(1);
     near(of('wake')[0].at, at(16, 6, 50), 5);
   });
 
@@ -141,7 +141,7 @@ describe('buildForecast in other situations', () => {
     const forecast = buildForecast({ events, ageDays: AGE, now: at(15, 22) });
     expect(kinds(forecast.items)).toEqual([
       'night-feed',
-      'night-diaper',
+      'night-wet-diaper',
       'night-feed',
       'wake',
       'feed',
@@ -185,6 +185,52 @@ describe('buildForecast in other situations', () => {
     const feed = forecast.items.find((i) => i.kind === 'feed')!;
     expect(feed.due).toBe(true);
     expect(feed.at).toBe(now);
+  });
+});
+
+describe('buildForecast with dirty diapers', () => {
+  /** The routine, with the change at `hour`:10 each day also dirty (Oct 1–14). */
+  const withDirty = (hour: number) =>
+    history().map((e) =>
+      e.type === 'diaper' && new Date(e.startAt).getHours() === hour && e.startAt < at(15, 0)
+        ? diaper(e.startAt, true)
+        : e,
+    );
+  const now = at(15, 14);
+
+  it('tells wet and dirty changes apart, and says when a dirty one is overdue', () => {
+    const forecast = buildForecast({ events: withDirty(10), ageDays: AGE, now });
+    const dirty = forecast.items.filter((i) => i.kind === 'dirty-diaper');
+    expect(dirty.length).toBe(1);
+    // Daily around 10 AM, none yet today.
+    expect(dirty[0]).toMatchObject({ at: now, due: true, confidence: 'likely' });
+    expect(forecast.items.some((i) => i.kind === 'wet-diaper')).toBe(true);
+  });
+
+  it('shows a dirty diaper due overnight in the morning instead', () => {
+    const events = withDirty(7).concat(diaper(at(15, 7, 15), true));
+    const forecast = buildForecast({ events, ageDays: AGE, now });
+    const wake = forecast.items.find((i) => i.kind === 'wake')!;
+    const dirty = forecast.items.filter((i) => i.kind === 'dirty-diaper');
+    expect(dirty.length).toBe(1);
+    expect(dirty[0].night).toBe(false);
+    expect(dirty[0].at).toBeGreaterThan(wake.at);
+  });
+
+  it('can show only the dirty ones', () => {
+    const events = [...history(), ...routineDay(15).filter((e) => e.startAt <= at(15, 19, 30))];
+    const night = events.find((e) => e.startAt === at(15, 19, 30))!;
+    night.endAt = null;
+    const day = buildForecast({ events: withDirty(10), ageDays: AGE, now, diapers: 'dirty' });
+    expect(day.items.some((i) => i.kind === 'wet-diaper')).toBe(false);
+    expect(day.items.some((i) => i.kind === 'dirty-diaper')).toBe(true);
+    const tonight = buildForecast({ events, ageDays: AGE, now: at(15, 22), diapers: 'dirty' });
+    expect(kinds(tonight.items)).toEqual(['night-feed', 'night-feed', 'wake', 'feed']);
+  });
+
+  it('with no dirty diapers logged lately, predicts none', () => {
+    const forecast = buildForecast({ events: history(), ageDays: AGE, now });
+    expect(forecast.items.some((i) => i.kind === 'dirty-diaper')).toBe(false);
   });
 });
 

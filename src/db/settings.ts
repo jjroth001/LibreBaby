@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { GrowthUnits } from '@/lib/growth-units';
 import type { MedReminder } from '@/lib/med-reminders';
+import type { OracleDiapers } from '@/lib/oracle';
 import type { VolumeUnit } from '@/lib/units';
 
 export type Settings = {
@@ -32,6 +33,8 @@ export type Settings = {
   reduceMotion: boolean;
   /** Small vibrations when logging. */
   haptics: boolean;
+  /** The Oracle's diaper estimates: wet and dirty, or only dirty ones. */
+  oracleDiapers: OracleDiapers;
   /**
    * Rounded (~10 km) location for local sunrise/sunset; only set after the user opts in,
    * never leaves the phone (not synced, not in backups).
@@ -57,6 +60,7 @@ function defaultSettings(): Settings {
     highContrast: false,
     reduceMotion: false,
     haptics: true,
+    oracleDiapers: 'all',
     skyLocation: null,
   };
 }

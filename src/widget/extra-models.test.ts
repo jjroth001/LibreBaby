@@ -45,7 +45,7 @@ describe('Up next', () => {
       scene,
       'Robin',
       forecast([
-        item('d', 'diaper', at(15, 30), { confidence: 'maybe' }),
+        item('d', 'dirty-diaper', at(15, 30), { confidence: 'maybe' }),
         item('n', 'nap', at(15), { due: true, endAt: at(16) }),
         item('f', 'feed', at(17, 30)),
         item('b', 'bedtime', at(19, 30)),
@@ -54,7 +54,7 @@ describe('Up next', () => {
     );
     if (model.kind !== 'ready') throw new Error('expected ready');
     expect(model.items).toHaveLength(UP_NEXT_COUNT);
-    expect(model.items.map((i) => i.name)).toEqual(['Nap', 'Diaper', 'Feed', 'Bedtime']);
+    expect(model.items.map((i) => i.name)).toEqual(['Nap', 'Dirty diaper', 'Feed', 'Bedtime']);
     expect(model.items[0]).toMatchObject({ time: 'Now', icon: 'moon', confidence: 'likely' });
     expect(model.items[1].time).toMatch(/3:30/);
     expect(model.items[1].confidence).toBe('maybe');

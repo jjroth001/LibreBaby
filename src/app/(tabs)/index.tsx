@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 
 import type { Action } from '@/components/home/action-grid';
@@ -31,13 +31,29 @@ import { useSettings } from '@/db/use-settings';
 import { useLiveLayout } from '@/hooks/use-live-layout';
 import { useNow } from '@/hooks/use-now';
 import { useSleepPrediction } from '@/hooks/use-sleep-prediction';
+import { useTheme } from '@/hooks/use-theme';
 import { startBreast } from '@/lib/breast';
 import { formatAge } from '@/lib/dates';
 import { describeEvent } from '@/lib/describe';
 import { formatDuration } from '@/lib/format';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
+import { useSync } from '@/sync/sync-provider';
+import type { SyncAttempt } from '@/sync/sync-service';
 
 const FEED_TYPES = ['feed_breast', 'feed_bottle', 'feed_solids'] as const;
+/** Keep the pull-to-sync spinner up at least this long, so a quick answer doesn't flash. */
+const MIN_REFRESH_MS = 700;
+
+function syncMessage(attempt: SyncAttempt): string {
+  switch (attempt.type) {
+    case 'synced':
+      return `Synced with ${attempt.peerName}`;
+    case 'no-phones':
+      return 'No family phones found on this Wi-Fi';
+    case 'error':
+      return `Couldn’t sync: ${attempt.message}`;
+  }
+}
 
 export default function HomeScreen() {
   const { data: child } = useChild();
@@ -47,7 +63,9 @@ export default function HomeScreen() {
 
 function Home({ child }: { child: Child }) {
   const db = useSQLiteContext();
+  const theme = useTheme();
   const settings = useSettings();
+  const sync = useSync();
   const running = useDbQuery(['event'], (db) => listRunningTimers(db, child.id), [child.id]);
   const latest = useDbQuery(
     ['event'],
@@ -72,7 +90,13 @@ function Home({ child }: { child: Child }) {
   // bottom to bring its options into view — once they've been laid out.
   const scrollRef = useRef<ScrollView>(null);
   const revealMenu = useRef(false);
-  const [undo, setUndo] = useState<{ eventId: string; message: string } | null>(null);
+  // A short message at the bottom: a one-tap log (with undo), or how a pull-to-sync went.
+  const [banner, setBanner] = useState<{
+    key: string;
+    message: string;
+    undoEventId?: string;
+  } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const runningSleep = running.data?.find((e): e is BabyEvent<'sleep'> => e.type === 'sleep');
   const runningBreast = running.data?.find(
@@ -120,8 +144,9 @@ function Home({ child }: { child: Child }) {
       data,
     });
     successFeedback();
-    setUndo({
-      eventId: event.id,
+    setBanner({
+      key: event.id,
+      undoEventId: event.id,
       message: `${describeEvent(event, unit)} logged`,
     });
   };
@@ -133,10 +158,24 @@ function Home({ child }: { child: Child }) {
       data: { name: med.name, dose: med.dose },
     });
     successFeedback();
-    setUndo({
-      eventId: event.id,
+    setBanner({
+      key: event.id,
+      undoEventId: event.id,
       message: `${describeEvent(event, unit)} logged`,
     });
+  };
+
+  // Pull down to sync with the family's other phones, without a trip to Settings.
+  const canSync = sync.supported && !!sync.family;
+  const pullToSync = async () => {
+    setRefreshing(true);
+    const [attempt] = await Promise.all([
+      sync.syncAndWait(),
+      new Promise((resolve) => setTimeout(resolve, MIN_REFRESH_MS)),
+    ]);
+    setRefreshing(false);
+    if (attempt.type === 'synced') successFeedback();
+    setBanner({ key: `sync-${Date.now()}`, message: syncMessage(attempt) });
   };
 
   const actions: Record<Category, Action[]> = {
@@ -265,6 +304,16 @@ function Home({ child }: { child: Child }) {
     <View style={styles.fill}>
       <Screen
         ref={scrollRef}
+        refreshControl={
+          canSync ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={pullToSync}
+              colors={[theme.accent]}
+              progressBackgroundColor={theme.surface}
+            />
+          ) : undefined
+        }
         onContentSizeChange={() => {
           if (!revealMenu.current) return;
           revealMenu.current = false;
@@ -327,15 +376,19 @@ function Home({ child }: { child: Child }) {
         </LayoutAnimationConfig>
       </Screen>
 
-      {undo && (
+      {banner && (
         <UndoBanner
-          key={undo.eventId}
-          message={undo.message}
-          onDismiss={() => setUndo(null)}
-          onUndo={async () => {
-            setUndo(null);
-            await deleteEvent(db, undo.eventId);
-          }}
+          key={banner.key}
+          message={banner.message}
+          onDismiss={() => setBanner(null)}
+          onUndo={
+            banner.undoEventId
+              ? async () => {
+                  setBanner(null);
+                  await deleteEvent(db, banner.undoEventId!);
+                }
+              : undefined
+          }
         />
       )}
     </View>

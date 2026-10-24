@@ -56,6 +56,7 @@ export async function loadUpNextModel(db: SQLiteDatabase, now: number): Promise<
     events: events.filter((e) => e.startAt <= now),
     ageDays: ageInDays(child.birthDate, new Date(now)),
     now,
+    diapers: settings.oracleDiapers,
   });
   return buildUpNextModel(scene, child.name, forecast);
 }

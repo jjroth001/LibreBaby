@@ -8,6 +8,8 @@ import type { SyncEvent, SyncManager } from './manager';
 
 type Listener = (event: SyncEvent) => void;
 
+export type SyncAttempt = Exclude<SyncEvent, { type: 'syncing' }> | { type: 'no-phones' };
+
 const deviceName = () => Device.deviceName ?? Device.modelName ?? 'Android phone';
 
 /**
@@ -97,6 +99,30 @@ class SyncService {
 
   syncNow(): void {
     this.manager?.syncNow();
+  }
+
+  /**
+   * Syncs now and waits for the first outcome (pull to refresh on Home): synced, failed, or
+   * no family phone in sight. Gives up after `timeoutMs`.
+   */
+  syncAndWait(timeoutMs = 10_000): Promise<SyncAttempt> {
+    const manager = this.manager;
+    if (!manager || manager.visiblePeers === 0) return Promise.resolve({ type: 'no-phones' });
+    return new Promise((resolve) => {
+      const done = (attempt: SyncAttempt) => {
+        clearTimeout(timer);
+        unsubscribe();
+        resolve(attempt);
+      };
+      const unsubscribe = this.subscribe((event) => {
+        if (event.type !== 'syncing') done(event);
+      });
+      const timer = setTimeout(
+        () => done({ type: 'error', message: 'couldn’t reach the other phone' }),
+        timeoutMs,
+      );
+      manager.syncNow();
+    });
   }
 
   /** Resolves once syncing stops (the background task waits on this). */

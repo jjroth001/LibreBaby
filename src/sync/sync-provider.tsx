@@ -10,7 +10,7 @@ import { isInstalledBuild } from '@/lib/platform';
 import { clearFamily, getFamily, saveFamily, type Family } from './identity';
 import type { SyncEvent } from './manager';
 import { adoptFamilyChild, newFamily, type Invite } from './pairing';
-import { syncService } from './sync-service';
+import { syncService, type SyncAttempt } from './sync-service';
 
 type SyncContextValue = {
   /** Networking needs native modules that only exist in installed builds. */
@@ -20,6 +20,8 @@ type SyncContextValue = {
   syncing: boolean;
   lastEvent: SyncEvent | null;
   syncNow(): void;
+  /** Sync now and resolve with how it went (pull to refresh). */
+  syncAndWait(): Promise<SyncAttempt>;
   setUp(): Promise<void>;
   join(invite: Invite): Promise<void>;
   leave(): Promise<void>;
@@ -115,6 +117,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [family]);
 
   const syncNow = useCallback(() => syncService.syncNow(), []);
+  const syncAndWait = useCallback(() => syncService.syncAndWait(), []);
 
   const setUp = useCallback(async () => {
     const created = newFamily(getRandomBytes, randomUUID);
@@ -158,6 +161,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         syncing,
         lastEvent,
         syncNow,
+        syncAndWait,
         setUp,
         join,
         leave,

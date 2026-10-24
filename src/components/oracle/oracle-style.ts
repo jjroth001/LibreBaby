@@ -12,7 +12,8 @@ const CATEGORY: Record<OracleKind, Category> = {
   'back-to-sleep': 'sleep',
   wake: 'sleep',
   feed: 'feed',
-  diaper: 'diaper',
+  'wet-diaper': 'diaper',
+  'dirty-diaper': 'diaper',
 };
 
 const ICON: Record<OracleKind, IconName> = {
@@ -22,7 +23,8 @@ const ICON: Record<OracleKind, IconName> = {
   'back-to-sleep': 'moon-stars',
   wake: 'sun',
   feed: 'bottle',
-  diaper: 'drop',
+  'wet-diaper': 'drop',
+  'dirty-diaper': 'diaper-dirty',
 };
 
 export function itemIcon(item: OracleItem): IconName {
@@ -67,7 +69,8 @@ const NAMES: Record<OracleKind, string> = {
   'back-to-sleep': 'Back to sleep',
   wake: 'Wake up',
   feed: 'Feed',
-  diaper: 'Diaper',
+  'wet-diaper': 'Wet diaper',
+  'dirty-diaper': 'Dirty diaper',
 };
 
 export function itemName(item: OracleItem): string {
@@ -91,7 +94,7 @@ export function itemSubtitle(item: OracleItem): string | null {
   if (item.kind === 'nap' && item.endAt != null) {
     return `About ${formatDuration(item.endAt - item.at)} · until ~${formatTime(item.endAt)}`;
   }
-  if (item.kind === 'diaper') return null;
+  if (item.kind === 'wet-diaper' || item.kind === 'dirty-diaper') return null;
   return `Window ${windowText(item)}`;
 }
 

@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -13,11 +14,13 @@ import { AgendaItem } from '@/components/oracle/agenda-item';
 import { nowColor } from '@/components/oracle/oracle-style';
 import { WhySheet } from '@/components/oracle/why-sheet';
 import { Screen } from '@/components/screen';
+import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { EventRow } from '@/components/timeline/event-row';
 import { Motion } from '@/constants/motion';
 import { Fonts, Spacing } from '@/constants/theme';
 import { listEvents, TIMER_TYPES } from '@/db/events';
+import { setSetting } from '@/db/settings';
 import type { BabyEvent, Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDeferredMount } from '@/hooks/use-deferred-mount';
@@ -35,8 +38,14 @@ import {
   earlierToday,
   ORACLE_LOOKBACK_DAYS,
   oracleLookbackStart,
+  type OracleDiapers,
   type OracleItem,
 } from '@/lib/oracle';
+
+const DIAPER_OPTIONS = [
+  { value: 'all', label: 'Wet & dirty' },
+  { value: 'dirty', label: 'Dirty only' },
+] as const satisfies readonly { value: OracleDiapers; label: string }[];
 
 const BADGE_W = 44;
 
@@ -58,6 +67,7 @@ function plural(n: number, word: string): string {
 
 function Oracle({ child }: { child: Child }) {
   const theme = useTheme();
+  const db = useSQLiteContext();
   const settings = useSettings();
   const now = useNow(60_000);
   const { layout, resetKey } = useLiveLayout();
@@ -79,6 +89,7 @@ function Oracle({ child }: { child: Child }) {
     events: logged,
     ageDays: ageInDays(child.birthDate, new Date(now)),
     now,
+    diapers: settings.data.oracleDiapers,
   });
   const earlier = earlierToday(logged, now);
   const today = startOfLocalDay(now);
@@ -198,6 +209,17 @@ function Oracle({ child }: { child: Child }) {
           )}
         </LayoutAnimationConfig>
       </Card>
+
+      <View style={styles.diaperChoice}>
+        <ThemedText type="smallBold" themeColor="textSecondary" style={styles.diaperLabel}>
+          Diaper estimates
+        </ThemedText>
+        <SegmentedControl
+          options={DIAPER_OPTIONS}
+          value={settings.data.oracleDiapers}
+          onChange={(value) => setSetting(db, 'oracleDiapers', value)}
+        />
+      </View>
 
       <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
         Estimates come from the last {ORACLE_LOOKBACK_DAYS} days of entries and {child.name}’s age,
@@ -352,5 +374,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   nowText: { fontSize: 13, lineHeight: 18, fontWeight: 700 },
+  diaperChoice: { gap: Spacing.two },
+  diaperLabel: { textAlign: 'center' },
   footer: { textAlign: 'center', paddingHorizontal: Spacing.three },
 });

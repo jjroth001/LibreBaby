@@ -1,7 +1,7 @@
 import type { BabyEvent } from '@/db/types';
 
 import { addLocalDays, startOfLocalDay } from './dates';
-import { formatDuration, formatTime } from './format';
+import { formatDayTime, formatDuration, formatTime } from './format';
 import { ageWakeWindow, predictNextSleep } from './sleep-prediction';
 
 /**
@@ -29,6 +29,10 @@ const NIGHT_START_FROM = 17 * 60 + 30;
 const NIGHT_START_ENDS = 2 * 60;
 /** Night wakings shorter than this keep the night going. */
 const NIGHT_GAP_MAX = 3 * HOUR;
+/** A wet change this close to an expected dirty one is the same change. */
+const SAME_CHANGE = 45 * MINUTE;
+/** Dirty diapers can be days apart; look back this far for the last one. */
+const DIRTY_RECENT = 4 * DAY;
 
 export type OracleKind =
   | 'nap'
@@ -39,7 +43,11 @@ export type OracleKind =
   | 'back-to-sleep'
   | 'wake'
   | 'feed'
-  | 'diaper';
+  | 'wet-diaper'
+  | 'dirty-diaper';
+
+/** Which diaper estimates to show: wet and dirty, or only dirty ones. */
+export type OracleDiapers = 'all' | 'dirty';
 
 export type Confidence = 'likely' | 'maybe';
 
@@ -145,6 +153,13 @@ function diaperIntervalFor(ageDays: number): number {
   return 3.5 * HOUR;
 }
 
+/** Dirty diapers slow down a lot after the first weeks; these are only rough placeholders. */
+function dirtyIntervalFor(ageDays: number): number {
+  if (ageDays < 30) return 6 * HOUR;
+  if (ageDays < 90) return 12 * HOUR;
+  return DAY;
+}
+
 function napLengthFor(ageDays: number): number {
   if (ageDays < 90) return 45 * MINUTE;
   if (ageDays < 365) return 60 * MINUTE;
@@ -185,9 +200,20 @@ type Patterns = {
   nightFeedGap: Stat;
   nightFeedCount: Stat;
   morningFeedDelay: Stat;
-  diaperGap: Stat;
+  /** Time from one change to the next wet one, by day. */
+  wetGap: Stat;
+  /** Time between dirty diapers, day or night. */
+  dirtyGap: Stat;
   nightDiaperCount: Stat;
 };
+
+function isWet(e: BabyEvent): boolean {
+  return e.type === 'diaper' && (e as BabyEvent<'diaper'>).data.wet;
+}
+
+function isDirty(e: BabyEvent): boolean {
+  return e.type === 'diaper' && (e as BabyEvent<'diaper'>).data.dirty;
+}
 
 function feedSessions(events: BabyEvent[]): number[] {
   const starts: number[] = [];
@@ -280,7 +306,8 @@ function learn(events: BabyEvent[], ageDays: number, now: number): Patterns {
   const nightGaps: number[] = [];
   const nightCounts: number[] = [];
   const morningDelays: number[] = [];
-  const diapers = events.filter((e) => e.type === 'diaper').map((e) => e.startAt);
+  const diaperEvents = events.filter((e) => e.type === 'diaper');
+  const diapers = diaperEvents.map((e) => e.startAt);
   const nightDiaperCounts: number[] = [];
   for (const night of nights) {
     // Only nights that are over and fully inside the lookback teach anything.
@@ -296,11 +323,19 @@ function learn(events: BabyEvent[], ageDays: number, now: number): Patterns {
     nightDiaperCounts.push(diapers.filter((d) => d > night.start && d < night.end).length);
   }
 
-  const diaperGaps: number[] = [];
-  for (let i = 1; i < diapers.length; i++) {
+  // Any change puts on a fresh diaper, so a wet one counts from whatever change came before.
+  const wetGaps: number[] = [];
+  for (let i = 1; i < diaperEvents.length; i++) {
+    if (!isWet(diaperEvents[i])) continue;
     if (inNight(nights, diapers[i]) || inNight(nights, diapers[i - 1])) continue;
     const gap = diapers[i] - diapers[i - 1];
-    if (gap >= 20 * MINUTE && gap <= 8 * HOUR) diaperGaps.push(gap);
+    if (gap >= 20 * MINUTE && gap <= 8 * HOUR) wetGaps.push(gap);
+  }
+  const dirty = diaperEvents.filter(isDirty).map((e) => e.startAt);
+  const dirtyGaps: number[] = [];
+  for (let i = 1; i < dirty.length; i++) {
+    const gap = dirty[i] - dirty[i - 1];
+    if (gap >= 20 * MINUTE && gap <= DIRTY_RECENT) dirtyGaps.push(gap);
   }
 
   const nightFallback = nightFeedsFor(ageDays);
@@ -322,7 +357,8 @@ function learn(events: BabyEvent[], ageDays: number, now: number): Patterns {
     nightFeedGap: statOf(nightGaps, nightFallback.gap, HOUR),
     nightFeedCount: statOf(nightCounts, nightFallback.count, 1),
     morningFeedDelay: statOf(morningDelays, 15 * MINUTE, 15 * MINUTE),
-    diaperGap: statOf(diaperGaps, diaperIntervalFor(ageDays), HOUR),
+    wetGap: statOf(wetGaps, diaperIntervalFor(ageDays), HOUR),
+    dirtyGap: statOf(dirtyGaps, dirtyIntervalFor(ageDays), dirtyIntervalFor(ageDays) / 2),
     nightDiaperCount: statOf(nightDiaperCounts, 0, 1),
   };
 }
@@ -361,9 +397,11 @@ export type ForecastInput = {
   events: BabyEvent[];
   ageDays: number;
   now: number;
+  /** Default: all. */
+  diapers?: OracleDiapers;
 };
 
-export function buildForecast({ events, ageDays, now }: ForecastInput): Forecast {
+export function buildForecast({ events, ageDays, now, diapers = 'all' }: ForecastInput): Forecast {
   const sorted = [...events].sort((a, b) => a.startAt - b.startAt);
   const p = learn(sorted, ageDays, now);
   const learning = p.daysOfData < LEARNING_DAYS;
@@ -379,9 +417,9 @@ export function buildForecast({ events, ageDays, now }: ForecastInput): Forecast
   // Ignore a "last" entry from long ago (logging paused); counting from it would be noise.
   const recent = (ms: number | null) => (ms != null && now - ms < 12 * HOUR ? ms : null);
   const lastFeed = recent(feeds.at(-1) ?? null);
-  const lastDiaper = recent(
-    sorted.filter((e) => e.type === 'diaper' && e.startAt <= now).at(-1)?.startAt ?? null,
-  );
+  const pastDiapers = sorted.filter((e) => e.type === 'diaper' && e.startAt <= now);
+  const lastDiaper = recent(pastDiapers.at(-1)?.startAt ?? null);
+  const lastDirty = pastDiapers.filter(isDirty).at(-1)?.startAt ?? null;
 
   // Day or night? Asleep since the evening, or awake in the small hours / between night sleeps.
   const today = startOfLocalDay(now);
@@ -561,41 +599,7 @@ export function buildForecast({ events, ageDays, now }: ForecastInput): Forecast
     }
   }
 
-  // Diapers by day --------------------------------------------------------------------------
-  if (lastDiaper != null && !nightStarted) {
-    let next = lastDiaper + p.diaperGap.median;
-    let from = lastDiaper;
-    let step = 1;
-    while (next < bedtime && step < 12) {
-      let at = Math.max(next, now);
-      const nap = duringNap(at);
-      if (nap) at = nap.end + 5 * MINUTE;
-      if (at >= bedtime) break;
-      add({
-        kind: 'diaper',
-        at,
-        ...window(at, p.diaperGap.spread, step),
-        endAt: null,
-        night: false,
-        due: next <= now,
-        confidence:
-          step <= 2 && consistent(p.diaperGap, 0.35 * p.diaperGap.median) ? 'likely' : 'maybe',
-        reasons: [
-          step === 1
-            ? `Last change at ${formatTime(from)}.`
-            : `Follows the change expected at ${formatTime(from)}.`,
-          p.diaperGap.personal
-            ? `Changes about every ${formatDuration(p.diaperGap.median)} by day lately (${examples(p.diaperGap, 'gaps between changes')}).`
-            : `A change every ${formatDuration(p.diaperGap.median)} or so is common at this age.`,
-        ],
-      });
-      from = at;
-      next = at + p.diaperGap.median;
-      step++;
-    }
-  }
-
-  // The night: feeds, maybe a change, and the morning wake-up --------------------------------
+  // The night: feeds and the morning wake-up --------------------------------
   const feedsTonight = feeds.filter((f) => f > bedtime + 20 * MINUTE).length;
   const plannedNightFeeds = Math.max(0, Math.round(p.nightFeedCount.median) - feedsTonight);
   const nightFeedsSure = consistent(p.nightFeedCount, 0.5) && consistent(p.nightStretch, HOUR);
@@ -631,23 +635,6 @@ export function buildForecast({ events, ageDays, now }: ForecastInput): Forecast
       next = at + p.nightFeedGap.median;
     }
   }
-  const nightDiapers = Math.round(p.nightDiaperCount.median);
-  nightFeedTimes.slice(0, nightDiapers).forEach((feedAt) => {
-    const at = feedAt + 10 * MINUTE;
-    add({
-      kind: 'diaper',
-      at,
-      ...window(at, 20 * MINUTE, 1),
-      endAt: null,
-      night: true,
-      due: false,
-      confidence: 'maybe',
-      reasons: [
-        `Night feeds have usually come with a change (${examples(p.nightDiaperCount, 'nights')}).`,
-      ],
-    });
-  });
-
   wakeAt = Math.max(wakeAt, (nightFeedTimes.at(-1) ?? 0) + HOUR, now + 5 * MINUTE);
   add({
     kind: 'wake',
@@ -681,6 +668,109 @@ export function buildForecast({ events, ageDays, now }: ForecastInput): Forecast
           ? `The first feed usually comes about ${formatDuration(p.morningFeedDelay.median)} after waking.`
           : 'Most babies feed soon after waking.',
       ],
+    });
+  }
+
+  // Diapers -----------------------------------------------------------------------------------
+  // Dirty ones first: they can be far apart, so one due overnight is shown for the morning.
+  const dirtyTimes: number[] = [];
+  if (lastDirty != null && now - lastDirty < DIRTY_RECENT) {
+    const gap = p.dirtyGap;
+    let next = lastDirty + gap.median;
+    let from = lastDirty;
+    let step = 1;
+    while (step < 12) {
+      let at = Math.max(next, now);
+      let morning = false;
+      if (!nightStarted && at < bedtime) {
+        const nap = duringNap(at);
+        if (nap) at = nap.end + 5 * MINUTE;
+      }
+      if (nightStarted || at >= bedtime) {
+        if (at > wakeAt + 30 * MINUTE) break;
+        at = Math.max(at, wakeAt + 30 * MINUTE);
+        morning = true;
+      }
+      add({
+        kind: 'dirty-diaper',
+        at,
+        ...window(at, gap.spread, step),
+        endAt: null,
+        night: false,
+        due: next <= now && !morning,
+        confidence: step === 1 && consistent(gap, 0.5 * gap.median) ? 'likely' : 'maybe',
+        reasons: [
+          step === 1
+            ? `Last dirty diaper: ${formatDayTime(from, now)}.`
+            : `Follows the dirty diaper expected at ${formatTime(from)}.`,
+          gap.personal
+            ? `Dirty diapers about every ${formatDuration(gap.median)} lately (${examples(gap, 'gaps between dirty diapers')}).`
+            : 'Not enough dirty diapers logged yet. They vary a lot from baby to baby, so this is a rough guess.',
+          ...(morning && next < wakeAt ? ['Would fall overnight, so shown for the morning.'] : []),
+          ...(next <= now ? ['Already due by their usual rhythm.'] : []),
+        ],
+      });
+      dirtyTimes.push(at);
+      if (morning) break;
+      from = at;
+      next = at + gap.median;
+      step++;
+    }
+  }
+  // A wet change expected right around a dirty one is that same change.
+  const sameAsDirty = (at: number) => dirtyTimes.some((d) => Math.abs(d - at) < SAME_CHANGE);
+
+  if (diapers === 'all' && lastDiaper != null && !nightStarted) {
+    let next = lastDiaper + p.wetGap.median;
+    let from = lastDiaper;
+    let step = 1;
+    while (next < bedtime && step < 12) {
+      let at = Math.max(next, now);
+      const nap = duringNap(at);
+      if (nap) at = nap.end + 5 * MINUTE;
+      if (at >= bedtime) break;
+      if (!sameAsDirty(at)) {
+        add({
+          kind: 'wet-diaper',
+          at,
+          ...window(at, p.wetGap.spread, step),
+          endAt: null,
+          night: false,
+          due: next <= now,
+          confidence:
+            step <= 2 && consistent(p.wetGap, 0.35 * p.wetGap.median) ? 'likely' : 'maybe',
+          reasons: [
+            step === 1
+              ? `Last change at ${formatTime(from)}.`
+              : `Follows the change expected at ${formatTime(from)}.`,
+            p.wetGap.personal
+              ? `Wet changes about every ${formatDuration(p.wetGap.median)} by day lately (${examples(p.wetGap, 'gaps before a wet change')}).`
+              : `A change every ${formatDuration(p.wetGap.median)} or so is common at this age.`,
+          ],
+        });
+      }
+      from = at;
+      next = at + p.wetGap.median;
+      step++;
+    }
+  }
+
+  if (diapers === 'all') {
+    const nightDiapers = Math.round(p.nightDiaperCount.median);
+    nightFeedTimes.slice(0, nightDiapers).forEach((feedAt) => {
+      const at = feedAt + 10 * MINUTE;
+      add({
+        kind: 'wet-diaper',
+        at,
+        ...window(at, 20 * MINUTE, 1),
+        endAt: null,
+        night: true,
+        due: false,
+        confidence: 'maybe',
+        reasons: [
+          `Night feeds have usually come with a change (${examples(p.nightDiaperCount, 'nights')}).`,
+        ],
+      });
     });
   }
 

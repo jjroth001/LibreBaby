@@ -13,7 +13,8 @@ const VISIBLE_MS = 5000;
 
 type UndoBannerProps = {
   message: string;
-  onUndo: () => void;
+  /** Without it, the banner is just a short message. */
+  onUndo?: () => void;
   onDismiss: () => void;
 };
 
@@ -38,9 +39,11 @@ export function UndoBanner({ message, onUndo, onDismiss }: UndoBannerProps) {
       <Pressable onPress={onDismiss} accessibilityLiveRegion="polite">
         <Glass radius={28} style={styles.banner}>
           <ThemedText style={styles.message}>{message}</ThemedText>
-          <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={12}>
-            <ThemedText style={[styles.undo, { color: theme.accent }]}>UNDO</ThemedText>
-          </Pressable>
+          {onUndo && (
+            <Pressable accessibilityRole="button" onPress={onUndo} hitSlop={12}>
+              <ThemedText style={[styles.undo, { color: theme.accent }]}>UNDO</ThemedText>
+            </Pressable>
+          )}
         </Glass>
       </Pressable>
     </Animated.View>

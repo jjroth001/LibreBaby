@@ -1,5 +1,11 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { SlideInDown } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icons/icon';
@@ -56,6 +62,17 @@ function SpreadBar({ item, bar, fill }: { item: OracleItem; bar: string; fill: s
 export function WhySheet({ item, visible, onClose }: WhySheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  // Slides up by animating its position, not with an entering animation: inside a Modal on
+  // Android, an entering animation can leave the touch areas where the slide began (below the
+  // screen), so Done wouldn't respond.
+  const { height } = useWindowDimensions();
+  const offset = useSharedValue(height);
+  useEffect(() => {
+    if (!visible) return;
+    offset.value = height;
+    offset.value = withTiming(0, { duration: 260, easing: Easing.out(Easing.cubic) });
+  }, [visible, height, offset]);
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateY: offset.value }] }));
   if (!item) return null;
   const { bar, fill } = categoryColor(theme, item);
   const solidFill = theme.light ? fill : fill.replace(/[\d.]+\)$/, '0.32)');
@@ -75,8 +92,8 @@ export function WhySheet({ item, visible, onClose }: WhySheetProps) {
         accessibilityLabel="Close"
       />
       <Animated.View
-        entering={SlideInDown.duration(260)}
         style={[
+          slide,
           styles.sheet,
           {
             backgroundColor: theme.simple ? theme.card : theme.surface,

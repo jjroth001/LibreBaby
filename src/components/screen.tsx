@@ -1,5 +1,6 @@
-import type { ReactNode, Ref } from 'react';
-import { ScrollView, StyleSheet, type ScrollViewProps } from 'react-native';
+import type { ComponentRef, ReactNode, Ref } from 'react';
+import { StyleSheet, type ScrollView, type ScrollViewProps } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTabBarSpace } from '@/components/app-tabs';
@@ -36,8 +37,11 @@ export function Screen({
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        ref={ref}
+      {/* Scrolls the focused field clear of the keyboard, in step with its animation. */}
+      <KeyboardAwareScrollView
+        // Its ref is the underlying ScrollView with one extra method, which callers don't use.
+        ref={ref as Ref<ComponentRef<typeof KeyboardAwareScrollView>>}
+        bottomOffset={Spacing.four}
         onContentSizeChange={onContentSizeChange}
         refreshControl={refreshControl}
         keyboardShouldPersistTaps="handled"
@@ -50,7 +54,7 @@ export function Screen({
           },
         ]}>
         {panel ? <Card style={styles.panel}>{children}</Card> : children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </ThemedView>
   );
 }

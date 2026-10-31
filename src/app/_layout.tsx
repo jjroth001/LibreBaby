@@ -4,6 +4,7 @@ import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { Suspense, useEffect } from 'react';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { SkyProvider, useSky } from '@/components/sky/sky-provider';
 import { TimerNotificationSync } from '@/components/timer-notification-sync';
@@ -26,9 +27,11 @@ export default function RootLayout() {
         options={{ enableChangeListener: true }}
         onInit={migrateDbIfNeeded}
         useSuspense>
-        <SkyProvider>
-          <RootNavigator />
-        </SkyProvider>
+        <KeyboardProvider>
+          <SkyProvider>
+            <RootNavigator />
+          </SkyProvider>
+        </KeyboardProvider>
       </SQLiteProvider>
     </Suspense>
   );

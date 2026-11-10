@@ -7,12 +7,14 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { createChild } from '@/db/children';
 import { onDbChanged } from '@/db/db-changes';
+import { eraseAllData } from '@/db/erase';
 import { deleteEvent, insertEvent, listEvents, startTimer, updateEvent } from '@/db/events';
 import type { Child } from '@/db/types';
 import { openTestDatabase, runMigrations } from '@/test-utils/node-sqlite';
 import { channelPair, newKey, replayChannel } from '@/test-utils/sync-channel';
 
 import { applyChanges } from './changes';
+import { adoptFamilyChild } from './pairing';
 
 import { runSyncSession } from './session';
 
@@ -367,5 +369,57 @@ describe('family sync', () => {
       runSyncSession({ db: a.db, channel: cMine, me: a, onPeer: (p) => peers.push(p.name) }),
     ).rejects.toThrow(/different family/);
     expect(peers).toEqual(['Old phone']);
+  });
+
+  it('sends everything again to a phone that erased its data and rejoined', async () => {
+    const { a, b, child } = await family();
+    for (let i = 0; i < 20; i++) await insertEvent(a.db, diaper(child.id, clock - i * MIN));
+    await sync(a, b);
+    expect(await all(b, child.id)).toHaveLength(20);
+
+    // "Erase everything" on B: leaves the family (forgetting its peers and its device id),
+    // wipes the data, then B scans the family code again.
+    await b.db.runAsync('DELETE FROM sync_peer');
+    await eraseAllData(b.db);
+    await adoptFamilyChild(b.db, {
+      familyId: 'family',
+      keyHex: '',
+      childId: child.id,
+      childName: 'Robin',
+    });
+    const rejoined: Phone = { ...b, deviceId: 'device-b-after-erase' };
+    await sync(a, rejoined);
+
+    expect(await all(rejoined, child.id)).toHaveLength(20);
+    expect(await b.db.getFirstAsync('SELECT name, birth_date, sex FROM child')).toEqual({
+      name: 'Robin',
+      birth_date: '2026-03-14',
+      sex: 'male',
+    });
+  });
+
+  it('syncs with two phones at the same time over one database connection', async () => {
+    const { a, b, child } = await family();
+    const c: Phone = { db: openTestDatabase(), deviceId: 'device-c', name: 'Grandma’s phone' };
+    await c.db.runAsync(
+      "INSERT INTO child (id, name, birth_date, sex, created_at, updated_at) VALUES (?, 'Baby', '2026-03-14', NULL, 0, 0)",
+      child.id,
+    );
+    for (let i = 0; i < 50; i++) {
+      await insertEvent(b.db, diaper(child.id, clock - i * MIN));
+      await insertEvent(c.db, diaper(child.id, clock - i * MIN - 1));
+    }
+
+    const key = newKey();
+    const [ab, ba] = channelPair(key, key);
+    const [ac, ca] = channelPair(key, key);
+    await Promise.all([
+      runSyncSession({ db: a.db, channel: ab, me: a }),
+      runSyncSession({ db: b.db, channel: ba, me: b }),
+      runSyncSession({ db: a.db, channel: ac, me: a }),
+      runSyncSession({ db: c.db, channel: ca, me: c }),
+    ]);
+
+    expect(await all(a, child.id)).toHaveLength(100);
   });
 });

@@ -2,7 +2,13 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { notifyDbChanged } from '@/db/db-changes';
 
-import { applyChanges, collectChanges, currentChangeSeq, reconcileRunningTimers } from './changes';
+import {
+  applyChanges,
+  collectChanges,
+  currentChangeSeq,
+  reconcileRunningTimers,
+  serializedWrite,
+} from './changes';
 import { isSessionNonce, type Message } from './frames';
 
 /** A connected, already-encrypted message pipe to one other phone. */
@@ -140,17 +146,20 @@ export async function runSyncSession(options: {
   // Everything from the other phone is saved: say so, and wait to hear the same back.
   await channel.send({ t: 'ack' });
   await expect(channel, 'ack');
-  const reconciled = await reconcileRunningTimers(db, now());
-
-  await db.runAsync(
-    `INSERT INTO sync_peer (device_id, name, last_sent_seq, last_synced_at) VALUES (?, ?, ?, ?)
-     ON CONFLICT (device_id) DO UPDATE SET name = excluded.name,
-       last_sent_seq = excluded.last_sent_seq, last_synced_at = excluded.last_synced_at`,
-    peer.deviceId,
-    peer.name,
-    sentUpTo,
-    now(),
-  );
+  // Queued behind any other session's merge, so these never land inside its transaction.
+  const reconciled = await serializedWrite(async () => {
+    const extra = await reconcileRunningTimers(db, now());
+    await db.runAsync(
+      `INSERT INTO sync_peer (device_id, name, last_sent_seq, last_synced_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT (device_id) DO UPDATE SET name = excluded.name,
+         last_sent_seq = excluded.last_sent_seq, last_synced_at = excluded.last_synced_at`,
+      peer.deviceId,
+      peer.name,
+      sentUpTo,
+      now(),
+    );
+    return extra;
+  });
   // Screens heard about these writes before they were committed (this is its own
   // connection); now that they're saved, have them read again.
   if (received + reconciled > 0) notifyDbChanged(['event', 'child']);

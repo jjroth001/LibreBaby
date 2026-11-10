@@ -18,6 +18,18 @@ const CHILD_COLUMNS = 'id, name, birth_date, sex, created_at, updated_at';
 const EVENT_COLUMNS =
   'id, child_id, type, start_at, end_at, data, notes, created_at, updated_at, deleted_at';
 
+/**
+ * Runs sync's database writes one at a time. Several sync sessions (one per family phone)
+ * share one connection, and `withTransactionAsync` is a plain BEGIN/COMMIT: two at once
+ * fail with "cannot start a transaction within a transaction".
+ */
+let writeQueue: Promise<unknown> = Promise.resolve();
+export function serializedWrite<R>(task: () => Promise<R>): Promise<R> {
+  const result = writeQueue.then(task);
+  writeQueue = result.catch(() => {});
+  return result;
+}
+
 /** The current value of this phone's change counter. */
 export async function currentChangeSeq(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ n: number }>('SELECT n FROM sync_counter WHERE id = 1');
@@ -44,10 +56,18 @@ export async function collectChanges(db: SQLiteDatabase, since: number): Promise
  * newer (so the latest edit wins, and soft deletes travel as ordinary rows). Returns how
  * many rows changed here. Malformed rows are dropped, and no edit counts as newer than now.
  */
-export async function applyChanges(
+export function applyChanges(
   db: SQLiteDatabase,
   changes: Changeset,
   now = Date.now(),
+): Promise<number> {
+  return serializedWrite(() => applyChangesNow(db, changes, now));
+}
+
+async function applyChangesNow(
+  db: SQLiteDatabase,
+  changes: Changeset,
+  now: number,
 ): Promise<number> {
   const children = changes.children.filter(isChildRow).map((c) => clampChildTimes(c, now));
   const events = changes.events.filter(isEventRow).map((e) => clampEventTimes(e, now));

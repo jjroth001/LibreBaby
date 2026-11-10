@@ -141,6 +141,9 @@ const MIGRATIONS: string[] = [
   `,
 ];
 
+const MIGRATION_RETRY_MS = 250;
+const MIGRATION_MAX_RETRIES = 20;
+
 /** The migration SQL in order (for tests that build a database from scratch). */
 export function migrateSql(): readonly string[] {
   return MIGRATIONS;
@@ -154,13 +157,26 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     'PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;',
   );
 
-  const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  const current = row?.user_version ?? 0;
+  const readVersion = async () =>
+    (await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
 
-  for (let version = current; version < MIGRATIONS.length; version++) {
-    await db.withExclusiveTransactionAsync(async (txn) => {
-      await txn.execAsync(MIGRATIONS[version]);
-      await txn.execAsync(`PRAGMA user_version = ${version + 1}`);
-    });
+  // The app, background sync and (after an update) both at once can get here on separate
+  // connections. If a step fails, another connection may be running it or have just
+  // finished it: wait, look at the version again, and only give up if nobody moved it on.
+  let failures = 0;
+  for (;;) {
+    const version = await readVersion();
+    if (version >= MIGRATIONS.length) break;
+    try {
+      await db.withExclusiveTransactionAsync(async (txn) => {
+        await txn.execAsync(MIGRATIONS[version]);
+        await txn.execAsync(`PRAGMA user_version = ${version + 1}`);
+      });
+      failures = 0;
+    } catch (error) {
+      await new Promise((resolve) => setTimeout(resolve, MIGRATION_RETRY_MS));
+      if ((await readVersion()) > version) continue;
+      if (++failures >= MIGRATION_MAX_RETRIES) throw error;
+    }
   }
 }

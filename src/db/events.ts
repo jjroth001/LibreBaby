@@ -263,7 +263,9 @@ export async function getEvent(db: SQLiteDatabase, id: string): Promise<BabyEven
 /**
  * Events overlapping [fromMs, toMs), oldest first. Searched by where entries end (the
  * `event_child_end` index), which skips everything before the range; the `+` keeps SQLite
- * from searching by start instead, which would read all history up to `toMs`.
+ * from searching by start instead, which would read all history up to `toMs`. A timer
+ * still running has no end yet, so it overlaps every range after its start (a sleep that
+ * began last night belongs in today's list too).
  */
 export async function listEvents(
   db: SQLiteDatabase,
@@ -271,14 +273,26 @@ export async function listEvents(
   fromMs: number,
   toMs: number,
 ): Promise<BabyEvent[]> {
+  // Second half: timers still running that began before the range. They have no end yet,
+  // so the first half (which looks at where entries end) can't see them. Kept as its own
+  // SELECT so each half uses its own index (event_child_end, event_running).
   const rows = await db.getAllAsync<EventRow>(
-    `SELECT * FROM event
-     WHERE child_id = ? AND deleted_at IS NULL
-       AND +start_at < ? AND COALESCE(end_at, start_at) >= ?
+    `SELECT * FROM (
+       SELECT * FROM event
+       WHERE child_id = ? AND deleted_at IS NULL
+         AND +start_at < ? AND COALESCE(end_at, start_at) >= ?
+       UNION ALL
+       SELECT * FROM event
+       WHERE child_id = ? AND deleted_at IS NULL
+         AND ${RUNNING_TIMER_SQL} AND start_at < ? AND start_at < ?
+     )
      ORDER BY start_at`,
     childId,
     toMs,
     fromMs,
+    childId,
+    fromMs,
+    toMs,
   );
   return fromRows(rows);
 }

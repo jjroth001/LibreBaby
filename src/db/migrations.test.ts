@@ -59,10 +59,16 @@ describe('migration 7 (speed indexes)', () => {
     expect(
       await plan(
         db,
-        `SELECT * FROM event WHERE child_id = 'c' AND deleted_at IS NULL
-         AND +start_at < 2 AND COALESCE(end_at, start_at) >= 1 ORDER BY start_at`,
+        `SELECT * FROM (
+           SELECT * FROM event WHERE child_id = 'c' AND deleted_at IS NULL
+             AND +start_at < 2 AND COALESCE(end_at, start_at) >= 1
+           UNION ALL
+           SELECT * FROM event WHERE child_id = 'c' AND deleted_at IS NULL
+             AND (end_at IS NULL AND type IN ('sleep', 'feed_breast'))
+             AND start_at < 1 AND start_at < 2
+         ) ORDER BY start_at`,
       ),
-    ).toContain('event_child_end');
+    ).toEqual(expect.stringMatching(/event_child_end.*event_running/s));
     expect(
       await plan(
         db,

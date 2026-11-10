@@ -7,7 +7,7 @@ import { AppState } from 'react-native';
 import { useSettings } from '@/db/use-settings';
 import { isInstalledBuild } from '@/lib/platform';
 
-import { clearFamily, getFamily, saveFamily, type Family } from './identity';
+import { clearFamily, getFamily, resetDeviceId, saveFamily, type Family } from './identity';
 import type { SyncEvent } from './manager';
 import { adoptFamilyChild, newFamily, type Invite } from './pairing';
 import { syncService, type SyncAttempt } from './sync-service';
@@ -140,6 +140,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     await clearFamily();
     await syncService.stop();
     await db.runAsync('DELETE FROM sync_peer');
+    // A new id next time, so the family's phones send everything again if we rejoin.
+    await resetDeviceId();
     setFamily(null);
   }, [db]);
 

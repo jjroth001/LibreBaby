@@ -21,6 +21,15 @@ export async function getDeviceId(): Promise<string> {
   return id;
 }
 
+/**
+ * Forgets this install's id, so the next sync uses a new one. Called when leaving a family:
+ * the other phones remember how much they have already sent to the old id, and would
+ * otherwise never resend it to a phone that erased its data and joined again.
+ */
+export async function resetDeviceId(): Promise<void> {
+  await SecureStore.deleteItemAsync(DEVICE_ID);
+}
+
 export async function getFamily(): Promise<Family | null> {
   const raw = await SecureStore.getItemAsync(FAMILY);
   if (!raw) return null;

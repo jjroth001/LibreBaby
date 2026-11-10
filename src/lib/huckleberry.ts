@@ -302,7 +302,8 @@ export function parseHuckleberryCsv(text: string): HuckleberryParse {
       endCondition: cells[6] ?? '',
       notes: cells[7] ?? '',
     };
-    const reader = READERS[row.type.trim().toLowerCase()];
+    const typeKey = row.type.trim().toLowerCase();
+    const reader = Object.hasOwn(READERS, typeKey) ? READERS[typeKey] : undefined;
     if (!reader) {
       skip(`${row.type.trim() || 'Unknown'} (not tracked in LibreBaby)`);
       continue;

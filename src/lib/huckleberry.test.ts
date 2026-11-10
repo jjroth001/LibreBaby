@@ -132,4 +132,15 @@ describe('parseHuckleberryCsv', () => {
       growth: 1,
     });
   });
+
+  it('treats a type named like a built-in object property as unknown', () => {
+    const result = parseHuckleberryCsv(
+      [HEADER, 'constructor,2026-10-12 03:16,,,,,,', '__proto__,2026-10-12 03:17,,,,,,'].join('\n'),
+    );
+    expect(result.events).toEqual([]);
+    expect(result.skipped).toEqual({
+      'constructor (not tracked in LibreBaby)': 1,
+      '__proto__ (not tracked in LibreBaby)': 1,
+    });
+  });
 });

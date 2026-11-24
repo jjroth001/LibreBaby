@@ -114,9 +114,9 @@ export function MedicationForm({
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   chip: {
-    minHeight: 40,
+    minHeight: 48,
     paddingHorizontal: Spacing.three,
-    borderRadius: 20,
+    borderRadius: 24,
     justifyContent: 'center',
   },
 });

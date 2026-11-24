@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -48,6 +48,22 @@ const noteLabel = (key: NoteKey) => (key.kind === 'week' ? `Week ${key.n + 1}` :
 export function DevelopmentView({ child, now }: { child: Child; now: number }) {
   const db = useSQLiteContext();
   const theme = useTheme();
+  // While a finger is on the row of ages, sideways drags scroll the row and never flip to the
+  // next tab; tab swiping comes back as soon as the finger lifts (and if this view goes away).
+  const navigation = useNavigation();
+  const holdTabSwipe = (hold: boolean) =>
+    navigation.setOptions({ swipeEnabled: !hold } as Record<string, unknown>);
+  // Android cancels the touch when the row (or the page) starts scrolling natively. If the row
+  // is the one scrolling, keep holding until the drag ends; otherwise let go.
+  const draggingAges = useRef(false);
+  const onAgesTouchCancel = () =>
+    setTimeout(() => {
+      if (!draggingAges.current) holdTabSwipe(false);
+    }, 150);
+  useEffect(
+    () => () => navigation.setOptions({ swipeEnabled: true } as Record<string, unknown>),
+    [navigation],
+  );
   const ageDays = ageInDays(child.birthDate, new Date(now));
   const currentKey = ageNoteKey(ageDays);
   const [noteKey, setNoteKey] = useState<NoteKey>(currentKey);
@@ -96,6 +112,7 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
         accessibilityRole="button"
         accessibilityLabel={delta < 0 ? 'Previous' : 'Next'}
         disabled={!target}
+        hitSlop={6}
         onPress={() => browse(delta)}
         style={({ pressed }) => [
           styles.arrow,
@@ -161,6 +178,16 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        onTouchStart={() => holdTabSwipe(true)}
+        onTouchEnd={() => holdTabSwipe(false)}
+        onTouchCancel={onAgesTouchCancel}
+        onScrollBeginDrag={() => {
+          draggingAges.current = true;
+        }}
+        onScrollEndDrag={() => {
+          draggingAges.current = false;
+          holdTabSwipe(false);
+        }}
         style={styles.agesBleed}
         contentContainerStyle={styles.ages}>
         {CHECKLISTS.map((c) => {
@@ -192,7 +219,7 @@ export function DevelopmentView({ child, now }: { child: Child; now: number }) {
                   {content}
                 </View>
               ) : (
-                <Glass radius={20} blur={false} flat style={styles.age}>
+                <Glass radius={24} blur={false} flat style={styles.age}>
                   {content}
                 </Glass>
               )}
@@ -325,14 +352,14 @@ const styles = StyleSheet.create({
   agesBleed: { marginHorizontal: -Spacing.four },
   ages: { gap: Spacing.two, paddingHorizontal: Spacing.four },
   age: {
-    height: 40,
+    height: 48,
     paddingHorizontal: Spacing.three,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
-  ageSelected: { borderRadius: 20 },
+  ageSelected: { borderRadius: 24 },
   ageText: { fontSize: 14, lineHeight: 18, fontWeight: 600 },
   sections: { gap: Spacing.four },
   area: { gap: Spacing.one },

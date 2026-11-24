@@ -9,16 +9,19 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Card } from '@/components/card';
+import { CardTitle } from '@/components/card-title';
 import { Icon, type IconName } from '@/components/icons/icon';
 import { AgendaItem } from '@/components/oracle/agenda-item';
 import { nowColor } from '@/components/oracle/oracle-style';
 import { WhySheet } from '@/components/oracle/why-sheet';
 import { Screen } from '@/components/screen';
+import { ScreenTitle } from '@/components/screen-title';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { EventRow } from '@/components/timeline/event-row';
+import { categoryColors } from '@/constants/categories';
 import { Motion } from '@/constants/motion';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { listEvents, TIMER_TYPES } from '@/db/events';
 import { setSetting } from '@/db/settings';
 import type { BabyEvent, Child } from '@/db/types';
@@ -126,15 +129,7 @@ function Oracle({ child }: { child: Child }) {
 
   return (
     <Screen>
-      <View style={styles.header} accessibilityRole="header">
-        <View style={styles.titleRow}>
-          <Icon name="crystal-ball" size={28} color={theme.text} />
-          <ThemedText style={styles.title}>The Oracle</ThemedText>
-        </View>
-        <ThemedText type="small" themeColor="textSecondary">
-          Rest of today and tonight
-        </ThemedText>
-      </View>
+      <ScreenTitle title="The Oracle" subtitle="Rest of today and tonight" />
 
       {forecast.learning && (
         <Card>
@@ -215,21 +210,25 @@ function Oracle({ child }: { child: Child }) {
         </LayoutAnimationConfig>
       </Card>
 
-      <View style={styles.diaperChoice}>
-        <ThemedText type="smallBold" themeColor="textSecondary" style={styles.diaperLabel}>
+      <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
+        Estimates come from the last {ORACLE_LOOKBACK_DAYS} days of entries and {child.name}’s age,
+        and get better the more you log. Tap one to see why. A rough guide, not medical advice.
+      </ThemedText>
+
+      {/* The Oracle's one setting, in its own card below the agenda rather than floating mid-page. */}
+      <Card style={styles.diaperChoice}>
+        <CardTitle icon="diaper" color={categoryColors(theme, 'diaper').bar}>
           Diaper estimates
+        </CardTitle>
+        <ThemedText type="small" themeColor="textSecondary">
+          Which diapers the agenda predicts.
         </ThemedText>
         <SegmentedControl
           options={DIAPER_OPTIONS}
           value={settings.data.oracleDiapers}
           onChange={(value) => setSetting(db, 'oracleDiapers', value)}
         />
-      </View>
-
-      <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
-        Estimates come from the last {ORACLE_LOOKBACK_DAYS} days of entries and {child.name}’s age,
-        and get better the more you log. Tap one to see why. A rough guide, not medical advice.
-      </ThemedText>
+      </Card>
 
       <WhySheet item={selected} visible={sheetOpen} onClose={() => setSheetOpen(false)} />
     </Screen>
@@ -293,9 +292,6 @@ function Chevron({ open, color }: { open: boolean; color: string }) {
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: 'center', gap: Spacing.half },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  title: { fontFamily: Fonts.serif, fontSize: 28, lineHeight: 36, fontWeight: 400 },
   note: { flexDirection: 'row', gap: Spacing.two + Spacing.one, alignItems: 'flex-start' },
   noteText: { flex: 1 },
   agenda: { padding: Spacing.three, gap: Spacing.three },
@@ -325,6 +321,5 @@ const styles = StyleSheet.create({
   },
   nowText: { fontSize: 13, lineHeight: 18, fontWeight: 700 },
   diaperChoice: { gap: Spacing.two },
-  diaperLabel: { textAlign: 'center' },
   footer: { textAlign: 'center', paddingHorizontal: Spacing.three },
 });

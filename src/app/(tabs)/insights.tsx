@@ -9,11 +9,12 @@ import { BarChart, type Bar } from '@/components/insights/bar-chart';
 import { DevelopmentView } from '@/components/insights/development-view';
 import { GrowthView } from '@/components/insights/growth-view';
 import { Screen } from '@/components/screen';
+import { ScreenTitle } from '@/components/screen-title';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { categoryColors, type Category } from '@/constants/categories';
 import { Motion } from '@/constants/motion';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { listEvents } from '@/db/events';
 import type { Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
@@ -103,7 +104,7 @@ function Insights({ child }: { child: Child }) {
 
   return (
     <Screen>
-      <ThemedText style={styles.title}>Insights</ThemedText>
+      <ScreenTitle title="Insights" />
       <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
 
       {view === 'growth' ? (
@@ -156,10 +157,7 @@ function Insights({ child }: { child: Child }) {
                 icon="bottle"
                 title="Feeds"
                 category="feed"
-                headline={`${oneDecimal(avg.feedCount)} / day`}
-                details={[
-                  hasBottles && `${formatVolume(avg.bottleMl, unit)} from bottles per day`,
-                ]}>
+                headline={`${oneDecimal(avg.feedCount)} / day`}>
                 <BarChart
                   title="Feeds per day"
                   color={categoryColors(theme, 'feed').bar}
@@ -260,6 +258,5 @@ const styles = StyleSheet.create({
   sectionHeader: { gap: Spacing.half },
   headline: { fontSize: 28, lineHeight: 36, fontWeight: 400 },
   empty: { textAlign: 'center' },
-  title: { fontFamily: Fonts.serif, fontSize: 34, lineHeight: 42, fontWeight: 400 },
   note: { paddingHorizontal: Spacing.two },
 });

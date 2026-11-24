@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   quickRow: { flexDirection: 'row', gap: Spacing.two },
   quick: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 48,
     borderRadius: Spacing.three,
     alignItems: 'center',
     justifyContent: 'center',

@@ -12,9 +12,8 @@ import { RunningSleepCard } from '@/components/home/running-sleep-card';
 import { SleepWindowCard } from '@/components/home/sleep-window-card';
 import { UndoBanner } from '@/components/home/undo-banner';
 import { Screen } from '@/components/screen';
-import { ThemedText } from '@/components/themed-text';
+import { ScreenTitle } from '@/components/screen-title';
 import { Motion } from '@/constants/motion';
-import { Fonts, Spacing } from '@/constants/theme';
 import {
   deleteEvent,
   getLatestEvent,
@@ -319,10 +318,7 @@ function Home({ child }: { child: Child }) {
           revealMenu.current = false;
           scrollRef.current?.scrollToEnd({ animated: true });
         }}>
-        <View style={styles.header}>
-          <ThemedText style={styles.name}>{child.name}</ThemedText>
-          <ThemedText themeColor="textSecondary">{formatAge(child.birthDate)} old</ThemedText>
-        </View>
+        <ScreenTitle title={child.name} subtitle={`${formatAge(child.birthDate)} old`} />
 
         {/* Cards fade in and out; everything below glides to its new place. */}
         <LayoutAnimationConfig key={resetKey} skipEntering skipExiting>
@@ -397,11 +393,4 @@ function Home({ child }: { child: Child }) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  header: { gap: Spacing.half },
-  name: {
-    fontFamily: Fonts.serif,
-    fontSize: 36,
-    lineHeight: 44,
-    fontWeight: 400,
-  },
 });

@@ -271,7 +271,7 @@ function ReminderForm({
 
       <Animated.View layout={Motion.layout} style={styles.actions}>
         <SubmitButton title="Save" onPress={save} disabled={!canSave} />
-        {existing && <Button title="Delete reminder" variant="secondary" onPress={remove} />}
+        {existing && <Button title="Delete reminder" variant="delete" onPress={remove} />}
       </Animated.View>
     </>
   );
@@ -280,28 +280,28 @@ function ReminderForm({
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   chip: {
-    minHeight: 40,
+    minHeight: 48,
     paddingHorizontal: Spacing.three,
-    borderRadius: 20,
+    borderRadius: 24,
     justifyContent: 'center',
   },
   panel: { borderRadius: 20, padding: Spacing.three, gap: Spacing.three },
   timeChip: {
-    minHeight: 44,
-    borderRadius: 22,
+    minHeight: 48,
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     paddingLeft: Spacing.three,
   },
-  timeLabel: { minHeight: 44, justifyContent: 'center' },
+  timeLabel: { minHeight: 48, justifyContent: 'center' },
   remove: {
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: Spacing.two + Spacing.half,
     justifyContent: 'center',
   },
   addChip: {
-    minHeight: 44,
-    borderRadius: 22,
+    minHeight: 48,
+    borderRadius: 24,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',

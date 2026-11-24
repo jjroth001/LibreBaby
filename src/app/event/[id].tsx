@@ -95,7 +95,7 @@ function EditEvent({ event, unit, growthUnits }: EditEventProps) {
     <Screen withTabBar={false} belowHeader panel>
       <Stack.Screen options={{ title: TITLES[event.type] }} />
       <EventForm event={event} unit={unit} growthUnits={growthUnits} onSaved={done} />
-      <Button title="Delete" variant="secondary" onPress={confirmDelete} />
+      <Button title="Delete entry" variant="delete" onPress={confirmDelete} />
     </Screen>
   );
 }

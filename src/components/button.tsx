@@ -12,14 +12,17 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   title: string;
-  /** `danger` is for destructive actions like erasing data. */
-  variant?: 'primary' | 'secondary' | 'danger';
+  /**
+   * `danger` is a solid red button for erasing everything; `delete` is a quiet button with red
+   * text for removing one thing (an entry, a reminder), so it doesn't shout but isn't missed.
+   */
+  variant?: 'primary' | 'secondary' | 'danger' | 'delete';
   style?: StyleProp<ViewStyle>;
 };
 
 export function Button({ title, variant = 'primary', disabled, style, ...rest }: ButtonProps) {
   const theme = useTheme();
-  const filled = variant !== 'secondary';
+  const filled = variant === 'primary' || variant === 'danger';
   const background =
     variant === 'danger'
       ? theme.danger
@@ -39,7 +42,11 @@ export function Button({ title, variant = 'primary', disabled, style, ...rest }:
         style,
       ]}
       {...rest}>
-      <ThemedText style={[styles.label, { color: filled ? theme.onTint : theme.text }]}>
+      <ThemedText
+        style={[
+          styles.label,
+          { color: filled ? theme.onTint : variant === 'delete' ? theme.danger : theme.text },
+        ]}>
         {title}
       </ThemedText>
     </Pressable>

@@ -1,9 +1,6 @@
-import { StyleSheet } from 'react-native';
-
 import { Screen } from '@/components/screen';
+import { ScreenTitle } from '@/components/screen-title';
 import { MenuGroup } from '@/components/settings/settings-menu';
-import { ThemedText } from '@/components/themed-text';
-import { Fonts } from '@/constants/theme';
 import { useChild } from '@/db/use-child';
 import { useDbQuery } from '@/db/use-db-query';
 import { useSettings } from '@/db/use-settings';
@@ -48,7 +45,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <ThemedText style={styles.title}>Settings</ThemedText>
+      <ScreenTitle title="Settings" />
 
       <MenuGroup
         label="Baby"
@@ -124,7 +121,3 @@ export default function SettingsScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  title: { fontFamily: Fonts.serif, fontSize: 34, lineHeight: 42, fontWeight: 400 },
-});

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
+import java.net.NetworkInterface
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -37,6 +38,26 @@ class BackgroundSyncModule : Module() {
 
     Function("release") {
       wakeLock?.takeIf { it.isHeld }?.release()
+    }
+
+    /**
+     * This phone's addresses with their interface names (e.g. "tun0" for a VPN such as
+     * Tailscale), so sync can tell the family's other phones how to reach it.
+     */
+    Function("networkAddresses") {
+      val found = mutableListOf<Map<String, String>>()
+      try {
+        for (iface in NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()) {
+          if (!iface.isUp || iface.isLoopback) continue
+          for (address in iface.inetAddresses.toList()) {
+            val text = address.hostAddress ?: continue
+            found.add(mapOf("name" to iface.name, "address" to text))
+          }
+        }
+      } catch (e: Exception) {
+        // No addresses this time; sync over Wi-Fi still works.
+      }
+      found
     }
 
     /** Whether Android exempts the app from battery optimization (it can then sync in deep sleep). */

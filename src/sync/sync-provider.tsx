@@ -11,6 +11,7 @@ import { clearFamily, getFamily, resetDeviceId, saveFamily, type Family } from '
 import type { SyncEvent } from './manager';
 import { adoptFamilyChild, newFamily, type Invite } from './pairing';
 import { syncService, type SyncAttempt } from './sync-service';
+import { clearTailnetBook } from './tailnet-store';
 
 type SyncContextValue = {
   /** Networking needs native modules that only exist in installed builds. */
@@ -140,6 +141,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     await clearFamily();
     await syncService.stop();
     await db.runAsync('DELETE FROM sync_peer');
+    await clearTailnetBook();
     // A new id next time, so the family's phones send everything again if we rejoin.
     await resetDeviceId();
     setFamily(null);
@@ -150,6 +152,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     await saveFamily(created);
     // The phones listed belonged to the old code; they reappear once they scan the new one.
     await db.runAsync('DELETE FROM sync_peer');
+    await clearTailnetBook();
     setFamily(created);
     // Already running for the old family: restart with the new key.
     if (isInstalledBuild) await syncService.ensureRunning();

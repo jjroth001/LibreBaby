@@ -16,8 +16,17 @@ export type Message =
   /**
    * `port`: where this phone listens, so the other can dial it back later.
    * `nonce`: this phone's random value for this connection's keys (protocol 4).
+   * `addrs`: this phone's Tailscale addresses, so the other can reach it away from home.
    */
-  | { t: 'hello'; v: number; deviceId: string; name: string; port?: number; nonce?: string }
+  | {
+      t: 'hello';
+      v: number;
+      deviceId: string;
+      name: string;
+      port?: number;
+      nonce?: string;
+      addrs?: string[];
+    }
   | { t: 'changes'; children: ChildRow[]; events: EventRow[] }
   | { t: 'done' }
   /** Everything received has been saved; only now may the sender count it as delivered. */

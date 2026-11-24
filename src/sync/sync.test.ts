@@ -73,6 +73,16 @@ describe('family sync', () => {
     });
   });
 
+  it("shares each phone's Tailscale addresses, and only those", async () => {
+    const { a, b } = await family();
+    const [resultA, resultB] = await sync(
+      { ...a, port: 47323, addrs: ['100.88.7.6', '192.168.1.20'] } as Phone,
+      { ...b, port: 47323 } as Phone,
+    );
+    expect(resultB.peer).toMatchObject({ deviceId: 'device-a', addrs: ['100.88.7.6'] });
+    expect(resultA.peer.addrs).toBeUndefined();
+  });
+
   it('merges entries logged on both phones', async () => {
     const { a, b, child } = await family();
     await sync(a, b);

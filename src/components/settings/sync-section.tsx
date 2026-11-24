@@ -76,7 +76,7 @@ export function SyncSection({ child }: { child: Child }) {
     : sync.lastEvent?.type === 'error'
       ? `Last attempt failed: ${sync.lastEvent.message}`
       : sync.lastEvent?.type === 'synced'
-        ? `Synced with ${sync.lastEvent.peerName}`
+        ? `Synced with ${sync.lastEvent.peerName}${sync.lastEvent.via === 'tailscale' ? ' over Tailscale' : ''}`
         : 'Looking for family phones on this Wi-Fi…';
 
   return (
@@ -126,6 +126,13 @@ export function SyncSection({ child }: { child: Child }) {
           {(peers.data ?? []).length === 0 && (
             <ThemedText type="small" themeColor="textSecondary">
               No other phones yet. Show the family code on this phone and scan it on the other.
+            </ThemedText>
+          )}
+          {(peers.data ?? []).length > 0 && (
+            <ThemedText type="small" themeColor="textSecondary">
+              Away from home? If your phones use Tailscale, keep it on and they&apos;ll sync over it
+              too. They learn each other&apos;s Tailscale address the next time they sync on the
+              same Wi-Fi.
             </ThemedText>
           )}
           {BackgroundSync && settings && (

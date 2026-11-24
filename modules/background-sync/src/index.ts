@@ -7,6 +7,8 @@ type BackgroundSyncModule = {
   release(): void;
   isIgnoringBatteryOptimizations(): boolean;
   requestIgnoreBatteryOptimizations(): void;
+  /** This phone's addresses and their interface names ("tun0" for a VPN such as Tailscale). */
+  networkAddresses(): { name: string; address: string }[];
 };
 
 /**

@@ -47,7 +47,7 @@ const MIN_REFRESH_MS = 700;
 function syncMessage(attempt: SyncAttempt): string {
   switch (attempt.type) {
     case 'synced':
-      return `Synced with ${attempt.peerName}`;
+      return `Synced with ${attempt.peerName}${attempt.via === 'tailscale' ? ' over Tailscale' : ''}`;
     case 'no-phones':
       return 'No family phones found on this Wi-Fi';
     case 'error':

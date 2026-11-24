@@ -11,17 +11,35 @@ import type { Family } from './identity';
 import { acceptedTags, discoveredPeer, discoveryTag } from './pairing';
 import { runSyncSession } from './session';
 import { socketChannel } from './socket-channel';
+import {
+  isTailscaleAddress,
+  ownTailscaleAddresses,
+  rememberPeer,
+  type TailnetBook,
+} from './tailnet';
+import { loadTailnetBook, saveTailnetBook } from './tailnet-store';
 
 type Socket = InstanceType<typeof TcpSocketModule.Socket>;
 type Server = ReturnType<typeof TcpSocketModule.createServer>;
 
 export type SyncEvent =
   | { type: 'syncing'; peerName: string | null }
-  | { type: 'synced'; peerName: string; received: number; sent: number }
+  | {
+      type: 'synced';
+      peerName: string;
+      received: number;
+      sent: number;
+      via: 'wifi' | 'tailscale';
+    }
   | { type: 'error'; message: string };
 
 const SERVICE = { type: 'librebaby', protocol: 'tcp', domain: 'local.' } as const;
 const CONNECT_TIMEOUT_MS = 8_000;
+/**
+ * Listen here, so a phone that saved this one's Tailscale address can still reach it after
+ * the app restarts. If something else has it, any free port does (and the hello says which).
+ */
+const SYNC_PORT = 47323;
 /**
  * Sync this often even without local changes, so the other phone's changes arrive even if
  * its own "sync after a change" couldn't reach us: every minute while the app is open,
@@ -40,6 +58,15 @@ const MAX_INCOMING = 4;
 /** An IPv4 peer can show up as "::ffff:192.168.1.5" on a dual-stack socket. */
 const plainAddress = (address: string) => address.replace(/^::ffff:/, '');
 
+/** This phone's Tailscale addresses right now (none in Expo Go or without Tailscale on). */
+function ownAddresses(): string[] {
+  try {
+    return ownTailscaleAddresses(BackgroundSync?.networkAddresses() ?? []);
+  } catch {
+    return [];
+  }
+}
+
 /** A family phone we can reach. Its device id is known once a sync with it has started. */
 type Peer = { host: string; port: number; name: string; deviceId?: string };
 
@@ -47,6 +74,7 @@ type Peer = { host: string; port: number; name: string; deviceId?: string };
  * Runs family sync on the local network while the app is open:
  * - listens for other family phones (TCP server on a random port),
  * - announces itself and looks for them with zeroconf/mDNS,
+ * - away from home, calls family phones at the Tailscale addresses they shared before,
  * - syncs with each one it finds, again whenever asked (after local changes, or
  *   "Sync now"), and every minute. Native modules are loaded lazily — this only runs in
  *   installed builds.
@@ -55,9 +83,13 @@ export class SyncManager {
   private server: Server | null = null;
   private zeroconf: ZeroconfClass | null = null;
   private tcp: typeof TcpSocketModule | null = null;
-  /** Keyed by "svc:<service name>" when found on the network, "dev:<id>" when it called us. */
+  /**
+   * Keyed by "svc:<service name>" when found on the network, "dev:<id>" when it called us,
+   * "ts:<id>" when reachable only at its saved Tailscale address.
+   */
   private readonly peers = new Map<string, Peer>();
   private readonly busy = new Set<string>();
+  private book: TailnetBook = {};
   private readonly key: Uint8Array;
   /** Random for each start, so the announcement can't be tied to this phone over time. */
   private readonly instance = bytesToHex(getRandomBytes(8));
@@ -84,22 +116,37 @@ export class SyncManager {
       import('react-native-tcp-socket'),
       import('react-native-zeroconf'),
     ]);
+    this.book = await loadTailnetBook().catch(() => ({}));
     if (this.stopped) return;
     this.tcp = TcpSocket;
 
-    const server = TcpSocket.createServer((socket) => {
-      if (this.incoming >= MAX_INCOMING) {
-        socket.destroy();
-        return;
+    const listen = async (port: number) => {
+      const server = TcpSocket.createServer((socket) => {
+        if (this.incoming >= MAX_INCOMING) {
+          socket.destroy();
+          return;
+        }
+        this.incoming += 1;
+        void this.run(socket, null).finally(() => (this.incoming -= 1));
+      });
+      this.server = server;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.once('error', reject);
+          server.listen({ port, host: '0.0.0.0' }, () => resolve());
+        });
+      } catch (error) {
+        server.close();
+        this.server = null;
+        throw error;
       }
-      this.incoming += 1;
-      void this.run(socket, null).finally(() => (this.incoming -= 1));
-    });
-    this.server = server;
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen({ port: 0, host: '0.0.0.0' }, () => resolve());
-    });
+      return server;
+    };
+    const server = await listen(SYNC_PORT).catch(() => listen(0));
+    if (this.stopped) {
+      server.close();
+      return;
+    }
     const address = server.address();
     if (!address) throw new Error('Could not open the sync port.');
     this.port = address.port;
@@ -160,14 +207,50 @@ export class SyncManager {
     this.peers.clear();
   }
 
-  /** Phones from this family currently visible on the network. */
+  /** Phones from this family we can reach: on the network, or over Tailscale. */
   get visiblePeers(): number {
+    this.refreshTailnet();
     return this.peers.size;
   }
 
-  /** Sync with every family phone we can see. */
+  /** Sync with every family phone we can reach. */
   syncNow(): void {
+    this.refreshTailnet();
     for (const key of this.peers.keys()) this.connect(key);
+  }
+
+  /**
+   * Lists each saved family phone that isn't on this network as reachable at its Tailscale
+   * address, while this phone has Tailscale on (and none of them otherwise).
+   */
+  private refreshTailnet() {
+    const online = ownAddresses().length > 0;
+    for (const [key, peer] of this.peers) {
+      if (!key.startsWith('ts:')) continue;
+      if (!online || !this.book[peer.deviceId!]) this.peers.delete(key);
+    }
+    if (!online) return;
+    for (const [deviceId, entry] of Object.entries(this.book)) {
+      const key = `ts:${deviceId}`;
+      // Found by discovery: it's on this network now. (A "dev:" entry may be from earlier
+      // at home; if both are tried, the first to connect removes the other.)
+      const nearby = [...this.peers].some(
+        ([k, p]) => k.startsWith('svc:') && p.deviceId === deviceId,
+      );
+      if (nearby) {
+        this.peers.delete(key);
+        continue;
+      }
+      this.peers.set(key, { host: entry.addrs[0], port: entry.port, name: entry.name, deviceId });
+    }
+  }
+
+  /** Saves how to reach a phone over Tailscale, if that changed. */
+  private remember(peer: { deviceId: string; name: string; port?: number; addrs?: string[] }) {
+    const book = rememberPeer(this.book, peer.deviceId, peer);
+    if (book === this.book) return;
+    this.book = book;
+    saveTailnetBook(book).catch(() => {});
   }
 
   private found(service: Service) {
@@ -227,7 +310,7 @@ export class SyncManager {
       const result = await runSyncSession({
         db: this.db,
         channel,
-        me: { ...this.me, port: this.port },
+        me: { ...this.me, port: this.port, addrs: ownAddresses() },
         onPeer: (peer) => {
           isFamily = true;
           // With the app closed the phone may be dozing; stay awake just long enough to finish.
@@ -242,6 +325,7 @@ export class SyncManager {
       const { deviceId } = result.peer;
       const known = [...this.peers.values()].some((peer) => peer.deviceId === deviceId);
       const host = socket.remoteAddress;
+      this.remember(result.peer);
       if (!key && !known && host && result.peer.port) {
         this.peers.set(`dev:${deviceId}`, {
           host: plainAddress(host),
@@ -255,6 +339,7 @@ export class SyncManager {
         peerName: result.peer.name,
         received: result.received,
         sent: result.sent,
+        via: isTailscaleAddress(host ?? '') ? 'tailscale' : 'wifi',
       });
     } catch (error) {
       // A phone we called is one we found as family, so its failures are worth showing.

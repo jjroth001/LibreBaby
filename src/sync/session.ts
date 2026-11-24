@@ -10,6 +10,7 @@ import {
   serializedWrite,
 } from './changes';
 import { isSessionNonce, type Message } from './frames';
+import { peerAddresses } from './tailnet';
 
 /** A connected, already-encrypted message pipe to one other phone. */
 export type Channel = {
@@ -24,7 +25,8 @@ export type Channel = {
 };
 
 export type SyncResult = {
-  peer: { deviceId: string; name: string; port?: number };
+  /** `addrs`: its Tailscale addresses, if it has any. */
+  peer: { deviceId: string; name: string; port?: number; addrs?: string[] };
   sent: number;
   received: number;
 };
@@ -64,7 +66,7 @@ async function expect<T extends Message['t']>(
 export async function runSyncSession(options: {
   db: SQLiteDatabase;
   channel: Channel;
-  me: { deviceId: string; name: string; port?: number };
+  me: { deviceId: string; name: string; port?: number; addrs?: string[] };
   now?: () => number;
   /** Called once the other phone has proven it's family (its hello opened with our key). */
   onPeer?: (peer: SyncResult['peer']) => void;
@@ -78,6 +80,7 @@ export async function runSyncSession(options: {
     deviceId: me.deviceId,
     name: me.name,
     ...(me.port ? { port: me.port } : {}),
+    ...(me.addrs?.length ? { addrs: me.addrs } : {}),
     nonce: channel.nonce,
   });
   const hello = await expect(channel, 'hello', HELLO_TIMEOUT_MS);
@@ -96,6 +99,7 @@ export async function runSyncSession(options: {
       Number.isInteger(hello.port) && hello.port! > 0 && hello.port! < 65_536
         ? hello.port
         : undefined,
+    addrs: peerAddresses(hello.addrs),
   };
   // Its hello opened with the family key: a family phone (if perhaps an older version).
   options.onPeer?.(peer);

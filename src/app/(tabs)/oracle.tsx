@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -9,21 +8,17 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Card } from '@/components/card';
-import { CardTitle } from '@/components/card-title';
 import { Icon, type IconName } from '@/components/icons/icon';
 import { AgendaItem } from '@/components/oracle/agenda-item';
 import { nowColor } from '@/components/oracle/oracle-style';
 import { WhySheet } from '@/components/oracle/why-sheet';
 import { Screen } from '@/components/screen';
 import { ScreenTitle } from '@/components/screen-title';
-import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { EventRow } from '@/components/timeline/event-row';
-import { categoryColors } from '@/constants/categories';
 import { Motion } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { listEvents, TIMER_TYPES } from '@/db/events';
-import { setSetting } from '@/db/settings';
 import type { BabyEvent, Child } from '@/db/types';
 import { useChild } from '@/db/use-child';
 import { useDeferredMount } from '@/hooks/use-deferred-mount';
@@ -41,14 +36,8 @@ import {
   earlierToday,
   ORACLE_LOOKBACK_DAYS,
   oracleLookbackStart,
-  type OracleDiapers,
   type OracleItem,
 } from '@/lib/oracle';
-
-const DIAPER_OPTIONS = [
-  { value: 'all', label: 'Wet & dirty' },
-  { value: 'dirty', label: 'Dirty only' },
-] as const satisfies readonly { value: OracleDiapers; label: string }[];
 
 export default function OracleScreen() {
   const { data: child } = useChild();
@@ -74,7 +63,6 @@ function dayName(day: number): string {
 
 function Oracle({ child }: { child: Child }) {
   const theme = useTheme();
-  const db = useSQLiteContext();
   const settings = useSettings();
   const now = useNow(60_000);
   const { layout, resetKey } = useLiveLayout();
@@ -215,21 +203,6 @@ function Oracle({ child }: { child: Child }) {
         and get better the more you log. Tap one to see why. A rough guide, not medical advice.
       </ThemedText>
 
-      {/* The Oracle's one setting, in its own card below the agenda rather than floating mid-page. */}
-      <Card style={styles.diaperChoice}>
-        <CardTitle icon="diaper" color={categoryColors(theme, 'diaper').bar}>
-          Diaper estimates
-        </CardTitle>
-        <ThemedText type="small" themeColor="textSecondary">
-          Which diapers the agenda predicts.
-        </ThemedText>
-        <SegmentedControl
-          options={DIAPER_OPTIONS}
-          value={settings.data.oracleDiapers}
-          onChange={(value) => setSetting(db, 'oracleDiapers', value)}
-        />
-      </Card>
-
       <WhySheet item={selected} visible={sheetOpen} onClose={() => setSheetOpen(false)} />
     </Screen>
   );
@@ -320,6 +293,5 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   nowText: { fontSize: 13, lineHeight: 18, fontWeight: 700 },
-  diaperChoice: { gap: Spacing.two },
   footer: { textAlign: 'center', paddingHorizontal: Spacing.three },
 });

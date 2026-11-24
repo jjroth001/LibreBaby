@@ -125,6 +125,7 @@ function RootNavigator() {
               options={{ ...logSheet, title: 'Accessibility' }}
             />
             <Stack.Screen name="settings/units" options={{ ...logSheet, title: 'Units' }} />
+            <Stack.Screen name="settings/oracle" options={{ ...logSheet, title: 'The Oracle' }} />
             <Stack.Screen
               name="settings/notifications"
               options={{ ...logSheet, title: 'Notifications' }}

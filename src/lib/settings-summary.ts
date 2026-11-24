@@ -41,6 +41,10 @@ export function unitsSummary(s: Pick<Settings, 'volumeUnit' | 'growthUnits'>): s
   return `${volume} · ${growth}`;
 }
 
+export function oracleSummary(s: Pick<Settings, 'oracleDiapers'>): string {
+  return s.oracleDiapers === 'dirty' ? 'Dirty diapers only' : 'Wet & dirty diapers';
+}
+
 export function notificationsSummary(
   s: Pick<Settings, 'sleepReminders' | 'sleepReminderLeadMin' | 'timerNotifications'>,
   supported: boolean,

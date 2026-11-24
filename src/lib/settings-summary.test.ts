@@ -6,6 +6,7 @@ import {
   backupSummary,
   medRemindersSummary,
   notificationsSummary,
+  oracleSummary,
   syncSummary,
   unitsSummary,
 } from './settings-summary';
@@ -57,6 +58,11 @@ describe('Settings summaries', () => {
   it('units', () => {
     expect(unitsSummary({ volumeUnit: 'ml', growthUnits: 'metric' })).toBe('Milliliters · kg & cm');
     expect(unitsSummary({ volumeUnit: 'oz', growthUnits: 'imperial' })).toBe('Ounces · lb & in');
+  });
+
+  it('oracle', () => {
+    expect(oracleSummary({ oracleDiapers: 'all' })).toBe('Wet & dirty diapers');
+    expect(oracleSummary({ oracleDiapers: 'dirty' })).toBe('Dirty diapers only');
   });
 
   it('notifications', () => {

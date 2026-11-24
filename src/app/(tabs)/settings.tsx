@@ -13,6 +13,7 @@ import {
   backupSummary,
   medRemindersSummary,
   notificationsSummary,
+  oracleSummary,
   syncSummary,
   unitsSummary,
 } from '@/lib/settings-summary';
@@ -79,6 +80,12 @@ export default function SettingsScreen() {
             title: 'Units',
             summary: unitsSummary(settings),
             href: '/settings/units',
+          },
+          {
+            icon: 'crystal-ball',
+            title: 'The Oracle',
+            summary: oracleSummary(settings),
+            href: '/settings/oracle',
           },
         ]}
       />

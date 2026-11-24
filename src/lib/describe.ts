@@ -62,3 +62,28 @@ export function describeEvent(
       return 'Entry';
   }
 }
+
+/**
+ * A shorter label for the small tiles on Home, where the full one wraps or gets cut off:
+ * "Bottle 4 oz", "Breast 21m", "Wet + dirty". Falls back to the full label.
+ */
+export function describeEventShort(event: BabyEvent, unit: VolumeUnit): string {
+  switch (event.type) {
+    case 'feed_breast': {
+      const total = event.data.leftMs + event.data.rightMs;
+      return total > 0 ? `Breast ${formatDuration(total)}` : 'Breast';
+    }
+    case 'feed_bottle':
+      return `Bottle ${formatVolume(event.data.amountMl, unit)}`;
+    case 'feed_solids':
+      return 'Solids';
+    case 'diaper': {
+      const { wet, dirty } = event.data;
+      return wet && dirty ? 'Wet + dirty' : dirty ? 'Dirty' : 'Wet';
+    }
+    case 'pump':
+      return `Pumped ${formatVolume(event.data.leftMl + event.data.rightMl, unit)}`;
+    default:
+      return describeEvent(event, unit);
+  }
+}

@@ -11,6 +11,7 @@ import { GrowthView } from '@/components/insights/growth-view';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
+import { categoryColors, type Category } from '@/constants/categories';
 import { Motion } from '@/constants/motion';
 import { Fonts, Spacing } from '@/constants/theme';
 import { listEvents } from '@/db/events';
@@ -21,6 +22,7 @@ import { useDbQuery } from '@/db/use-db-query';
 import { useTabQueryOptions } from '@/hooks/use-tab-query-options';
 import { useSettings } from '@/db/use-settings';
 import { useNow } from '@/hooks/use-now';
+import { useTheme } from '@/hooks/use-theme';
 import { addLocalDays, startOfLocalDay } from '@/lib/dates';
 import { formatDuration } from '@/lib/format';
 import { buildInsights, type DayInsight } from '@/lib/insights';
@@ -75,6 +77,7 @@ function barsFor(days: DayInsight[], pick: (d: DayInsight) => number): Bar[] {
 const oneDecimal = (n: number) => (Math.round(n * 10) / 10).toString();
 
 function Insights({ child }: { child: Child }) {
+  const theme = useTheme();
   const settings = useSettings();
   const now = useNow(60_000);
   const todayStart = startOfLocalDay(now);
@@ -132,6 +135,7 @@ function Insights({ child }: { child: Child }) {
               <Section
                 icon="moon-stars"
                 title="Sleep"
+                category="sleep"
                 headline={`${formatDuration(avg.sleepMs)} / day`}
                 details={[
                   avg.longestSleepMs > 0 &&
@@ -141,6 +145,7 @@ function Insights({ child }: { child: Child }) {
                 ]}>
                 <BarChart
                   title="Sleep per day"
+                  color={categoryColors(theme, 'sleep').bar}
                   bars={barsFor(insights.days, (d) => d.sleepMs)}
                   format={formatDuration}
                   average={avg.sleepMs}
@@ -150,12 +155,14 @@ function Insights({ child }: { child: Child }) {
               <Section
                 icon="bottle"
                 title="Feeds"
+                category="feed"
                 headline={`${oneDecimal(avg.feedCount)} / day`}
                 details={[
                   hasBottles && `${formatVolume(avg.bottleMl, unit)} from bottles per day`,
                 ]}>
                 <BarChart
                   title="Feeds per day"
+                  color={categoryColors(theme, 'feed').bar}
                   bars={barsFor(insights.days, (d) => d.feedCount)}
                   format={(n) => oneDecimal(n)}
                   average={avg.feedCount}
@@ -166,9 +173,11 @@ function Insights({ child }: { child: Child }) {
                 <Section
                   icon="bottle"
                   title="Bottle volume"
+                  category="feed"
                   headline={`${formatVolume(avg.bottleMl, unit)} / day`}>
                   <BarChart
                     title="Bottle volume per day"
+                    color={categoryColors(theme, 'feed').bar}
                     bars={barsFor(insights.days, (d) => d.bottleMl)}
                     format={(ml) => formatVolume(ml, unit)}
                     average={avg.bottleMl}
@@ -179,12 +188,14 @@ function Insights({ child }: { child: Child }) {
               <Section
                 icon="diaper"
                 title="Diapers"
+                category="diaper"
                 headline={`${oneDecimal(avg.diaperCount)} / day`}
                 details={[
                   `${oneDecimal(avg.wetCount)} wet · ${oneDecimal(avg.dirtyCount)} dirty on average`,
                 ]}>
                 <BarChart
                   title="Diapers per day"
+                  color={categoryColors(theme, 'diaper').bar}
                   bars={barsFor(insights.days, (d) => d.diaperCount)}
                   format={(n) => oneDecimal(n)}
                   average={avg.diaperCount}
@@ -195,9 +206,11 @@ function Insights({ child }: { child: Child }) {
                 <Section
                   icon="pump"
                   title="Pumping"
+                  category="feed"
                   headline={`${formatVolume(avg.pumpMl, unit)} / day`}>
                   <BarChart
                     title="Pumped per day"
+                    color={categoryColors(theme, 'feed').bar}
                     bars={barsFor(insights.days, (d) => d.pumpMl)}
                     format={(ml) => formatVolume(ml, unit)}
                     average={avg.pumpMl}
@@ -215,17 +228,21 @@ function Insights({ child }: { child: Child }) {
 type SectionProps = {
   icon: IconName;
   title: string;
+  category: Category;
   headline: string;
   details?: (string | false)[];
   children: React.ReactNode;
 };
 
-function Section({ icon, title, headline, details = [], children }: SectionProps) {
+function Section({ icon, title, category, headline, details = [], children }: SectionProps) {
+  const theme = useTheme();
   const lines = details.filter(Boolean) as string[];
   return (
     <Card>
       <View style={styles.sectionHeader}>
-        <CardTitle icon={icon}>{title}</CardTitle>
+        <CardTitle icon={icon} color={categoryColors(theme, category).bar}>
+          {title}
+        </CardTitle>
         <ThemedText style={styles.headline}>{headline}</ThemedText>
         {lines.map((line) => (
           <ThemedText key={line} type="small" themeColor="textSecondary">
@@ -241,7 +258,7 @@ function Section({ icon, title, headline, details = [], children }: SectionProps
 const styles = StyleSheet.create({
   sections: { gap: Spacing.four },
   sectionHeader: { gap: Spacing.half },
-  headline: { fontSize: 28, lineHeight: 36, fontWeight: 300 },
+  headline: { fontSize: 28, lineHeight: 36, fontWeight: 400 },
   empty: { textAlign: 'center' },
   title: { fontFamily: Fonts.serif, fontSize: 34, lineHeight: 42, fontWeight: 400 },
   note: { paddingHorizontal: Spacing.two },

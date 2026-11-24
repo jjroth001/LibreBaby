@@ -1,9 +1,10 @@
 import type { IconName } from '@/components/icons/icon';
+import { categoryColors, type CategoryColors } from '@/constants/categories';
 import type { Palette } from '@/constants/theme';
 import { formatDuration, formatTime, formatTimeRange } from '@/lib/format';
 import type { OracleItem, OracleKind } from '@/lib/oracle';
 
-export type Category = 'sleep' | 'feed' | 'diaper';
+type Category = 'sleep' | 'feed' | 'diaper';
 
 const CATEGORY: Record<OracleKind, Category> = {
   nap: 'sleep',
@@ -31,30 +32,9 @@ export function itemIcon(item: OracleItem): IconName {
   return ICON[item.kind];
 }
 
-/**
- * Agenda colors, like calendars on a calendar app: purple for sleep, orange for feeds, teal
- * for diapers. Deep shades where text is dark, light ones where it's white.
- */
-export function categoryColor(theme: Palette, item: OracleItem): { bar: string; fill: string } {
-  const category = CATEGORY[item.kind];
-  if (theme.light) {
-    const bar = { sleep: '#5646C2', feed: '#B45309', diaper: '#0F766E' }[category];
-    const fill = theme.simple
-      ? { sleep: '#ECE9FF', feed: '#FDEBDB', diaper: '#DDF3EF' }[category]
-      : {
-          sleep: 'rgba(86,70,194,0.16)',
-          feed: 'rgba(180,83,9,0.16)',
-          diaper: 'rgba(15,118,110,0.16)',
-        }[category];
-    return { bar, fill };
-  }
-  const bar = { sleep: '#B9B0FF', feed: '#FFC08A', diaper: '#8FE0D8' }[category];
-  const fill = {
-    sleep: 'rgba(185,176,255,0.2)',
-    feed: 'rgba(255,192,138,0.18)',
-    diaper: 'rgba(143,224,216,0.16)',
-  }[category];
-  return { bar, fill };
+/** Agenda colors: the app's category colors (see constants/categories.ts). */
+export function categoryColor(theme: Palette, item: OracleItem): CategoryColors {
+  return categoryColors(theme, CATEGORY[item.kind]);
 }
 
 /** The red-orange "now" line, as on a calendar. */
@@ -81,8 +61,16 @@ export function itemName(item: OracleItem): string {
   return NAMES[item.kind];
 }
 
+/** The agenda's time column: "~4:50 PM", or "Now" once it's due. */
+export function itemTime(item: OracleItem): string {
+  return item.due ? 'Now' : `~${formatTime(item.at)}`;
+}
+
+/** For screen readers: "Feed around 4:50 PM", "Feed, due now". */
 export function itemTitle(item: OracleItem): string {
-  return item.due ? `${itemName(item)} · due now` : `${itemName(item)} ~${formatTime(item.at)}`;
+  return item.due
+    ? `${itemName(item)}, due now`
+    : `${itemName(item)} around ${formatTime(item.at)}`;
 }
 
 export function windowText(item: OracleItem): string {
@@ -92,7 +80,7 @@ export function windowText(item: OracleItem): string {
 /** The second line of an agenda item; diapers stay a single line. */
 export function itemSubtitle(item: OracleItem): string | null {
   if (item.kind === 'nap' && item.endAt != null) {
-    return `About ${formatDuration(item.endAt - item.at)} · until ~${formatTime(item.endAt)}`;
+    return `About ${formatDuration(item.endAt - item.at)} · until ${formatTime(item.endAt)}`;
   }
   if (item.kind === 'wet-diaper' || item.kind === 'dirty-diaper') return null;
   return `Window ${windowText(item)}`;

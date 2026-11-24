@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Glass } from '@/components/glass';
 import { Icon, type IconName } from '@/components/icons/icon';
 import { StatTile } from '@/components/stat-tile';
+import { categoryColors, type Category } from '@/constants/categories';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -16,6 +17,7 @@ function plural(n: number, word: string) {
 
 export function DayTotals({ summary, unit }: { summary: DaySummary; unit: VolumeUnit }) {
   const theme = useTheme();
+  const color = (category: Category) => categoryColors(theme, category).bar;
   const feedDetail = [
     summary.bottleMl > 0 && `${formatVolume(summary.bottleMl, unit)} bottle`,
     summary.breastMs > 0 && `${formatDuration(summary.breastMs)} breast`,
@@ -24,15 +26,20 @@ export function DayTotals({ summary, unit }: { summary: DaySummary; unit: Volume
     .join(' · ');
 
   // Less frequent things get a line of their own, only on days they happened.
-  const extras: { icon: IconName; text: string }[] = [];
+  const extras: { icon: IconName; text: string; category: Category }[] = [];
   if (summary.pumpCount > 0) {
     extras.push({
       icon: 'pump',
+      category: 'feed',
       text: `Pumped ${formatVolume(summary.pumpMl, unit)} (${plural(summary.pumpCount, 'session')})`,
     });
   }
   if (summary.medicationCount > 0) {
-    extras.push({ icon: 'pill', text: plural(summary.medicationCount, 'medication') });
+    extras.push({
+      icon: 'pill',
+      text: plural(summary.medicationCount, 'medication'),
+      category: 'meds',
+    });
   }
 
   return (
@@ -41,18 +48,21 @@ export function DayTotals({ summary, unit }: { summary: DaySummary; unit: Volume
         <StatTile
           icon="moon-stars"
           title="Sleep"
+          iconColor={color('sleep')}
           value={summary.sleepMs > 0 ? formatDuration(summary.sleepMs) : '0'}
           detail={summary.sleepCount ? plural(summary.sleepCount, 'sleep') : undefined}
         />
         <StatTile
           icon="bottle"
           title="Feeds"
+          iconColor={color('feed')}
           value={String(summary.feedCount)}
           detail={feedDetail || undefined}
         />
         <StatTile
           icon="diaper"
           title="Diapers"
+          iconColor={color('diaper')}
           value={String(summary.diaperCount)}
           detail={
             summary.diaperCount
@@ -65,7 +75,7 @@ export function DayTotals({ summary, unit }: { summary: DaySummary; unit: Volume
         <View style={styles.extras}>
           {extras.map((extra) => (
             <Glass key={extra.icon} radius={18} blur={false} style={styles.chip}>
-              <Icon name={extra.icon} size={16} color={theme.accent} />
+              <Icon name={extra.icon} size={16} color={color(extra.category)} />
               <ThemedText type="small">{extra.text}</ThemedText>
             </Glass>
           ))}

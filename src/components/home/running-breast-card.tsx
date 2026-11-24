@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   clock: {
     fontSize: 52,
     lineHeight: 60,
-    fontWeight: 300,
+    fontWeight: 400,
     fontVariant: ['tabular-nums'],
   },
   sides: { flexDirection: 'row', gap: Spacing.two },

@@ -227,6 +227,9 @@ export function defaultSunTimes(now: number): {
   };
 }
 
+/** True for the night sky (and the moment it's more than halfway there). */
+export const isNightScene = (scene: Scene) => scene.accent === SCENES.night.accent;
+
 /** True when text on this scene is dark (the day sky); used for status bar and widgets. */
 export const isLightScene = (scene: Scene) => scene.text !== '#FFFFFF';
 

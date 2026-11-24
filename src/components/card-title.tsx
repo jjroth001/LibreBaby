@@ -6,11 +6,20 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** A card's heading: an accent-colored icon and a short bold label. */
-export function CardTitle({ icon, children }: { icon: IconName; children: string }) {
+export function CardTitle({
+  icon,
+  color,
+  children,
+}: {
+  icon: IconName;
+  /** The icon's color; the theme accent if not given. */
+  color?: string;
+  children: string;
+}) {
   const theme = useTheme();
   return (
     <View style={styles.row} accessibilityRole="header">
-      <Icon name={icon} size={20} color={theme.accent} />
+      <Icon name={icon} size={20} color={color ?? theme.accent} />
       <ThemedText type="smallBold" style={styles.text}>
         {children}
       </ThemedText>

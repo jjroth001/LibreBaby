@@ -11,15 +11,17 @@ type StatTileProps = {
   title: string;
   value?: string | null;
   detail?: string;
+  /** The icon's color; the theme accent if not given. */
+  iconColor?: string;
 };
 
 /** A small glass tile: icon and label on top, the value below. Laid out in rows of three. */
-export function StatTile({ icon, title, value, detail }: StatTileProps) {
+export function StatTile({ icon, title, value, detail, iconColor }: StatTileProps) {
   const theme = useTheme();
   return (
     <Glass radius={24} style={styles.tile}>
       <View style={styles.top}>
-        <Icon name={icon} size={16} color={theme.accent} />
+        <Icon name={icon} size={16} color={iconColor ?? theme.accent} />
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.title}>
           {title}
         </ThemedText>
@@ -48,7 +50,7 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one + 2 },
-  title: { flexShrink: 1, fontSize: 12, lineHeight: 16 },
-  value: { fontSize: 17, lineHeight: 22, fontWeight: 600 },
-  detail: { fontSize: 12, lineHeight: 16 },
+  title: { flexShrink: 1, fontSize: 14, lineHeight: 18 },
+  value: { fontSize: 18, lineHeight: 24, fontWeight: 600 },
+  detail: { fontSize: 14, lineHeight: 18 },
 });

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { eventIcon } from '@/components/icons/event-icon';
+import { categoryColors, eventCategory } from '@/constants/categories';
 import { Icon } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -25,6 +26,9 @@ export function EventRow({ event, unit, growthUnits, dayStart, running, onPress 
   const theme = useTheme();
   const ranged = event.type === 'sleep' || event.type === 'feed_breast' || event.type === 'pump';
 
+  const category = eventCategory(event);
+  const colors = category ? categoryColors(theme, category) : null;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -48,8 +52,8 @@ export function EventRow({ event, unit, growthUnits, dayStart, running, onPress 
         )}
       </View>
 
-      <View style={[styles.icon, { backgroundColor: theme.backgroundElement }]}>
-        <Icon name={eventIcon(event)} size={22} color={theme.text} />
+      <View style={[styles.icon, { backgroundColor: colors?.fill ?? theme.backgroundElement }]}>
+        <Icon name={eventIcon(event)} size={22} color={colors?.bar ?? theme.text} />
       </View>
 
       <View style={styles.body}>

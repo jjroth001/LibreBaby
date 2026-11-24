@@ -10,6 +10,9 @@ import { Platform } from 'react-native';
 /** Dark ink used on solid white controls (selected buttons, the primary pill). */
 export const InkOnWhite = '#1B1E3D';
 
+/** At night, selected and primary controls are a soft blue-grey instead of glaring white. */
+const NightWhite = '#CDD2EE';
+
 export type Palette = {
   /** Dark text on a light background (the day sky, or Simple in light mode). */
   light: boolean;
@@ -45,14 +48,17 @@ export type Palette = {
  * UI colors for the current sky (see lib/sky.ts): light text over the night, sunrise and
  * sunset skies, dark text over the day sky. Surfaces are translucent so the sky and the glass
  * panels show through; contrast on glass is enforced by sky.test.ts. `contrast` (Increase
- * contrast) makes secondary text full strength; Glass also turns more opaque.
+ * contrast) makes secondary text full strength; Glass also turns more opaque. `night` softens
+ * the white of selected and primary controls, which glares in a dark room.
  */
 export function paletteFor(
   text: string,
   textMuted: string,
   accent: string,
   contrast = false,
+  night = false,
 ): Palette {
+  const white = night ? NightWhite : '#FFFFFF';
   const light = text !== '#FFFFFF';
   return {
     light,
@@ -64,9 +70,9 @@ export function paletteFor(
     backgroundElement: light ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.12)',
     backgroundSelected: light ? 'rgba(13,34,56,0.12)' : 'rgba(255,255,255,0.22)',
     // Primary controls: solid white with dark ink, or (by day) deep blue with white.
-    tint: light ? '#1D5FAE' : '#FFFFFF',
+    tint: light ? '#1D5FAE' : white,
     onTint: light ? '#FFFFFF' : InkOnWhite,
-    selected: '#FFFFFF',
+    selected: white,
     onSelected: InkOnWhite,
     onSelectedMuted: 'rgba(27,30,61,0.7)',
     card: 'transparent',

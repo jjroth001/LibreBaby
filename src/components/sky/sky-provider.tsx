@@ -10,7 +10,7 @@ import { useSettings } from '@/db/use-settings';
 import { useNow } from '@/hooks/use-now';
 import { setHapticsEnabled } from '@/lib/haptics';
 import { refreshSkyLocation } from '@/lib/location';
-import { SCENES, sceneFor, type Scene } from '@/lib/sky';
+import { isNightScene, SCENES, sceneFor, type Scene } from '@/lib/sky';
 
 import { SkyBackground } from './sky-background';
 
@@ -33,7 +33,7 @@ const SkyContext = createContext<SkyValue>({
 });
 // Separate, so text-colored UI doesn't re-render with every minute's sky change.
 const PaletteContext = createContext<Palette>(
-  paletteFor(night.text, night.textMuted, night.accent),
+  paletteFor(night.text, night.textMuted, night.accent, false, true),
 );
 
 /** The current sky scene; changes every minute. */
@@ -66,7 +66,7 @@ export function SkyProvider({ children }: { children: ReactNode }) {
   // not every minute.
   const palette = simple
     ? simplePalette(systemScheme === 'dark', contrast)
-    : paletteFor(scene.text, scene.textMuted, scene.accent, contrast);
+    : paletteFor(scene.text, scene.textMuted, scene.accent, contrast, isNightScene(scene));
 
   useEffect(() => setHapticsEnabled(haptics), [haptics]);
 

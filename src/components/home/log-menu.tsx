@@ -5,11 +5,12 @@ import { Glass } from '@/components/glass';
 import { ActionGrid, type Action } from '@/components/home/action-grid';
 import { Icon, type IconName } from '@/components/icons/icon';
 import { ThemedText } from '@/components/themed-text';
+import { categoryColors, type Category as ColorCategory } from '@/constants/categories';
 import { Motion } from '@/constants/motion';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export type Category = 'sleep' | 'feed' | 'diaper' | 'meds';
+export type Category = ColorCategory;
 
 const CATEGORIES: { key: Category; icon: IconName; label: string }[] = [
   { key: 'sleep', icon: 'moon-stars', label: 'Sleep' },
@@ -51,10 +52,18 @@ export function LogMenu({ open, onToggle, onClose, actions }: LogMenuProps) {
                 </View>
               ) : (
                 <Glass radius={SIZE / 2} style={styles.circle}>
-                  <Icon name={category.icon} size={30} color={theme.text} />
+                  <Icon
+                    name={category.icon}
+                    size={30}
+                    color={categoryColors(theme, category.key).bar}
+                  />
                 </Glass>
               )}
-              <ThemedText style={styles.label}>{category.label}</ThemedText>
+              {/* Straight on the sky: a soft shadow keeps white labels readable over its
+                  brightest parts (the sunset band). */}
+              <ThemedText style={[styles.label, !theme.light && !theme.simple && styles.halo]}>
+                {category.label}
+              </ThemedText>
             </Pressable>
           );
         })}
@@ -96,6 +105,11 @@ const styles = StyleSheet.create({
     borderRadius: SIZE / 2,
     boxShadow: '0px 6px 18px rgba(0,0,0,0.18)',
   },
-  label: { fontSize: 14, lineHeight: 18, fontWeight: 600 },
+  label: { fontSize: 15, lineHeight: 20, fontWeight: 600 },
+  halo: {
+    textShadowColor: 'rgba(20,8,30,0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
   pressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
 });

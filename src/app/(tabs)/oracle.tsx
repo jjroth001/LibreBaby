@@ -47,8 +47,6 @@ const DIAPER_OPTIONS = [
   { value: 'dirty', label: 'Dirty only' },
 ] as const satisfies readonly { value: OracleDiapers; label: string }[];
 
-const BADGE_W = 44;
-
 export default function OracleScreen() {
   const { data: child } = useChild();
   // Built just after Home, so the app opens quicker (see useDeferredMount).
@@ -61,8 +59,14 @@ function isRunning(event: BabyEvent): boolean {
   return event.endAt === null && (TIMER_TYPES as readonly string[]).includes(event.type);
 }
 
-function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? '' : 's'}`;
+function plural(n: number, word: string, many = `${word}s`): string {
+  return `${n} ${n === 1 ? word : many}`;
+}
+
+/** "Monday 23", for the agenda's day headings. */
+function dayName(day: number): string {
+  const date = new Date(day);
+  return `${date.toLocaleDateString(undefined, { weekday: 'long' })} ${date.getDate()}`;
 }
 
 function Oracle({ child }: { child: Child }) {
@@ -118,7 +122,7 @@ function Oracle({ child }: { child: Child }) {
       : forecast.awakeSince != null
         ? `Now ${formatTime(now)} · awake ${formatDuration(now - forecast.awakeSince)}`
         : `Now ${formatTime(now)}`;
-  const earlierCount = earlier.sleeps + earlier.feeds + earlier.diapers;
+  const earlierCount = earlier.events.length;
 
   return (
     <Screen>
@@ -146,10 +150,11 @@ function Oracle({ child }: { child: Child }) {
 
       <Card style={styles.agenda}>
         <LayoutAnimationConfig key={resetKey} skipEntering skipExiting>
-          <Section badge={<DateBadge day={today} today />}>
+          <Section label={`Today · ${dayName(today)}`} icon="calendar-blank">
             {earlierCount > 0 && (
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={`Earlier today: ${plural(earlier.sleeps, 'sleep')}, ${plural(earlier.feeds, 'feed')}, ${plural(earlier.diapers, 'diaper')}`}
                 accessibilityState={{ expanded: showEarlier }}
                 accessibilityHint={showEarlier ? 'Hides today’s entries' : 'Shows today’s entries'}
                 onPress={() => {
@@ -158,8 +163,7 @@ function Oracle({ child }: { child: Child }) {
                 }}
                 style={[styles.earlier, { backgroundColor: theme.backgroundElement }]}>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.earlierText}>
-                  Earlier · {plural(earlier.sleeps, 'sleep')} · {plural(earlier.feeds, 'feed')} ·{' '}
-                  {plural(earlier.diapers, 'diaper')}
+                  Earlier today · {plural(earlierCount, 'entry', 'entries')}
                 </ThemedText>
                 <Chevron open={showEarlier} color={theme.textSecondary} />
               </Pressable>
@@ -200,10 +204,11 @@ function Oracle({ child }: { child: Child }) {
 
           {morningItems.length > 0 && morningDay != null && (
             <Section
-              label={morningDay === today ? 'This morning' : 'Tomorrow morning'}
+              label={
+                morningDay === today ? 'This morning' : `Tomorrow morning · ${dayName(morningDay)}`
+              }
               icon="sun"
-              layout={layout}
-              badge={morningDay !== today ? <DateBadge day={morningDay} /> : undefined}>
+              layout={layout}>
               {list(morningItems)}
             </Section>
           )}
@@ -231,63 +236,30 @@ function Oracle({ child }: { child: Child }) {
   );
 }
 
-/** A stretch of the agenda: an optional date badge on the left, a heading, then items. */
+/** A stretch of the agenda: a heading, then its items. */
 function Section({
-  badge,
   label,
   icon,
   layout,
   children,
 }: {
-  badge?: ReactNode;
-  label?: string;
-  icon?: IconName;
+  label: string;
+  icon: IconName;
   layout?: typeof Motion.layout;
   children: ReactNode;
 }) {
   const theme = useTheme();
   return (
     <Animated.View layout={layout} style={styles.section}>
-      <View style={styles.badgeCol}>{badge}</View>
-      <View style={styles.sectionBody}>
-        {label && (
-          <View style={styles.sectionLabel} accessibilityRole="header">
-            {icon && <Icon name={icon} size={16} color={theme.textSecondary} duotone={false} />}
-            <ThemedText type="smallBold" themeColor="textSecondary" style={styles.caps}>
-              {label.toUpperCase()}
-            </ThemedText>
-            <View style={[styles.rule, { backgroundColor: theme.backgroundSelected }]} />
-          </View>
-        )}
-        {children}
-      </View>
-    </Animated.View>
-  );
-}
-
-/** "FRI / 16", with today's date in a filled circle, as in a calendar's agenda. */
-function DateBadge({ day, today = false }: { day: number; today?: boolean }) {
-  const theme = useTheme();
-  const date = new Date(day);
-  const weekday = date.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
-  return (
-    <View
-      style={styles.badge}
-      accessible
-      accessibilityLabel={date.toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      })}>
-      <ThemedText style={[styles.weekday, { color: today ? theme.tint : theme.textSecondary }]}>
-        {weekday}
-      </ThemedText>
-      <View style={[styles.dayCircle, today && { backgroundColor: theme.tint }]}>
-        <ThemedText style={[styles.dayNumber, today && { color: theme.onTint }]}>
-          {date.getDate()}
+      <View style={styles.sectionLabel} accessibilityRole="header">
+        <Icon name={icon} size={16} color={theme.textSecondary} duotone={false} />
+        <ThemedText type="smallBold" themeColor="textSecondary" style={styles.caps}>
+          {label.toUpperCase()}
         </ThemedText>
+        <View style={[styles.rule, { backgroundColor: theme.backgroundSelected }]} />
       </View>
-    </View>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -326,38 +298,16 @@ const styles = StyleSheet.create({
   title: { fontFamily: Fonts.serif, fontSize: 28, lineHeight: 36, fontWeight: 400 },
   note: { flexDirection: 'row', gap: Spacing.two + Spacing.one, alignItems: 'flex-start' },
   noteText: { flex: 1 },
-  agenda: {
-    paddingVertical: Spacing.three,
-    paddingLeft: Spacing.two,
-    paddingRight: Spacing.three,
-    gap: Spacing.three,
-  },
-  section: { flexDirection: 'row', gap: Spacing.two },
-  badgeCol: { width: BADGE_W, alignItems: 'center' },
-  sectionBody: { flex: 1, gap: Spacing.two },
-  sectionLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    marginTop: Spacing.one,
-  },
+  agenda: { padding: Spacing.three, gap: Spacing.three },
+  section: { gap: Spacing.two },
+  sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   caps: { fontSize: 12, letterSpacing: 0.6 },
   rule: { flex: 1, height: StyleSheet.hairlineWidth * 2 },
-  badge: { alignItems: 'center', gap: Spacing.half },
-  weekday: { fontSize: 12, lineHeight: 16, fontWeight: 700 },
-  dayCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayNumber: { fontSize: 18, lineHeight: 24, fontWeight: 700 },
   earlier: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 40,
-    borderRadius: 20,
+    minHeight: 48,
+    borderRadius: 24,
     paddingHorizontal: Spacing.three,
     gap: Spacing.two,
   },

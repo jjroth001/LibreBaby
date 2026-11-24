@@ -226,7 +226,7 @@ function MeasurementRow({
 const styles = StyleSheet.create({
   container: { gap: Spacing.four },
   header: { gap: Spacing.half },
-  headline: { fontSize: 28, lineHeight: 36, fontWeight: 300 },
+  headline: { fontSize: 28, lineHeight: 36, fontWeight: 400 },
   history: { padding: Spacing.two, gap: Spacing.half },
   historyTitle: { paddingHorizontal: Spacing.two, paddingTop: Spacing.two },
   row: { padding: Spacing.three, borderRadius: 20, gap: Spacing.half },

@@ -23,6 +23,8 @@ type BarChartProps = {
   average: number | null;
   /** What the chart shows, for screen readers ("Sleep per day"). */
   title: string;
+  /** Bar color; the theme's chart color if not given. */
+  color?: string;
 };
 
 const HEIGHT = 120;
@@ -41,7 +43,7 @@ function niceCeil(value: number): number {
  * Single-series daily bar chart. Tap a bar to read its exact value; the readout
  * otherwise shows the average. One series, so the card title names it (no legend).
  */
-export function BarChart({ bars, format, average, title }: BarChartProps) {
+export function BarChart({ bars, format, average, title, color }: BarChartProps) {
   const theme = useTheme();
   const [selected, setSelected] = useState<number | null>(null);
   const max = niceCeil(Math.max(...bars.map((b) => b.value), average ?? 0));
@@ -89,7 +91,7 @@ export function BarChart({ bars, format, average, title }: BarChartProps) {
                     styles.bar,
                     {
                       height: Math.max(bar.value > 0 ? 2 : 0, (bar.value / max) * HEIGHT),
-                      backgroundColor: theme.chart,
+                      backgroundColor: color ?? theme.chart,
                       opacity: bar.partial ? 0.4 : selected === null || isSelected ? 1 : 0.55,
                     },
                   ]}

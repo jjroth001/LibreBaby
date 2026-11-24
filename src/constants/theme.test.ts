@@ -1,4 +1,7 @@
-import { simplePalette, type Palette } from './theme';
+import { SCENES } from '@/lib/sky';
+
+import { categoryColors, type Category } from './categories';
+import { paletteFor, simplePalette, type Palette } from './theme';
 
 // theme.ts imports the web stylesheet; Jest can't parse CSS. (jest.mock is hoisted.)
 jest.mock('@/global.css', () => ({}));
@@ -61,5 +64,46 @@ describe.each([
     expect(contrast(p.selected, p.background)).toBeGreaterThanOrEqual(3);
     expect(contrast(p.chart, p.card)).toBeGreaterThanOrEqual(3);
     expect(contrast(p.growthChild, p.card)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe.each([
+  [
+    'night',
+    paletteFor(SCENES.night.text, SCENES.night.textMuted, SCENES.night.accent, false, true),
+  ],
+  ['sunset', paletteFor(SCENES.sunset.text, SCENES.sunset.textMuted, SCENES.sunset.accent)],
+  ['day', paletteFor(SCENES.day.text, SCENES.day.textMuted, SCENES.day.accent)],
+] as [string, Palette][])('Sky palette (%s)', (name, p) => {
+  it('labels selected and primary controls readably', () => {
+    expect(contrast(p.onSelected, p.selected)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(p.onSelectedMuted, p.selected)).toBeGreaterThanOrEqual(3);
+    expect(contrast(p.onTint, p.tint)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('softens the white of selected controls only at night', () => {
+    expect(p.selected === '#FFFFFF').toBe(name !== 'night');
+  });
+});
+
+describe('Category colors', () => {
+  const palettes: [string, Palette, string][] = [
+    ['Simple light', simplePalette(false), simplePalette(false).card],
+    ['Simple dark', simplePalette(true), simplePalette(true).card],
+    // Roughly the glass panel color under light and dark text.
+    [
+      'sky, dark text',
+      paletteFor(SCENES.day.text, SCENES.day.textMuted, SCENES.day.accent),
+      '#E6F1FA',
+    ],
+    ['sky, light text', paletteFor('#FFFFFF', 'rgba(255,255,255,0.8)', '#FFE7A3'), '#1A1F45'],
+  ];
+  const categories: Category[] = ['sleep', 'feed', 'diaper', 'meds'];
+  it.each(palettes)('icons stand out on their soft fill (%s)', (_, p, surface) => {
+    for (const category of categories) {
+      const { bar, fill } = categoryColors(p, category);
+      expect(contrast(bar, fill, surface)).toBeGreaterThanOrEqual(3);
+      expect(contrast(bar, surface)).toBeGreaterThanOrEqual(3);
+    }
   });
 });

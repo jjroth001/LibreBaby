@@ -1,9 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 
 import { StatTile } from '@/components/stat-tile';
+import { categoryColors } from '@/constants/categories';
 import { Spacing } from '@/constants/theme';
 import type { BabyEvent } from '@/db/types';
-import { describeEvent } from '@/lib/describe';
+import { useTheme } from '@/hooks/use-theme';
+import { describeEventShort } from '@/lib/describe';
 import { formatDuration } from '@/lib/format';
 import type { VolumeUnit } from '@/lib/units';
 
@@ -25,29 +27,39 @@ export function LastEvents({
   lastFeed,
   lastDiaper,
 }: LastEventsProps) {
+  const theme = useTheme();
+  const color = (category: 'sleep' | 'feed' | 'diaper') => categoryColors(theme, category).bar;
   const sleepTile = sleeping
     ? { value: 'Asleep', detail: 'Timer running' }
     : lastSleep?.endAt
       ? {
           value: formatDuration(now - lastSleep.endAt),
-          detail: describeEvent(lastSleep, unit),
+          detail: describeEventShort(lastSleep, unit),
         }
       : null;
 
   return (
     <View style={styles.row}>
-      <StatTile icon="timer" title="Awake" value={sleepTile?.value} detail={sleepTile?.detail} />
+      <StatTile
+        icon="timer"
+        title="Awake"
+        value={sleepTile?.value}
+        detail={sleepTile?.detail}
+        iconColor={color('sleep')}
+      />
       <StatTile
         icon="bottle"
         title="Fed"
+        iconColor={color('feed')}
         value={lastFeed && `${formatDuration(now - lastFeed.startAt)} ago`}
-        detail={lastFeed ? describeEvent(lastFeed, unit) : undefined}
+        detail={lastFeed ? describeEventShort(lastFeed, unit) : undefined}
       />
       <StatTile
         icon="diaper"
         title="Diaper"
+        iconColor={color('diaper')}
         value={lastDiaper && `${formatDuration(now - lastDiaper.startAt)} ago`}
-        detail={lastDiaper ? describeEvent(lastDiaper, unit) : undefined}
+        detail={lastDiaper ? describeEventShort(lastDiaper, unit) : undefined}
       />
     </View>
   );

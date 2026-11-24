@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   headline: {
     fontSize: 30,
     lineHeight: 38,
-    fontWeight: 300,
+    fontWeight: 400,
     fontVariant: ['tabular-nums'],
   },
   centerText: { textAlign: 'center' },

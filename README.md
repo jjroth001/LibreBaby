@@ -38,7 +38,7 @@
 - **Time-of-day design:** "liquid glass" panels over a sky that follows the real sunrise and sunset. There's also an always-night option for 3 AM.
 
 **Your data**
-- **Family sync** between phones on the same Wi-Fi, end-to-end encrypted, with no server in between. Pair once by scanning a QR code. It keeps syncing in the background after that, and you can turn that off.
+- **Family sync** between phones on the same Wi-Fi, end-to-end encrypted, with no server in between. Pair once by scanning a QR code. It keeps syncing in the background after that, and you can turn that off. If your phones use [Tailscale](https://tailscale.com), they also sync over it when you're apart, with nothing to set up in LibreBaby.
 - **Backup and restore** to a single file you keep wherever you like, and **export everything as a spreadsheet (CSV)**.
 - **Import from Huckleberry:** bring your history over from a Huckleberry CSV export.
 
@@ -46,7 +46,7 @@
 
 LibreBaby has no accounts, no analytics, no ads and no servers. Everything you log is stored in a database on your phone, and leaves it only in these ways:
 
-- **Family sync** sends entries directly to the phones you paired, over your local Wi-Fi. They're encrypted with a key only your family's phones have. Phones find each other on the local network and never connect over the internet. See [SYNC.md](SYNC.md) for how it works.
+- **Family sync** sends entries directly to the phones you paired, over your local Wi-Fi. They're encrypted with a key only your family's phones have. Phones find each other on the local network and never connect over the internet, except through your own Tailscale network if you use one. See [SYNC.md](SYNC.md) for how it works.
 - **A backup or spreadsheet export** goes wherever you choose to share it.
 
 LibreBaby opts out of Android's automatic cloud backup, so your log isn't copied to your Google account. Keep your own backups with Settings → Back up.

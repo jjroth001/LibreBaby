@@ -2,7 +2,7 @@
 
 Phones in a "family" exchange changes directly over the home network. No accounts, no
 cloud, no infrastructure. Syncs whenever two paired phones have LibreBaby open on the
-same Wi-Fi.
+same Wi-Fi, and, if both use [Tailscale](https://tailscale.com), over it when apart.
 
 ## Identity and pairing
 
@@ -29,7 +29,8 @@ Over one TCP connection, every frame is `u32 length + random nonce + XChaCha20-P
 ciphertext. A frame that doesn't decrypt is a stranger: the connection is dropped.
 
 1. `hello` — protocol version (4 since per-connection keys; 3 added milestone entries; 2
-   added `ack`), device id, name, the port this phone listens on, and a fresh random
+   added `ack`), device id, name, the port this phone listens on, its Tailscale addresses if it has any
+   (see Over Tailscale), and a fresh random
    32-byte `nonce`. Hellos are sealed with the family key and the family id as associated
    data. Successful decryption is the authentication, and an older phone can still read
    ours and is asked to update. Until the other side's hello has opened, at most 16 KB is
@@ -62,6 +63,22 @@ connected *to* remembers the caller's address and advertised port, and can call 
 Phones are told apart by the device id in the encrypted hello, so a phone found both ways
 is still synced once.
 
+## Over Tailscale
+
+Sync listens on TCP port 47323 (any free port if that's taken; the hello says which).
+Each hello carries this phone's own Tailscale addresses: those in 100.64.0.0/10 or
+fd7a:115c:a1e0::/48 on a `tun` interface (a carrier's 100.64/10 address on its own
+interface doesn't count). A phone keeps each family phone's latest addresses and port in
+secure storage, never in backups, and drops them when it leaves the family or resets the
+code. Only addresses in those two ranges are accepted from a hello, so a phone can't be
+steered into calling anything else.
+
+While this phone has a Tailscale address, every family phone it has addresses for that
+discovery doesn't currently show on the local network is called at its first saved
+address, at the usual times. Nothing needs setting up in LibreBaby: phones learn each
+other's addresses the next time they sync on the same Wi-Fi. The connection and
+encryption are the same as on Wi-Fi; Tailscale only carries it.
+
 ## Removing a phone
 
 Anyone who ever scanned the family code has the key. **Reset family code** (Settings →
@@ -92,8 +109,8 @@ are per phone.
 
 ## Limits (by design)
 
-- Both phones must be on the same Wi-Fi with the app open (or recently opened); Android
-  restricts background networking. Changes made apart sync when you're back together.
+- Both phones must be on the same Wi-Fi, or both on Tailscale, with LibreBaby open or
+  background sync on. Otherwise changes made apart sync when you're back together.
 - Some guest/public networks block devices from seeing each other.
 - Clocks: "newer edit wins" uses each phone's clock; phones set time automatically, so
   this is reliable in practice.

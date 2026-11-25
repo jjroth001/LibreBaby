@@ -10,12 +10,16 @@ describe('describeEventShort', () => {
     expect(
       describeEventShort(event('feed_bottle', { amountMl: 120, content: 'formula' }), 'ml'),
     ).toBe('Bottle 120 ml');
-    expect(
-      describeEventShort(event('feed_breast', { leftMs: 12 * 60_000, rightMs: 9 * 60_000 }), 'oz'),
-    ).toBe('Breast\nL 12m, R 9m');
-    expect(describeEventShort(event('feed_breast', { leftMs: 0, rightMs: 9 * 60_000 }), 'oz')).toBe(
-      'Breast\nR 9m',
-    );
+    const breast = (leftMin: number, rightMin: number, lastSide?: string) =>
+      describeEventShort(
+        event('feed_breast', { leftMs: leftMin * 60_000, rightMs: rightMin * 60_000, lastSide }),
+        'oz',
+      );
+    expect(breast(12, 9, 'R')).toBe('L 12m · R 9m\nLast: right');
+    expect(breast(12, 0, 'L')).toBe('L 12m\nLast: left');
+    expect(breast(0, 0, 'L')).toBe('Breast');
+    // Odd data (say, from an import) still shows the sides.
+    expect(breast(12, 9)).toBe('Breast · L 12m · R 9m');
     expect(describeEventShort(event('diaper', { wet: true, dirty: false }), 'oz')).toBe('Wet');
     expect(describeEventShort(event('diaper', { wet: true, dirty: true }), 'oz')).toBe(
       'Wet + dirty',

@@ -53,6 +53,8 @@ export function LastEvents({
         iconColor={color('feed')}
         value={lastFeed && `${formatDuration(now - lastFeed.startAt)} ago`}
         detail={lastFeed ? describeEventShort(lastFeed, unit) : undefined}
+        // A long breast feed ("L 1h 5m · R 1h 2m") can wrap; keep the "Last:" line visible.
+        detailLines={3}
       />
       <StatTile
         icon="diaper"

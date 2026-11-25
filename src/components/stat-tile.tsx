@@ -13,10 +13,19 @@ type StatTileProps = {
   detail?: string;
   /** The icon's color; the theme accent if not given. */
   iconColor?: string;
+  /** How many lines the detail may take before it's cut off (2 unless a tile needs more). */
+  detailLines?: number;
 };
 
 /** A small glass tile: icon and label on top, the value below. Laid out in rows of three. */
-export function StatTile({ icon, title, value, detail, iconColor }: StatTileProps) {
+export function StatTile({
+  icon,
+  title,
+  value,
+  detail,
+  iconColor,
+  detailLines = 2,
+}: StatTileProps) {
   const theme = useTheme();
   return (
     <Glass radius={24} style={styles.tile}>
@@ -34,7 +43,11 @@ export function StatTile({ icon, title, value, detail, iconColor }: StatTileProp
         {value ?? '—'}
       </ThemedText>
       {detail ? (
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={2} style={styles.detail}>
+        <ThemedText
+          type="small"
+          themeColor="textSecondary"
+          numberOfLines={detailLines}
+          style={styles.detail}>
           {detail}
         </ThemedText>
       ) : null}

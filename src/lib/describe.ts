@@ -65,13 +65,19 @@ export function describeEvent(
 
 /**
  * A shorter label for the small tiles on Home, where the full one wraps or gets cut off:
- * "Bottle 4 oz", "Breast 21m", "Wet + dirty". Falls back to the full label.
+ * "Bottle 4 oz", "Wet + dirty". Breast feeds keep each side on a line of its own
+ * ("Breast" / "L 12m, R 9m"), since parents check it to know which side to start on next.
+ * Falls back to the full label.
  */
 export function describeEventShort(event: BabyEvent, unit: VolumeUnit): string {
   switch (event.type) {
     case 'feed_breast': {
-      const total = event.data.leftMs + event.data.rightMs;
-      return total > 0 ? `Breast ${formatDuration(total)}` : 'Breast';
+      const { leftMs, rightMs } = event.data;
+      const sides = [
+        leftMs > 0 && `L ${formatDuration(leftMs)}`,
+        rightMs > 0 && `R ${formatDuration(rightMs)}`,
+      ].filter(Boolean);
+      return sides.length ? `Breast\n${sides.join(', ')}` : 'Breast';
     }
     case 'feed_bottle':
       return `Bottle ${formatVolume(event.data.amountMl, unit)}`;

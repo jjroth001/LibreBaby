@@ -12,7 +12,10 @@ describe('describeEventShort', () => {
     ).toBe('Bottle 120 ml');
     expect(
       describeEventShort(event('feed_breast', { leftMs: 12 * 60_000, rightMs: 9 * 60_000 }), 'oz'),
-    ).toBe('Breast 21m');
+    ).toBe('Breast\nL 12m, R 9m');
+    expect(describeEventShort(event('feed_breast', { leftMs: 0, rightMs: 9 * 60_000 }), 'oz')).toBe(
+      'Breast\nR 9m',
+    );
     expect(describeEventShort(event('diaper', { wet: true, dirty: false }), 'oz')).toBe('Wet');
     expect(describeEventShort(event('diaper', { wet: true, dirty: true }), 'oz')).toBe(
       'Wet + dirty',
